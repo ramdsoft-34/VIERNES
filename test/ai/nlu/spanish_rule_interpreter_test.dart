@@ -380,4 +380,65 @@ void main() {
       expect(parse('el día 20 cita').confidence, lessThan(1.0));
     });
   });
+
+  group('repeticiones con fecha final (pruebas en el teléfono)', () {
+    test('"por 30 días … a las 7 de la noche" se repite 30 días', () {
+      final r = reminder(
+        'por 30 días tengo que tomar una pasta así que por 30 días a las 7 '
+        'de la noche Recuérdame que tengo que tomar una pasta',
+      );
+      expect(r.recurrence.frequency, RecurrenceFrequency.daily);
+      expect(r.recurrence.until, DateTime(2026, 10, 30));
+      expect(r.resolveDue(now), DateTime(2026, 10, 1, 19));
+      expect(r.title.toLowerCase(), contains('tomar una pasta'));
+      expect(r.title.toLowerCase(), isNot(contains('así que')));
+    });
+
+    test('"del 5 al 10 … esos días a las 10 de la mañana"', () {
+      final r = reminder(
+        'del 5 al 10 tengo parciales entonces esos días a las 10 de la '
+        'mañana tienes que estarme recordando que tengo que',
+      );
+      expect(r.title, 'Parciales');
+      expect(r.recurrence.frequency, RecurrenceFrequency.daily);
+      expect(r.recurrence.until, DateTime(2026, 10, 10));
+      expect(r.resolveDue(now), DateTime(2026, 10, 5, 10));
+    });
+
+    test('un rango que ya empezó arranca hoy', () {
+      final r = reminder('del 1 al 3 tomar agua a las 6 de la tarde');
+      expect(r.resolveDue(now), DateTime(2026, 10, 1, 18));
+      expect(r.recurrence.until, DateTime(2026, 10, 3));
+    });
+
+    test('"todos los días hasta el 15" pone el último día', () {
+      final r = reminder('todos los días hasta el 15 a las 8 pm caminar');
+      expect(r.title, 'Caminar');
+      expect(r.recurrence.until, DateTime(2026, 10, 15));
+    });
+
+    test('"durante dos semanas" cuenta 14 días', () {
+      final r = reminder('durante dos semanas a las 9 pm estirar');
+      expect(r.recurrence.until, DateTime(2026, 10, 14));
+    });
+  });
+
+  group('órdenes de alarma y "hazme acuerdo"', () {
+    test('"activa una alarma a las 5:30" se llama Alarma', () {
+      final r = reminder('activa una alarma a las 5:30 pm');
+      expect(r.title, 'Alarma');
+      expect(r.resolveDue(now), DateTime(2026, 10, 1, 17, 30));
+    });
+
+    test('"hazme acuerdo de llamar a Juan"', () {
+      expect(
+        reminder('hazme acuerdo de llamar a Juan mañana').title,
+        'Llamar a Juan',
+      );
+    });
+
+    test('"despiértame mañana a las 6"', () {
+      expect(reminder('despiértame mañana a las 6 am').title, 'Despertar');
+    });
+  });
 }

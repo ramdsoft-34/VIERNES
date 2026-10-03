@@ -15,7 +15,9 @@ import 'package:viernes/features/reminders/presentation/providers/reminder_provi
 import 'package:viernes/features/sharing/application/shared_inbox.dart';
 import 'package:viernes/features/sharing/data/contacts_repository.dart';
 import 'package:viernes/features/sharing/data/firestore_sharing_repository.dart';
+import 'package:viernes/features/sharing/data/friend_requests.dart';
 import 'package:viernes/features/sharing/data/offline_sharing_repository.dart';
+import 'package:viernes/features/sharing/domain/friend_invite.dart';
 import 'package:viernes/features/sharing/domain/sharing_models.dart';
 import 'package:viernes/features/sharing/domain/sharing_repository.dart';
 
@@ -58,6 +60,71 @@ class ContactsController extends Notifier<List<Contact>> {
   Future<void> remove(Contact contact) async {
     await ref.read(contactsRepositoryProvider).remove(contact);
     state = ref.read(contactsRepositoryProvider).all();
+  }
+}
+
+final friendRequestsProvider = Provider<FriendRequestsRemote>(
+  (ref) => FirestoreFriendRequests(FirebaseFirestore.instance),
+);
+
+final friendInvitesProvider = Provider<FriendInvites>(FriendInvites.new);
+
+/// Resultado de aceptar una invitación.
+enum InviteResult {
+  /// Agregado aquí y la otra persona me agregará sola.
+  added,
+
+  /// Agregado aquí; no se pudo avisar a la otra persona (sin internet o
+  /// reglas de la nube sin publicar). Tendrá que agregarme ella.
+  addedOnlyHere,
+
+  /// Es mi propia invitación.
+  self,
+}
+
+/// Invitar con un enlace y aceptar invitaciones.
+class FriendInvites {
+  FriendInvites(this._ref);
+
+  final Ref _ref;
+
+  /// Mi invitación, o nula sin sesión.
+  FriendInvite? mine() {
+    final user = _ref.read(authStateProvider).value;
+    final email = user?.email;
+    if (user == null || email == null) return null;
+    final name = user.displayName?.trim();
+    return FriendInvite(
+      name: name == null || name.isEmpty ? email.split('@').first : name,
+      email: email.toLowerCase(),
+    );
+  }
+
+  Future<InviteResult> accept(FriendInvite invite) async {
+    final me = mine();
+    if (me != null && me.email == invite.email) return InviteResult.self;
+    await _ref
+        .read(contactsProvider.notifier)
+        .save(Contact(name: invite.name, email: invite.email));
+    final user = _ref.read(authStateProvider).value;
+    if (me == null || user == null) return InviteResult.addedOnlyHere;
+    try {
+      await _ref
+          .read(friendRequestsProvider)
+          .send(
+            toEmail: invite.email,
+            fromUid: user.uid,
+            fromEmail: me.email,
+            fromName: me.name,
+          )
+          .timeout(const Duration(seconds: 15));
+      return InviteResult.added;
+    } on Object catch (error) {
+      AppLogger.info(
+        'Invitación: no se pudo avisar a ${invite.email} ($error)',
+      );
+      return InviteResult.addedOnlyHere;
+    }
   }
 }
 
@@ -241,12 +308,46 @@ class SharingCoordinator with WidgetsBindingObserver {
       )
       ..add(
         _ref
+            .read(friendRequestsProvider)
+            .watch(email)
+            .listen(
+              (requests) => unawaited(_guard(() => _addBack(requests))),
+              onError: _log,
+            ),
+      )
+      ..add(
+        _ref
             .read(localReminderRepositoryProvider)
             .watchByStatus({ReminderStatus.completed})
             .listen(
               (done) => unawaited(_guard(() => inbox.reportCompleted(done))),
             ),
       );
+  }
+
+  /// Alguien aceptó mi invitación: lo agrego a mis contactos y le aviso al
+  /// usuario.
+  Future<void> _addBack(List<FriendRequest> requests) async {
+    for (final request in requests) {
+      final known = _ref
+          .read(contactsProvider)
+          .any((c) => c.email == request.fromEmail);
+      if (!known) {
+        await _ref
+            .read(contactsProvider.notifier)
+            .save(Contact(name: request.fromName, email: request.fromEmail));
+        await _ref
+            .read(notificationServiceProvider)
+            .showInfo(
+              id: 0x7E000000 + (request.fromEmail.hashCode & 0xFFFF),
+              title: '${request.fromName} ya está en tus contactos',
+              body:
+                  'Aceptó tu invitación. Ya pueden compartir recordatorios '
+                  'y listas.',
+            );
+      }
+      await _ref.read(friendRequestsProvider).delete(request.id);
+    }
   }
 
   Future<void> _guard(Future<void> Function() action) async {

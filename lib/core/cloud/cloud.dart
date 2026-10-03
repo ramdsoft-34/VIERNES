@@ -28,6 +28,11 @@ Future<bool> initializeCloud() async {
   }
 }
 
+/// La nube rechazó la operación por permisos: casi siempre son reglas de
+/// seguridad sin publicar (ver docs/CUENTAS.md).
+bool isPermissionError(Object error) =>
+    error is FirebaseException && error.code == 'permission-denied';
+
 /// El error se debe a la falta de conexión (se reintenta más tarde).
 bool isOfflineError(Object error) =>
     error is TimeoutException ||

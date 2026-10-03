@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
+import 'package:viernes/ai/wake_word/voice_profile_service.dart';
 import 'package:viernes/ai/wake_word/wake_model_manager.dart';
 import 'package:viernes/ai/wake_word/wake_word_service.dart';
 
@@ -117,4 +118,55 @@ class FakeWakeModelManager implements WakeModelManager {
 
   @override
   Future<void> remove() async => installed = false;
+}
+
+/// Voz registrada falsa: por defecto ya hay una voz.
+class FakeVoiceProfileService implements VoiceProfileService {
+  FakeVoiceProfileService({this.enrolled = true});
+
+  bool enrolled;
+  int recorded = 0;
+  VoiceStrictness strictness = VoiceStrictness.normal;
+
+  /// Próximas respuestas de [recordSample] (ok o el problema).
+  final List<SampleProblem> nextProblems = [];
+
+  @override
+  Future<VoiceProfileStatus> status() async => VoiceProfileStatus(
+    enrolled: enrolled,
+    samples: enrolled ? VoiceProfileService.samplesNeeded : 0,
+    strictness: strictness,
+  );
+
+  @override
+  Future<void> startEnrollment() async => recorded = 0;
+
+  @override
+  Future<VoiceSample> recordSample() async {
+    final problem = nextProblems.isEmpty
+        ? SampleProblem.none
+        : nextProblems.removeAt(0);
+    if (problem != SampleProblem.none) {
+      return VoiceSample(ok: false, problem: problem, count: recorded);
+    }
+    recorded++;
+    return VoiceSample(ok: true, count: recorded);
+  }
+
+  @override
+  Future<bool> finishEnrollment() async {
+    if (recorded < VoiceProfileService.samplesNeeded) return false;
+    enrolled = true;
+    return true;
+  }
+
+  @override
+  Future<VoiceSample> testSample() async =>
+      const VoiceSample(ok: true, accepted: true, similarity: 0.9);
+
+  @override
+  Future<void> setStrictness(VoiceStrictness value) async => strictness = value;
+
+  @override
+  Future<void> delete() async => enrolled = false;
 }

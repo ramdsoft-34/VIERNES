@@ -19,6 +19,6 @@
         android:pathData="M38,42a20,20 0,0 1,20 -12" />
     <!-- Orbe voltio -->
     <path
-        android:fillColor="#FFD2F25C"
+        android:fillColor="#FFA594FF"
         android:pathData="M54,54m-11,0a11,11 0,1 1,22 0a11,11 0,1 1,-22 0" />
 </vector>

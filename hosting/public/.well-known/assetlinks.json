@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.ramdsoft.viernes",
+      "sha256_cert_fingerprints": [
+        "B4:53:82:F7:50:56:D7:8A:4E:CA:3B:55:2F:0E:6C:BB:72:AA:C8:4A:15:A0:7E:AB:4E:DD:66:E0:A9:A4:49:67"
+      ]
+    }
+  }
+]

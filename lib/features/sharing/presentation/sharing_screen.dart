@@ -12,11 +12,14 @@ import 'package:viernes/features/account/presentation/account_actions.dart';
 import 'package:viernes/features/account/presentation/account_providers.dart';
 import 'package:viernes/features/reminders/presentation/reminder_formatters.dart';
 import 'package:viernes/features/sharing/domain/sharing_models.dart';
+import 'package:viernes/features/sharing/presentation/friend_invite_screen.dart';
 import 'package:viernes/features/sharing/presentation/sharing_providers.dart';
 
 /// Compartir con otras personas: listas, recordatorios enviados y contactos.
 class SharingScreen extends ConsumerWidget {
-  const SharingScreen({super.key});
+  const SharingScreen({this.initialTab = 0, super.key});
+
+  final int initialTab;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -38,6 +41,7 @@ class SharingScreen extends ConsumerWidget {
     }
     return DefaultTabController(
       length: 3,
+      initialIndex: initialTab,
       child: LiquidScaffold(
         appBar: AppBar(
           title: Text(l10n.sharingTitle),
@@ -201,40 +205,45 @@ class _ContactsTab extends ConsumerWidget {
     final l10n = context.l10n;
     final contacts = ref.watch(contactsProvider);
     return LiquidScaffold(
-      floatingActionButton: FloatingActionButton.extended(
-        heroTag: 'new-contact',
-        onPressed: () => unawaited(_add(context, ref)),
-        icon: const Icon(Icons.person_add_alt),
-        label: Text(l10n.contactsAdd),
-      ),
-      body: contacts.isEmpty
-          ? EmptyState(
+      body: ListView(
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+        children: [
+          const InviteCard(),
+          const SizedBox(height: 8),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton.icon(
+              onPressed: () => unawaited(_add(context, ref)),
+              icon: const Icon(Icons.alternate_email_rounded, size: 18),
+              label: Text(l10n.contactsAddByEmail),
+            ),
+          ),
+          if (contacts.isEmpty)
+            EmptyState(
               icon: Icons.contacts_outlined,
               title: l10n.contactsEmpty,
               message: l10n.contactsEmptySubtitle,
             )
-          : ListView(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
-              children: [
-                for (final c in contacts)
-                  Card(
-                    child: ListTile(
-                      leading: CircleAvatar(
-                        child: Text(c.name.characters.first.toUpperCase()),
-                      ),
-                      title: Text(c.name),
-                      subtitle: Text(c.email),
-                      trailing: IconButton(
-                        tooltip: l10n.actionDelete,
-                        icon: const Icon(Icons.delete_outline),
-                        onPressed: () => unawaited(
-                          ref.read(contactsProvider.notifier).remove(c),
-                        ),
-                      ),
+          else
+            for (final c in contacts)
+              Card(
+                child: ListTile(
+                  leading: CircleAvatar(
+                    child: Text(c.name.characters.first.toUpperCase()),
+                  ),
+                  title: Text(c.name),
+                  subtitle: Text(c.email),
+                  trailing: IconButton(
+                    tooltip: l10n.actionDelete,
+                    icon: const Icon(Icons.delete_outline),
+                    onPressed: () => unawaited(
+                      ref.read(contactsProvider.notifier).remove(c),
                     ),
                   ),
-              ],
-            ),
+                ),
+              ),
+        ],
+      ),
     );
   }
 

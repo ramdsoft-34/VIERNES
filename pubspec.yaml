@@ -2,7 +2,7 @@ name: viernes
 description: "Viernes — asistente personal de recordatorios por voz que hace seguimiento hasta que confirmas cada tarea."
 publish_to: 'none'
 
-version: 0.11.0+12
+version: 0.12.0+13
 
 environment:
   sdk: ^3.12.2
@@ -34,6 +34,7 @@ dependencies:
   package_info_plus: ^10.2.2
   path: ^1.9.1
   path_provider: ^2.1.6
+  qr_flutter: ^4.1.0
   record: ^7.1.1
   share_plus: ^13.3.1
   shared_preferences: ^2.5.5

@@ -161,7 +161,7 @@ class _VoiceAssistantSheetState extends ConsumerState<VoiceAssistantSheet> {
                             style: AppTheme.monoStyle(text.labelMedium)
                                 .copyWith(
                                   color: state.isListening
-                                      ? p.voltText
+                                      ? p.accentText
                                       : p.textSecondary,
                                 ),
                           ),
@@ -258,7 +258,7 @@ class _Heard extends StatelessWidget {
                 width: 2.5,
                 height: style.fontSize! * 0.9,
                 margin: const EdgeInsets.only(left: 4),
-                color: p.volt,
+                color: p.accent,
               ),
             ),
         ],
@@ -326,7 +326,7 @@ class _Token extends StatelessWidget {
               label,
               style: AppTheme.monoStyle(
                 context.textTheme.labelSmall,
-              ).copyWith(color: p.voltText),
+              ).copyWith(color: p.accentText),
             ),
             const SizedBox(height: 2),
             Text(value, style: context.textTheme.titleMedium),

@@ -41,7 +41,7 @@ abstract interface class SpeechRecognizer {
   Future<SpeechResult> listen({
     ValueChanged<String>? onPartial,
     Duration silence = const Duration(seconds: 3),
-    Duration maxDuration = const Duration(seconds: 20),
+    Duration maxDuration = const Duration(seconds: 25),
   });
 
   /// Detiene la escucha y descarta el resultado.

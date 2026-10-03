@@ -48,23 +48,28 @@ class SyncEngine {
   }
 
   Future<SyncReport> sync(String uid) => _exclusive(() async {
-    final uploaded = await _push(uid);
+    final (uploaded, pushSkipped) = await _push(uid);
     final changes = await _remote.pull(uid, since: _cursors.read(uid));
     final downloaded = changes.isEmpty ? 0 : await _local.applyRemote(changes);
     final cursor = changes.cursor;
     if (cursor != null) await _cursors.write(uid, cursor);
-    return SyncReport(uploaded: uploaded, downloaded: downloaded);
+    return SyncReport(
+      uploaded: uploaded,
+      downloaded: downloaded,
+      skipped: {...pushSkipped, ...changes.skipped},
+    );
   });
 
   /// Sube los cambios pendientes. Devuelve cuántos se subieron.
-  Future<int> push(String uid) => _exclusive(() => _push(uid));
+  Future<int> push(String uid) => _exclusive(() async => (await _push(uid)).$1);
 
-  Future<int> _push(String uid) async {
+  Future<(int, Set<SyncEntity>)> _push(String uid) async {
     final changes = await _local.pendingChanges();
-    if (changes.isEmpty) return 0;
-    await _remote.push(uid, changes);
-    await _local.markUploaded(changes);
-    return changes.length;
+    if (changes.isEmpty) return (0, const <SyncEntity>{});
+    final skipped = await _remote.push(uid, changes);
+    final uploaded = changes.without(skipped);
+    await _local.markUploaded(uploaded);
+    return (uploaded.length, skipped);
   }
 
   /// Olvida el progreso de descarga (la próxima vez baja todo).

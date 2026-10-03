@@ -1972,11 +1972,377 @@ abstract class AppLocalizations {
   /// **'cancelado'**
   String get sentCancelled;
 
+  /// No description provided for @homeVoiceSetup.
+  ///
+  /// In es, this message translates to:
+  /// **'Registra tu voz'**
+  String get homeVoiceSetup;
+
+  /// No description provided for @homeVoiceSetupBody.
+  ///
+  /// In es, this message translates to:
+  /// **'«Viernes» ahora solo se activa con tu voz. Tarda un minuto.'**
+  String get homeVoiceSetupBody;
+
+  /// No description provided for @wakeNeedsVoice.
+  ///
+  /// In es, this message translates to:
+  /// **'Primero registra tu voz: Viernes solo se activará contigo.'**
+  String get wakeNeedsVoice;
+
+  /// No description provided for @voiceProfileTile.
+  ///
+  /// In es, this message translates to:
+  /// **'Tu voz'**
+  String get voiceProfileTile;
+
+  /// No description provided for @voiceProfileMissing.
+  ///
+  /// In es, this message translates to:
+  /// **'Sin registrar. Sin tu voz, decir «Viernes» no hace nada.'**
+  String get voiceProfileMissing;
+
+  /// No description provided for @voiceProfileRegistered.
+  ///
+  /// In es, this message translates to:
+  /// **'Registrada en este teléfono · te reconoció {accepted} {accepted, plural, =1{vez} other{veces}}, ignoró {rejected} {rejected, plural, =1{voz} other{voces}}'**
+  String voiceProfileRegistered(int accepted, int rejected);
+
+  /// No description provided for @voiceProfileRegister.
+  ///
+  /// In es, this message translates to:
+  /// **'Registrar'**
+  String get voiceProfileRegister;
+
+  /// No description provided for @voiceProfileDelete.
+  ///
+  /// In es, this message translates to:
+  /// **'Borrar mi voz'**
+  String get voiceProfileDelete;
+
+  /// No description provided for @voiceProfileDeleteNote.
+  ///
+  /// In es, this message translates to:
+  /// **'La activación con «Viernes» se apaga hasta que la registres otra vez.'**
+  String get voiceProfileDeleteNote;
+
+  /// No description provided for @voiceStrictness.
+  ///
+  /// In es, this message translates to:
+  /// **'Qué tan exigente'**
+  String get voiceStrictness;
+
+  /// No description provided for @voiceStrictnessRelaxed.
+  ///
+  /// In es, this message translates to:
+  /// **'Flexible'**
+  String get voiceStrictnessRelaxed;
+
+  /// No description provided for @voiceStrictnessNormal.
+  ///
+  /// In es, this message translates to:
+  /// **'Normal'**
+  String get voiceStrictnessNormal;
+
+  /// No description provided for @voiceStrictnessStrict.
+  ///
+  /// In es, this message translates to:
+  /// **'Estricta'**
+  String get voiceStrictnessStrict;
+
+  /// No description provided for @voiceStrictnessRelaxedNote.
+  ///
+  /// In es, this message translates to:
+  /// **'Te reconoce aunque hables lejos o con ruido. Una voz muy parecida a la tuya podría activarlo.'**
+  String get voiceStrictnessRelaxedNote;
+
+  /// No description provided for @voiceStrictnessNormalNote.
+  ///
+  /// In es, this message translates to:
+  /// **'El equilibrio recomendado.'**
+  String get voiceStrictnessNormalNote;
+
+  /// No description provided for @voiceStrictnessStrictNote.
+  ///
+  /// In es, this message translates to:
+  /// **'Solo tu voz clara y de cerca. A veces tendrás que repetir «Viernes».'**
+  String get voiceStrictnessStrictNote;
+
+  /// No description provided for @voiceEnrollAppBar.
+  ///
+  /// In es, this message translates to:
+  /// **'Tu voz'**
+  String get voiceEnrollAppBar;
+
+  /// No description provided for @voiceEnrollTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Enséñale tu voz a Viernes'**
+  String get voiceEnrollTitle;
+
+  /// No description provided for @voiceEnrollIntro.
+  ///
+  /// In es, this message translates to:
+  /// **'Vas a decir «Viernes» cinco veces. Así solo se activará cuando lo digas tú, no con la tele ni con otras personas.'**
+  String get voiceEnrollIntro;
+
+  /// No description provided for @voiceEnrollRegistered.
+  ///
+  /// In es, this message translates to:
+  /// **'Tu voz ya está registrada'**
+  String get voiceEnrollRegistered;
+
+  /// No description provided for @voiceEnrollRegisteredBody.
+  ///
+  /// In es, this message translates to:
+  /// **'Puedes probar si te reconoce o volver a registrarla (por ejemplo, si te cambió la voz o hay muchos rechazos).'**
+  String get voiceEnrollRegisteredBody;
+
+  /// No description provided for @voiceEnrollStart.
+  ///
+  /// In es, this message translates to:
+  /// **'Empezar'**
+  String get voiceEnrollStart;
+
+  /// No description provided for @voiceEnrollAgain.
+  ///
+  /// In es, this message translates to:
+  /// **'Registrarla de nuevo'**
+  String get voiceEnrollAgain;
+
+  /// No description provided for @voiceEnrollProgress.
+  ///
+  /// In es, this message translates to:
+  /// **'{count} de {total}'**
+  String voiceEnrollProgress(int count, int total);
+
+  /// No description provided for @voiceEnrollInstruction.
+  ///
+  /// In es, this message translates to:
+  /// **'Toca el círculo y di «Viernes» con tu voz de siempre, como si lo llamaras.'**
+  String get voiceEnrollInstruction;
+
+  /// No description provided for @voiceEnrollTapToRecord.
+  ///
+  /// In es, this message translates to:
+  /// **'Toca el círculo para grabar'**
+  String get voiceEnrollTapToRecord;
+
+  /// No description provided for @voiceEnrollSayNow.
+  ///
+  /// In es, this message translates to:
+  /// **'Di «Viernes»…'**
+  String get voiceEnrollSayNow;
+
+  /// No description provided for @voiceEnrollGood.
+  ///
+  /// In es, this message translates to:
+  /// **'¡Bien! Otra vez.'**
+  String get voiceEnrollGood;
+
+  /// No description provided for @voiceEnrollQuiet.
+  ///
+  /// In es, this message translates to:
+  /// **'No te escuché. Habla un poco más fuerte o acércate.'**
+  String get voiceEnrollQuiet;
+
+  /// No description provided for @voiceEnrollShort.
+  ///
+  /// In es, this message translates to:
+  /// **'Fue muy corto. Di «Viernes» completo.'**
+  String get voiceEnrollShort;
+
+  /// No description provided for @voiceEnrollSaving.
+  ///
+  /// In es, this message translates to:
+  /// **'Guardando tu voz…'**
+  String get voiceEnrollSaving;
+
+  /// No description provided for @voiceEnrollDone.
+  ///
+  /// In es, this message translates to:
+  /// **'Listo, ya reconozco tu voz'**
+  String get voiceEnrollDone;
+
+  /// No description provided for @voiceEnrollDoneBody.
+  ///
+  /// In es, this message translates to:
+  /// **'Prueba diciendo «Viernes»: toca el círculo.'**
+  String get voiceEnrollDoneBody;
+
+  /// No description provided for @voiceEnrollActivate.
+  ///
+  /// In es, this message translates to:
+  /// **'Activar «Viernes»'**
+  String get voiceEnrollActivate;
+
+  /// No description provided for @voiceEnrollFinish.
+  ///
+  /// In es, this message translates to:
+  /// **'Terminar'**
+  String get voiceEnrollFinish;
+
+  /// No description provided for @voiceEnrollPrivacy.
+  ///
+  /// In es, this message translates to:
+  /// **'Tu voz se guarda solo en este teléfono. No se sube a tu cuenta ni a internet. Reconoce voces distintas, pero no es un sistema de seguridad: alguien con una voz muy parecida podría activarlo.'**
+  String get voiceEnrollPrivacy;
+
+  /// No description provided for @voiceTestTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Probar si me reconoce'**
+  String get voiceTestTitle;
+
+  /// No description provided for @voiceTestYes.
+  ///
+  /// In es, this message translates to:
+  /// **'Te reconocí'**
+  String get voiceTestYes;
+
+  /// No description provided for @voiceTestYesBody.
+  ///
+  /// In es, this message translates to:
+  /// **'Parecido: {percent} %. Así se abrirá Viernes cuando lo llames.'**
+  String voiceTestYesBody(int percent);
+
+  /// No description provided for @voiceTestNo.
+  ///
+  /// In es, this message translates to:
+  /// **'No te reconocí'**
+  String get voiceTestNo;
+
+  /// No description provided for @voiceTestNoBody.
+  ///
+  /// In es, this message translates to:
+  /// **'Prueba otra vez hablando normal y de cerca. Si sigue pasando, regístrala de nuevo o elige «Flexible».'**
+  String get voiceTestNoBody;
+
   /// No description provided for @contactsAdd.
   ///
   /// In es, this message translates to:
   /// **'Agregar contacto'**
   String get contactsAdd;
+
+  /// No description provided for @contactsAddByEmail.
+  ///
+  /// In es, this message translates to:
+  /// **'Agregar escribiendo el correo'**
+  String get contactsAddByEmail;
+
+  /// No description provided for @inviteTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Invitación'**
+  String get inviteTitle;
+
+  /// No description provided for @inviteInvalid.
+  ///
+  /// In es, this message translates to:
+  /// **'Esta invitación no sirve'**
+  String get inviteInvalid;
+
+  /// No description provided for @inviteInvalidBody.
+  ///
+  /// In es, this message translates to:
+  /// **'El enlace está incompleto. Pídele a la persona que te lo vuelva a enviar.'**
+  String get inviteInvalidBody;
+
+  /// No description provided for @inviteFrom.
+  ///
+  /// In es, this message translates to:
+  /// **'{name} te invita'**
+  String inviteFrom(String name);
+
+  /// No description provided for @inviteExplain.
+  ///
+  /// In es, this message translates to:
+  /// **'Al aceptar, se agregan como contactos: podrán enviarse recordatorios por voz y compartir listas.'**
+  String get inviteExplain;
+
+  /// No description provided for @inviteAccept.
+  ///
+  /// In es, this message translates to:
+  /// **'Agregar a {name}'**
+  String inviteAccept(String name);
+
+  /// No description provided for @inviteSelf.
+  ///
+  /// In es, this message translates to:
+  /// **'Es tu propia invitación. Envíasela a otra persona.'**
+  String get inviteSelf;
+
+  /// No description provided for @inviteAdded.
+  ///
+  /// In es, this message translates to:
+  /// **'Listo. {name} quedó en tus contactos y tú en los suyos.'**
+  String inviteAdded(String name);
+
+  /// No description provided for @inviteAddedOnlyHere.
+  ///
+  /// In es, this message translates to:
+  /// **'{name} quedó en tus contactos. No pude avisarle a su teléfono; cuando tenga internet, pídele que te agregue con tu enlace.'**
+  String inviteAddedOnlyHere(String name);
+
+  /// No description provided for @inviteSeeContacts.
+  ///
+  /// In es, this message translates to:
+  /// **'Ver mis contactos'**
+  String get inviteSeeContacts;
+
+  /// No description provided for @inviteCardTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Invita con un enlace'**
+  String get inviteCardTitle;
+
+  /// No description provided for @inviteCardBody.
+  ///
+  /// In es, this message translates to:
+  /// **'Envíalo por WhatsApp o muestra el código QR. Con un toque quedan agregados los dos, sin escribir correos.'**
+  String get inviteCardBody;
+
+  /// No description provided for @inviteShare.
+  ///
+  /// In es, this message translates to:
+  /// **'Compartir enlace'**
+  String get inviteShare;
+
+  /// No description provided for @inviteShareSubject.
+  ///
+  /// In es, this message translates to:
+  /// **'Agrégame en Viernes'**
+  String get inviteShareSubject;
+
+  /// No description provided for @inviteQr.
+  ///
+  /// In es, this message translates to:
+  /// **'Mostrar código QR'**
+  String get inviteQr;
+
+  /// No description provided for @inviteQrTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Escanéalo con la cámara'**
+  String get inviteQrTitle;
+
+  /// No description provided for @inviteQrBody.
+  ///
+  /// In es, this message translates to:
+  /// **'La otra persona lo escanea con la cámara del teléfono y se abre Viernes.'**
+  String get inviteQrBody;
+
+  /// No description provided for @invitePaste.
+  ///
+  /// In es, this message translates to:
+  /// **'Pegar invitación'**
+  String get invitePaste;
+
+  /// No description provided for @invitePasteNothing.
+  ///
+  /// In es, this message translates to:
+  /// **'No encontré una invitación en lo que copiaste.'**
+  String get invitePasteNothing;
 
   /// No description provided for @contactsEmpty.
   ///
@@ -2122,11 +2488,47 @@ abstract class AppLocalizations {
   /// **'Sin conexión: se sincronizará al volver internet'**
   String get accountOffline;
 
+  /// No description provided for @recurrenceUntil.
+  ///
+  /// In es, this message translates to:
+  /// **'{base} hasta el {date}'**
+  String recurrenceUntil(String base, String date);
+
+  /// No description provided for @fieldUntil.
+  ///
+  /// In es, this message translates to:
+  /// **'Hasta'**
+  String get fieldUntil;
+
+  /// No description provided for @untilForever.
+  ///
+  /// In es, this message translates to:
+  /// **'Sin fecha final'**
+  String get untilForever;
+
+  /// No description provided for @untilClear.
+  ///
+  /// In es, this message translates to:
+  /// **'Quitar fecha final'**
+  String get untilClear;
+
   /// No description provided for @accountSyncError.
   ///
   /// In es, this message translates to:
   /// **'No se pudo sincronizar. Se reintentará en un momento.'**
   String get accountSyncError;
+
+  /// No description provided for @accountSyncRules.
+  ///
+  /// In es, this message translates to:
+  /// **'La nube rechazó la sincronización: faltan publicar las reglas de Firestore (docs/CUENTAS.md).'**
+  String get accountSyncRules;
+
+  /// No description provided for @accountSyncPartial.
+  ///
+  /// In es, this message translates to:
+  /// **'Sincronizado {time}. Los lugares esperan a que se publiquen las reglas nuevas de la nube.'**
+  String accountSyncPartial(String time);
 
   /// No description provided for @accountPending.
   ///

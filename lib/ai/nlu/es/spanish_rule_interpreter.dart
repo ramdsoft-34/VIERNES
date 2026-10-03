@@ -68,7 +68,7 @@ final RegExp _lead = _re(
 );
 
 final RegExp _recWeekdays = _re(
-  r'\b(?:de lunes a viernes|entre semana|(?:todos los |los )?dias habiles|'
+  r'\b(?:del? lunes al? viernes|entre semana|(?:todos los |los )?dias habiles|'
   r'cada dia habil)\b',
 );
 final RegExp _recFortnight = _re(r'\bcada\s+(?:quince|15)\s+dias\b');
@@ -92,6 +92,41 @@ final RegExp _recMonthly = _re(
   r'\b(?:cada mes|mensualmente|todos los meses)\b',
 );
 final RegExp _recYearly = _re(r'\b(?:cada ano|anualmente|todos los anos)\b');
+
+/// «Por 30 días», «durante dos semanas», «los próximos 10 días».
+final RegExp _span = _re(
+  r'\b(?:por|durante|(?:los|las)\s+proxim[oa]s)\s+(?<n>NUM)\s+'
+  r'(?<u>dias|semanas|meses)\b',
+);
+
+/// «Del 5 al 10», «desde el 5 hasta el 10 de noviembre».
+final RegExp _dateRange = _re(
+  r'\b(?:del|desde el)\s+(?:dia\s+)?(?<a>NUM)(?:\s+de\s+(?<ma>MONTH))?\s+'
+  r'(?:al|hasta el)\s+(?:dia\s+)?(?<b>NUM)(?:\s+de\s+(?<mb>MONTH))?\b',
+);
+
+/// Último día de una repetición: «todos los días hasta el 20».
+final RegExp _untilDate = _re(
+  r'\b(?:hasta el|hasta)\s+(?:dia\s+)?(?<d>NUM)(?:\s+de\s+(?<m>MONTH))?\b',
+);
+
+/// Relleno que no forma parte de la tarea: «esos días», «tienes que estarme
+/// recordando», «así que», «entonces».
+final RegExp _noise = _re(
+  r'\b(?:(?:todos\s+)?(?:esos|estos|esas|estas|aquellos)\s+dias|'
+  r'(?:me\s+)?(?:tienes|tenes|vas) que (?:estar(?:me)?\s+)?'
+  r'(?:recordando(?:me)?|recordarme(?:lo)?|avisarme|avisando(?:me)?)|'
+  r'(?:estar(?:me)?|seguir(?:me)?)\s+(?:recordando|avisando)(?:me)?|'
+  r'me (?:lo )?recuerdas|asi que|entonces|o sea)\b',
+);
+
+/// «Activa una alarma», «despiértame»: si no hay más título, se llama así.
+final RegExp _alarm = _re(
+  r'^[\s¿¡]*(?:(?:oye\s+)?viernes[\s,]*)?(?:por favor\s+)?(?:(?<alarm>'
+  r'(?:activa|activame|pon|ponme|programa|programame|crea|creame|'
+  r'configura)\s+(?:una|la|un)\s+(?:alarma|despertador))|(?<wake>'
+  r'despiertame|levantame))\b',
+);
 
 final RegExp _relative = _re(
   r'\b(?:en|dentro de)\s+(?:(?<n>NUM)\s+(?<u>minutos?|mins?|horas?)'
@@ -197,6 +232,17 @@ final RegExp _priorityHigh = _re(
 
 const _leadingFillers =
     'oye viernes|viernes|oye|hola|por favor|porfavor|porfa|'
+    'hazme acuerdo de que|hazme acuerdo de|hazme acuerdo que|hazme acuerdo|'
+    'hazme acordar de|hazme acordar que|hazme acordar|hazme recordar que|'
+    'hazme recordar|hazme el favor de|hazme el favor|hazme un recordatorio|'
+    'activa una alarma para|activa una alarma de|activa una alarma|'
+    'activame una alarma para|activame una alarma|pon una alarma para|'
+    'pon una alarma|ponme una alarma para|ponme una alarma|'
+    'programa una alarma para|programa una alarma|crea una alarma para|'
+    'crea una alarma|despiertame|levantame|me recuerdas que|'
+    'quiero que me recuerdes que|quiero que me recuerdes|'
+    'necesito que me recuerdes que|necesito que me recuerdes|'
+    'recuerdame por favor que|recuerdame por favor|'
     'recuerdame que|recuerdame de|recuerdame|recordarme que|recordarme|'
     'acuerdame que|acuerdame de|acuerdame|avisame que|avisame de|'
     'avisame para|avisame|recuerdalo|anota que|anota|apunta que|apunta|'
@@ -214,7 +260,8 @@ final RegExp _leading = RegExp(
 );
 final RegExp _trailing = RegExp(
   r'[\s,.;:!?¡¿-]*\b(?:por favor|porfa|gracias|y|que|de|del|a|al|para|el|la|'
-  r'en|con|por|es|tengo|o sea)[\s,.;:!?-]*$',
+  r'en|con|por|es|tengo|o sea|entonces|asi que|pues|ok|vale|listo|bueno)'
+  r'[\s,.;:!?-]*$',
 );
 final RegExp _trailingPunctuation = RegExp(r'[\s,.;:!?¡¿-]+$');
 final RegExp _leadingPunctuation = RegExp(r'^[\s,.;:!?¡¿-]+');
@@ -240,6 +287,12 @@ class _Parser {
   Recurrence recurrence = Recurrence.none;
   ReminderPriority? priority;
 
+  /// «Por 30 días»: cuánto dura la repetición desde el primer día.
+  (int, String)? _spanLength;
+
+  /// «Del 5 al 10» / «hasta el 20»: último día de la repetición.
+  DateTime? _lastDay;
+
   DateTime get today => now.startOfDay;
 
   Interpretation run() {
@@ -249,15 +302,23 @@ class _Parser {
 
     if (_query.hasMatch(folded)) return _agendaQuery();
 
+    final alarm = _alarm.firstMatch(folded);
+    _free(_noise).toList().forEach(_claim);
     _extractLeadTime();
+    _extractSpan();
     _extractRecurrence();
+    _extractUntil();
     _extractRelative();
     _extractTime();
     _extractDayPeriod();
     _extractDate();
     _extractPriority();
+    _applySpan();
 
-    final title = _buildTitle();
+    var title = _buildTitle();
+    if (title.isEmpty && alarm != null) {
+      title = alarm.namedGroup('wake') != null ? 'Despertar' : 'Alarma';
+    }
     final reminder = ParsedReminder(
       title: title,
       date: date,
@@ -401,6 +462,85 @@ class _Parser {
     if (_claimFirst(_recYearly) != null) {
       recurrence = const Recurrence(frequency: RecurrenceFrequency.yearly);
     }
+  }
+
+  /// «Por 30 días» y «del 5 al 10». La fecha de inicio de un rango manda
+  /// sobre las demás.
+  void _extractSpan() {
+    final range = _claimFirst(_dateRange);
+    if (range != null) {
+      final a = SpanishText.parseNumber(range.namedGroup('a'));
+      final b = SpanishText.parseNumber(range.namedGroup('b'));
+      final mb = SpanishText.months[range.namedGroup('mb') ?? ''];
+      final ma = SpanishText.months[range.namedGroup('ma') ?? ''] ?? mb;
+      if (a != null && b != null && a >= 1 && a <= 31 && b >= 1 && b <= 31) {
+        final (start, end) = _resolveRange(a, b, ma, mb);
+        if (start != null && end != null && !end.isBefore(start)) {
+          date = start;
+          _lastDay = end;
+        }
+      }
+    }
+    // Se reclaman todas: la gente lo repite («por 30 días … por 30 días»).
+    for (final m in _free(_span).toList()) {
+      _claim(m);
+      final n = SpanishText.parseNumber(m.namedGroup('n'));
+      if (n != null && n >= 1) _spanLength ??= (n, m.namedGroup('u')!);
+    }
+  }
+
+  /// Primer y último día de «del [a] al [b]». Sin mes, es el próximo rango
+  /// que todavía no termina (si ya empezó, desde hoy).
+  (DateTime?, DateTime?) _resolveRange(int a, int b, int? ma, int? mb) {
+    if (ma != null || mb != null) {
+      final start = _dateFrom(a, ma ?? mb!, null);
+      if (start == null) return (null, null);
+      var end = DateTime(start.year, mb ?? start.month, b);
+      if (end.isBefore(start)) end = DateTime(end.year + 1, end.month, b);
+      return (start, end);
+    }
+    for (var offset = 0; offset < 13; offset++) {
+      final month = DateTime(today.year, today.month + offset);
+      final lastDay = DateTime(month.year, month.month + 1, 0).day;
+      if (a > lastDay) continue;
+      final start = DateTime(month.year, month.month, a);
+      // «Del 28 al 3»: termina el mes siguiente.
+      final end = b >= a
+          ? DateTime(month.year, month.month, b.clamp(1, lastDay))
+          : DateTime(month.year, month.month + 1, b);
+      if (end.isBefore(today)) continue;
+      return (start.isBefore(today) ? today : start, end);
+    }
+    return (null, null);
+  }
+
+  void _extractUntil() {
+    if (!recurrence.repeats && _spanLength == null) return;
+    final m = _claimFirst(_untilDate);
+    if (m == null) return;
+    final d = SpanishText.parseNumber(m.namedGroup('d'));
+    final month = SpanishText.months[m.namedGroup('m') ?? ''];
+    if (d == null || d < 1 || d > 31) return;
+    _lastDay = month == null ? _nextDayOfMonth(d) : _dateFrom(d, month, null);
+  }
+
+  /// Convierte «por 30 días» y «del 5 al 10» en una repetición con último
+  /// día. Si no se dijo cada cuánto, es todos los días.
+  void _applySpan() {
+    var last = _lastDay;
+    final span = _spanLength;
+    if (last == null && span != null) {
+      final start = date ?? today;
+      final (n, unit) = span;
+      last = switch (unit) {
+        'semanas' => start.addDays(n * 7 - 1),
+        'meses' => start.addMonthsClamped(n).addDays(-1),
+        _ => start.addDays(n - 1),
+      };
+    }
+    if (last == null) return;
+    if (!recurrence.repeats) recurrence = Recurrence.daily;
+    recurrence = recurrence.withUntil(last);
   }
 
   void _extractRelative() {

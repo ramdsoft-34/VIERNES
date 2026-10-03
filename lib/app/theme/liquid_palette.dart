@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 
 /// Colores del diseño Liquid: grafito, luz ambiental que el vidrio refracta y
-/// un único acento («voltio»).
+/// un único acento («iris», un índigo violáceo: calma y confianza, sin verdes).
+/// Lo «hecho» y «permitido» usan el mismo acento, no un verde aparte.
 ///
 /// Ember y cobalto son solo luz de fondo; nunca se usan en botones ni texto.
 @immutable
@@ -12,9 +13,9 @@ class LiquidPalette extends ThemeExtension<LiquidPalette> {
     required this.text,
     required this.textSecondary,
     required this.textMuted,
-    required this.volt,
-    required this.onVolt,
-    required this.voltText,
+    required this.accent,
+    required this.onAccent,
+    required this.accentText,
     required this.ember,
     required this.cobalt,
     required this.danger,
@@ -37,11 +38,11 @@ class LiquidPalette extends ThemeExtension<LiquidPalette> {
   final Color textMuted;
 
   /// El acento. Relleno de la acción principal y de lo «ahora».
-  final Color volt;
-  final Color onVolt;
+  final Color accent;
+  final Color onAccent;
 
   /// El acento como texto (legible sobre el fondo).
-  final Color voltText;
+  final Color accentText;
 
   /// Luz cálida de fondo y lo vencido.
   final Color ember;
@@ -69,13 +70,13 @@ class LiquidPalette extends ThemeExtension<LiquidPalette> {
     text: Color(0xFFF2F4F1),
     textSecondary: Color(0x9EF2F4F1),
     textMuted: Color(0x61F2F4F1),
-    volt: Color(0xFFD2F25C),
-    onVolt: Color(0xFF1B2205),
-    voltText: Color(0xFFD2F25C),
-    ember: Color(0xFFFF7A45),
-    cobalt: Color(0xFF2F5BFF),
+    accent: Color(0xFFA594FF),
+    onAccent: Color(0xFF140A3D),
+    accentText: Color(0xFFBBAFFF),
+    ember: Color(0xFFFF7A59),
+    cobalt: Color(0xFF3B5BFF),
     danger: Color(0xFFFF7A6B),
-    success: Color(0xFF7BE0A0),
+    success: Color(0xFFBBAFFF),
     glassFill: Color(0x3D1A1E26),
     glassBorder: Color(0x29FFFFFF),
     glassHighlight: Color(0x52FFFFFF),
@@ -85,18 +86,18 @@ class LiquidPalette extends ThemeExtension<LiquidPalette> {
   );
 
   static const light = LiquidPalette(
-    ink: Color(0xFFE8EBE5),
-    inkRaised: Color(0xFFF6F7F4),
-    text: Color(0xFF101318),
-    textSecondary: Color(0xA6101318),
-    textMuted: Color(0x70101318),
-    volt: Color(0xFFC8EC45),
-    onVolt: Color(0xFF1B2205),
-    voltText: Color(0xFF4C6606),
-    ember: Color(0xFFFF8A5C),
-    cobalt: Color(0xFF5B7CFF),
+    ink: Color(0xFFECECF3),
+    inkRaised: Color(0xFFF8F8FC),
+    text: Color(0xFF12131A),
+    textSecondary: Color(0xA612131A),
+    textMuted: Color(0x7012131A),
+    accent: Color(0xFF5B4BE8),
+    onAccent: Color(0xFFFFFFFF),
+    accentText: Color(0xFF4B3BD8),
+    ember: Color(0xFFFF9B73),
+    cobalt: Color(0xFF7086FF),
     danger: Color(0xFFC8341F),
-    success: Color(0xFF1F7A44),
+    success: Color(0xFF4B3BD8),
     glassFill: Color(0x8CFFFFFF),
     glassBorder: Color(0xB3FFFFFF),
     glassHighlight: Color(0xE6FFFFFF),
@@ -121,9 +122,9 @@ class LiquidPalette extends ThemeExtension<LiquidPalette> {
       text: c(text, other.text),
       textSecondary: c(textSecondary, other.textSecondary),
       textMuted: c(textMuted, other.textMuted),
-      volt: c(volt, other.volt),
-      onVolt: c(onVolt, other.onVolt),
-      voltText: c(voltText, other.voltText),
+      accent: c(accent, other.accent),
+      onAccent: c(onAccent, other.onAccent),
+      accentText: c(accentText, other.accentText),
       ember: c(ember, other.ember),
       cobalt: c(cobalt, other.cobalt),
       danger: c(danger, other.danger),

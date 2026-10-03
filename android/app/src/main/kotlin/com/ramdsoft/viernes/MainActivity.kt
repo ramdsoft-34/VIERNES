@@ -15,6 +15,7 @@ import com.ramdsoft.viernes.location.LocationChannel
 import com.ramdsoft.viernes.shortcuts.AppShortcuts
 import com.ramdsoft.viernes.wakeword.WakeStats
 import com.ramdsoft.viernes.wakeword.OpenWakeWordEngine
+import com.ramdsoft.viernes.wakeword.VoiceProfileChannel
 import com.ramdsoft.viernes.wakeword.WakeWordService
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
@@ -60,7 +61,27 @@ class MainActivity : FlutterActivity() {
             -> onWakeIntent(notifyFlutter)
             AppShortcuts.ACTION_BRIEFING -> onAction("briefing", notifyFlutter)
             AppShortcuts.ACTION_NEW -> onAction("new", notifyFlutter)
+            Intent.ACTION_VIEW -> inviteCode(intent.data)?.let {
+                onAction("invite:$it", notifyFlutter)
+            }
         }
+    }
+
+    /**
+     * Código de una invitación de amigo:
+     * `https://viernes-ramdsoft.web.app/amigo#CODIGO` (enlace que se comparte)
+     * o `viernes://amigo/CODIGO` (botón de la página web).
+     */
+    private fun inviteCode(uri: Uri?): String? {
+        uri ?: return null
+        val code = when {
+            uri.scheme == "https" && uri.host == INVITE_HOST &&
+                uri.path.orEmpty().startsWith("/amigo") ->
+                uri.fragment ?: uri.lastPathSegment?.takeIf { it != "amigo" }
+            uri.scheme == "viernes" && uri.host == "amigo" -> uri.lastPathSegment
+            else -> null
+        }
+        return code?.takeIf { it.matches(Regex("[A-Za-z0-9_-]{12,600}")) }
     }
 
     private fun onAction(action: String, notifyFlutter: Boolean) {
@@ -102,6 +123,7 @@ class MainActivity : FlutterActivity() {
         }
         location = LocationChannel(this, messenger).also { it.onIntent(intent, fromNewIntent = false) }
         device = DeviceDataChannel(this, messenger)
+        VoiceProfileChannel(this, messenger)
     }
 
     // --- Activación por voz ------------------------------------------------
@@ -208,6 +230,7 @@ class MainActivity : FlutterActivity() {
     }
 
     companion object {
+        const val INVITE_HOST = "viernes-ramdsoft.web.app"
         private const val SYSTEM_CHANNEL = "com.ramdsoft.viernes/system"
         private const val WAKE_CHANNEL = "com.ramdsoft.viernes/wake_word"
     }

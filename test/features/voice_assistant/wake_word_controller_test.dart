@@ -15,6 +15,7 @@ import '../../helpers/fake_wake_word.dart';
 void main() {
   late FakeWakeWordService service;
   late FakeWakeModelManager models;
+  late FakeVoiceProfileService voice;
 
   Future<ProviderContainer> build({
     bool installed = false,
@@ -22,10 +23,12 @@ void main() {
     bool ownModel = false,
     SpeechAvailability mic = SpeechAvailability.available,
     Map<String, Object> prefs = const {},
+    bool enrolled = true,
   }) async {
     SharedPreferences.setMockInitialValues(prefs);
     final sharedPrefs = await SharedPreferences.getInstance();
     service = FakeWakeWordService()..ownModel = ownModel;
+    voice = FakeVoiceProfileService(enrolled: enrolled);
     models = FakeWakeModelManager(
       installed: installed,
       failDownload: failDownload,
@@ -34,6 +37,7 @@ void main() {
       overrides: [
         sharedPreferencesProvider.overrideWithValue(sharedPrefs),
         wakeWordServiceProvider.overrideWithValue(service),
+        voiceProfileServiceProvider.overrideWithValue(voice),
         voskModelManagerProvider.overrideWithValue(models),
         speechRecognizerProvider.overrideWithValue(
           FakeSpeechRecognizer(availability: mic),
@@ -70,6 +74,64 @@ void main() {
     await controllerOf(c).enable();
     expect(models.progress, isEmpty);
     expect(service.running, isTrue);
+  });
+
+  group('voz del dueño', () {
+    test('sin voz registrada no se activa y pide registrarla', () async {
+      final c = await build(installed: true, enrolled: false);
+
+      await controllerOf(c).enable();
+
+      final state = c.read(wakeWordControllerProvider);
+      expect(state.needsVoice, isTrue);
+      expect(state.phase, WakeWordPhase.off);
+      expect(service.calls, isEmpty);
+      expect(c.read(settingsControllerProvider).wakeWordEnabled, isFalse);
+    });
+
+    test('si se borra la voz, deja de escuchar al abrir la app', () async {
+      final c = await build(
+        installed: true,
+        prefs: {'settings.wakeWordEnabled': true},
+      );
+      await controllerOf(c).ensureRunning();
+      expect(service.running, isTrue);
+
+      voice.enrolled = false;
+      await controllerOf(c).ensureRunning();
+
+      expect(service.running, isFalse);
+      expect(c.read(wakeWordControllerProvider).needsVoice, isTrue);
+    });
+
+    test('borrar la voz apaga la activación', () async {
+      final c = await build(installed: true);
+      await controllerOf(c).enable();
+
+      await controllerOf(c).deleteVoice();
+
+      expect(voice.enrolled, isFalse);
+      expect(service.running, isFalse);
+      expect(c.read(settingsControllerProvider).wakeWordEnabled, isFalse);
+    });
+
+    test(
+      'al registrar la voz arranca si la activación estaba pedida',
+      () async {
+        final c = await build(
+          installed: true,
+          enrolled: false,
+          prefs: {'settings.wakeWordEnabled': true},
+        );
+        await controllerOf(c).ensureRunning();
+        expect(service.running, isFalse);
+
+        voice.enrolled = true;
+        await controllerOf(c).voiceChanged();
+
+        expect(service.running, isTrue);
+      },
+    );
   });
 
   test('sin micrófono no se activa', () async {

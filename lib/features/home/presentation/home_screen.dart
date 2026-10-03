@@ -19,7 +19,9 @@ import 'package:viernes/features/reminders/domain/entities/reminder_enums.dart';
 import 'package:viernes/features/reminders/presentation/providers/reminder_providers.dart';
 import 'package:viernes/features/reminders/presentation/widgets/reminder_tile.dart';
 import 'package:viernes/features/routines/routine_card.dart';
+import 'package:viernes/features/settings/presentation/settings_controller.dart';
 import 'package:viernes/features/voice_assistant/presentation/voice_assistant_sheet.dart';
+import 'package:viernes/features/voice_assistant/presentation/wake_word_controller.dart';
 
 /// «Ahora»: una cuenta regresiva gigante hasta lo próximo y el día como un
 /// río de vidrio, ordenado por la hora en que pasa cada cosa.
@@ -158,6 +160,7 @@ class _HomeContent extends StatelessWidget {
         ),
         const SizedBox(height: 20),
         const AlertPermissionsBanner(),
+        const _VoiceSetupCard(),
         const RoutineSuggestionCard(),
         if (overdue.isNotEmpty) ...[
           SectionHeader(
@@ -207,7 +210,7 @@ class _Countdown extends StatelessWidget {
     if (reminder == null) {
       return Text(l10n.homeFree, style: display);
     }
-    final diff = reminder.nextTriggerAt.difference(now);
+    final diff = reminder.shownAt.difference(now);
     final (value, unit) = switch (diff) {
       _ when diff.inMinutes < 1 => (l10n.homeNow, ''),
       _ when diff.inMinutes < 60 => ('${diff.inMinutes}', 'min'),
@@ -288,7 +291,7 @@ class _River extends StatelessWidget {
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
-                colors: [p.volt, p.hairline, Colors.transparent],
+                colors: [p.accent, p.hairline, Colors.transparent],
                 stops: const [0, 0.15, 1],
               ),
             ),
@@ -304,14 +307,14 @@ class _River extends StatelessWidget {
                     width: 56,
                     child: Text(
                       DateFormat.Hm().format(now),
-                      style: mono.copyWith(color: p.voltText),
+                      style: mono.copyWith(color: p.accentText),
                     ),
                   ),
                   Container(
                     width: 9,
                     height: 9,
                     decoration: BoxDecoration(
-                      color: p.volt,
+                      color: p.accent,
                       shape: BoxShape.circle,
                     ),
                   ),
@@ -320,7 +323,7 @@ class _River extends StatelessWidget {
                       height: 1,
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
-                          colors: [p.volt, Colors.transparent],
+                          colors: [p.accent, Colors.transparent],
                         ),
                       ),
                     ),
@@ -339,7 +342,7 @@ class _River extends StatelessWidget {
                       child: Padding(
                         padding: const EdgeInsets.only(top: 20),
                         child: Text(
-                          label(reminder.nextTriggerAt),
+                          label(reminder.shownAt),
                           style: mono,
                         ),
                       ),
@@ -380,6 +383,59 @@ class _Pill extends StatelessWidget {
       ),
     ),
   );
+}
+
+/// La activación con «Viernes» está pedida pero falta registrar la voz
+/// (p. ej. al actualizar desde una versión sin registro de voz).
+class _VoiceSetupCard extends ConsumerWidget {
+  const _VoiceSetupCard();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final wanted = ref.watch(
+      settingsControllerProvider.select((s) => s.wakeWordEnabled),
+    );
+    final status = ref.watch(voiceProfileStatusProvider).value;
+    if (!wanted || status == null || status.enrolled) {
+      return const SizedBox.shrink();
+    }
+    final l10n = context.l10n;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: PressScale(
+        onTap: () => unawaited(context.push(AppRoutes.voiceEnrollment)),
+        semanticLabel: l10n.homeVoiceSetup,
+        child: LiquidGlass(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              Icon(
+                Icons.record_voice_over_rounded,
+                color: LiquidPalette.of(context).accentText,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      l10n.homeVoiceSetup,
+                      style: context.textTheme.titleMedium,
+                    ),
+                    Text(
+                      l10n.homeVoiceSetupBody,
+                      style: context.textTheme.bodyMedium,
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(Icons.chevron_right_rounded),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 /// «Pasar a mañana»: mueve los vencidos que no se repiten al día siguiente.

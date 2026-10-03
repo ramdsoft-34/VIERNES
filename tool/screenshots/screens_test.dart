@@ -20,6 +20,7 @@ import 'package:viernes/features/attachments/presentation/attachment_providers.d
 import 'package:viernes/features/reminders/domain/entities/recurrence.dart';
 import 'package:viernes/features/reminders/domain/entities/reminder_enums.dart';
 import 'package:viernes/features/reminders/presentation/providers/reminder_providers.dart';
+import 'package:viernes/features/sharing/domain/friend_invite.dart';
 
 import '../../test/helpers/builders.dart';
 import '../../test/helpers/fake_reminder_repository.dart';
@@ -82,7 +83,7 @@ void main() {
         id: 'a',
         title: 'Pagar la luz antes del corte',
         dueAt: DateTime(2026, 10, 3, 11, 55),
-        recurrence: Recurrence.monthly(3),
+        recurrence: Recurrence.daily.withUntil(DateTime(2026, 10, 30)),
       ),
     );
     await repository.save(
@@ -157,6 +158,20 @@ void main() {
   testWidgets(
     'editor',
     (t) => shoot(t, '7_editor', location: AppRoutes.editReminder('c')),
+  );
+  testWidgets(
+    'voz',
+    (t) => shoot(t, '8_voz', location: AppRoutes.voiceEnrollment),
+  );
+  testWidgets(
+    'invitacion',
+    (t) => shoot(
+      t,
+      '9_invitacion',
+      location: AppRoutes.friendInvite(
+        const FriendInvite(name: 'Sofía', email: 'sofia@gmail.com').code,
+      ),
+    ),
   );
 }
 

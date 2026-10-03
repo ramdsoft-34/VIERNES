@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 import 'package:viernes/ai/ai_providers.dart';
 import 'package:viernes/app/providers.dart';
 import 'package:viernes/app/theme/app_theme.dart';
@@ -62,6 +63,7 @@ class _ReminderEditorScreenState extends ConsumerState<ReminderEditorScreen> {
   late Duration _leadTime;
   RecurrenceFrequency _frequency = RecurrenceFrequency.none;
   Set<int> _weekdays = {};
+  DateTime? _until;
   ReminderPriority _priority = ReminderPriority.normal;
   ReminderCategory _category = ReminderCategory.other;
 
@@ -124,6 +126,7 @@ class _ReminderEditorScreenState extends ConsumerState<ReminderEditorScreen> {
     _initialRecurrence = recurrence;
     _frequency = recurrence.frequency;
     _weekdays = {...recurrence.weekdays};
+    _until = recurrence.until;
   }
 
   void _initFrom(Reminder reminder) {
@@ -142,6 +145,14 @@ class _ReminderEditorScreenState extends ConsumerState<ReminderEditorScreen> {
   DateTime get _dueAt => _date.withTime(_time.hour, _time.minute);
 
   Recurrence get _recurrence {
+    final last = _until;
+    final base = _baseRecurrence;
+    return last == null || !base.repeats || last.isBefore(_date)
+        ? base
+        : base.withUntil(last);
+  }
+
+  Recurrence get _baseRecurrence {
     final interval = _initialRecurrence?.frequency == _frequency
         ? _initialRecurrence!.interval
         : 1;
@@ -241,6 +252,17 @@ class _ReminderEditorScreenState extends ConsumerState<ReminderEditorScreen> {
       lastDate: DateTime(now.year + 5, 12, 31),
     );
     if (picked != null) setState(() => _date = picked);
+  }
+
+  Future<void> _pickUntil() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _until ?? _date.addDays(29),
+      firstDate: _date,
+      lastDate: DateTime(_date.year + 5, 12, 31),
+      helpText: context.l10n.fieldUntil,
+    );
+    if (picked != null) setState(() => _until = picked);
   }
 
   Future<void> _pickTime() async {
@@ -418,6 +440,34 @@ class _ReminderEditorScreenState extends ConsumerState<ReminderEditorScreen> {
                         selected ? _weekdays.add(day) : _weekdays.remove(day);
                       }),
                     ),
+                ],
+              ),
+            ],
+            if (_frequency != RecurrenceFrequency.none) ...[
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  Expanded(
+                    child: _PickerTile(
+                      icon: Icons.event_available_outlined,
+                      label: l10n.fieldUntil,
+                      value: _until == null || _until!.isBefore(_date)
+                          ? l10n.untilForever
+                          : DateFormat(
+                              "EEE d 'de' MMM",
+                              l10n.localeName,
+                            ).format(_until!),
+                      onTap: () => unawaited(_pickUntil()),
+                    ),
+                  ),
+                  if (_until != null) ...[
+                    const SizedBox(width: 8),
+                    IconButton(
+                      tooltip: l10n.untilClear,
+                      onPressed: () => setState(() => _until = null),
+                      icon: const Icon(Icons.close_rounded),
+                    ),
+                  ],
                 ],
               ),
             ],

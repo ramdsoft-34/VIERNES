@@ -52,14 +52,28 @@ enum SyncPhase {
 
 @immutable
 class SyncState {
-  const SyncState({this.phase = SyncPhase.inactive, this.lastSyncedAt});
+  const SyncState({
+    this.phase = SyncPhase.inactive,
+    this.lastSyncedAt,
+    this.rulesOutdated = false,
+  });
 
   final SyncPhase phase;
   final DateTime? lastSyncedAt;
 
-  SyncState copyWith({SyncPhase? phase, DateTime? lastSyncedAt}) => SyncState(
+  /// La nube rechazó algo por permisos: las reglas de seguridad publicadas
+  /// son de una versión anterior (ver docs/CUENTAS.md). Con [SyncPhase.idle]
+  /// significa que lo principal se sincronizó pero los lugares no.
+  final bool rulesOutdated;
+
+  SyncState copyWith({
+    SyncPhase? phase,
+    DateTime? lastSyncedAt,
+    bool? rulesOutdated,
+  }) => SyncState(
     phase: phase ?? this.phase,
     lastSyncedAt: lastSyncedAt ?? this.lastSyncedAt,
+    rulesOutdated: rulesOutdated ?? this.rulesOutdated,
   );
 }
 
@@ -152,6 +166,7 @@ class SyncController extends Notifier<SyncState> with WidgetsBindingObserver {
       return;
     }
     state = state.copyWith(phase: SyncPhase.syncing);
+    var rulesOutdated = false;
     try {
       final binding = ref.read(accountBindingProvider);
       if (binding.ownerUid != user.uid) {
@@ -166,6 +181,13 @@ class SyncController extends Notifier<SyncState> with WidgetsBindingObserver {
         if (report.downloaded > 0) {
           await ref.read(localDataChangedProvider)();
         }
+        rulesOutdated = report.skipped.isNotEmpty;
+        if (rulesOutdated) {
+          AppLogger.info(
+            'Sincronización parcial: la nube rechazó ${report.skipped} '
+            '(reglas de Firestore sin publicar)',
+          );
+        }
       }
       await _syncAttachments(user.uid);
       final now = DateTime.now();
@@ -175,7 +197,11 @@ class SyncController extends Notifier<SyncState> with WidgetsBindingObserver {
             .setInt(_lastSyncKey, now.millisecondsSinceEpoch),
       );
       if (!ref.mounted) return;
-      state = SyncState(phase: SyncPhase.idle, lastSyncedAt: now);
+      state = SyncState(
+        phase: SyncPhase.idle,
+        lastSyncedAt: now,
+        rulesOutdated: rulesOutdated,
+      );
     } on Object catch (error, stack) {
       if (!ref.mounted) return;
       final offline = isOfflineError(error);
@@ -188,6 +214,7 @@ class SyncController extends Notifier<SyncState> with WidgetsBindingObserver {
       }
       state = state.copyWith(
         phase: offline ? SyncPhase.offline : SyncPhase.error,
+        rulesOutdated: isPermissionError(error),
       );
       _schedule(_retry);
     }

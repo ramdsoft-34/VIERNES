@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:viernes/core/cloud/cloud.dart';
 import 'package:viernes/features/account/domain/app_user.dart';
 import 'package:viernes/features/places/domain/place.dart';
 import 'package:viernes/features/sync/data/cloud_codec.dart';
@@ -47,54 +48,100 @@ class FirestoreSyncSource implements RemoteSyncSource {
   CollectionReference<Map<String, dynamic>> _locationReminders(String uid) =>
       _user(uid).collection('location_reminders');
 
+  DocumentReference<Map<String, dynamic>> _doc(
+    String uid,
+    SyncEntity entity,
+    String id,
+  ) => switch (entity) {
+    SyncEntity.reminder => _reminders(uid).doc(id),
+    SyncEntity.event => _events(uid).doc(id),
+    SyncEntity.place => _places(uid).doc(id),
+    SyncEntity.locationReminder => _locationReminders(uid).doc(id),
+  };
+
+  /// Recordatorios e historial son imprescindibles: si fallan, falla la
+  /// sincronización. Lugares y recordatorios por ubicación llegaron después
+  /// (0.10.0) y una cuenta con las reglas viejas los rechaza; en ese caso se
+  /// saltan y lo demás se sincroniza igual.
+  static const Set<SyncEntity> _optional = {
+    SyncEntity.place,
+    SyncEntity.locationReminder,
+  };
+
   @override
-  Future<void> push(String uid, LocalChanges changes) async {
-    final writes = <void Function(WriteBatch)>[
-      for (final reminder in changes.reminders)
+  Future<Set<SyncEntity>> push(String uid, LocalChanges changes) async {
+    final writes = <SyncEntity, List<void Function(WriteBatch)>>{};
+    void add(SyncEntity entity, void Function(WriteBatch) write) =>
+        writes.putIfAbsent(entity, () => []).add(write);
+
+    for (final reminder in changes.reminders) {
+      add(
+        SyncEntity.reminder,
         (batch) => batch.set(_reminders(uid).doc(reminder.id), {
           ...CloudCodec.encodeReminder(reminder),
           _serverUpdatedAt: FieldValue.serverTimestamp(),
         }),
-      for (final event in changes.events)
+      );
+    }
+    for (final event in changes.events) {
+      add(
+        SyncEntity.event,
         (batch) => batch.set(_events(uid).doc(event.syncId), {
           ...CloudCodec.encodeEvent(event),
           _serverUpdatedAt: FieldValue.serverTimestamp(),
         }),
-      for (final place in changes.places)
+      );
+    }
+    for (final place in changes.places) {
+      add(
+        SyncEntity.place,
         (batch) => batch.set(_places(uid).doc(place.id), {
           ...CloudCodec.encodePlace(place),
           _serverUpdatedAt: FieldValue.serverTimestamp(),
         }),
-      for (final reminder in changes.locationReminders)
+      );
+    }
+    for (final reminder in changes.locationReminders) {
+      add(
+        SyncEntity.locationReminder,
         (batch) => batch.set(_locationReminders(uid).doc(reminder.id), {
           ...CloudCodec.encodeLocationReminder(reminder),
           _serverUpdatedAt: FieldValue.serverTimestamp(),
         }),
-      for (final deletion in changes.deletions)
-        (batch) => batch.set(
-          switch (deletion.entity) {
-            SyncEntity.reminder => _reminders(uid).doc(deletion.entityId),
-            SyncEntity.event => _events(uid).doc(deletion.entityId),
-            SyncEntity.place => _places(uid).doc(deletion.entityId),
-            SyncEntity.locationReminder => _locationReminders(
-              uid,
-            ).doc(deletion.entityId),
-          },
-          {
-            'v': CloudCodec.formatVersion,
-            'deleted': true,
-            'updatedAt': deletion.deletedAt,
-            _serverUpdatedAt: FieldValue.serverTimestamp(),
-          },
-        ),
-    ];
-    for (var i = 0; i < writes.length; i += _batchSize) {
-      final batch = _firestore.batch();
-      for (final write in writes.skip(i).take(_batchSize)) {
-        write(batch);
-      }
-      await batch.commit();
+      );
     }
+    for (final deletion in changes.deletions) {
+      add(
+        deletion.entity,
+        (batch) => batch.set(_doc(uid, deletion.entity, deletion.entityId), {
+          'v': CloudCodec.formatVersion,
+          'deleted': true,
+          'updatedAt': deletion.deletedAt,
+          _serverUpdatedAt: FieldValue.serverTimestamp(),
+        }),
+      );
+    }
+
+    Future<void> commit(List<void Function(WriteBatch)> list) async {
+      for (var i = 0; i < list.length; i += _batchSize) {
+        final batch = _firestore.batch();
+        for (final write in list.skip(i).take(_batchSize)) {
+          write(batch);
+        }
+        await batch.commit();
+      }
+    }
+
+    final skipped = <SyncEntity>{};
+    for (final MapEntry(key: entity, value: list) in writes.entries) {
+      try {
+        await commit(list);
+      } on FirebaseException catch (error) {
+        if (!_optional.contains(entity) || !isPermissionError(error)) rethrow;
+        skipped.add(entity);
+      }
+    }
+    return skipped;
   }
 
   @override
@@ -109,12 +156,27 @@ class FirestoreSyncSource implements RemoteSyncSource {
           );
 
     const server = GetOptions(source: Source.server);
+    final skipped = <SyncEntity>{};
+    Future<List<QueryDocumentSnapshot<Map<String, dynamic>>>> optional(
+      SyncEntity entity,
+      CollectionReference<Map<String, dynamic>> collection,
+    ) async {
+      try {
+        return (await changedSince(collection).get(server)).docs;
+      } on FirebaseException catch (error) {
+        if (!isPermissionError(error)) rethrow;
+        skipped.add(entity);
+        return const [];
+      }
+    }
+
     final reminderDocs = await changedSince(_reminders(uid)).get(server);
     final eventDocs = await changedSince(_events(uid)).get(server);
-    final placeDocs = await changedSince(_places(uid)).get(server);
-    final locationDocs = await changedSince(
+    final placeDocs = await optional(SyncEntity.place, _places(uid));
+    final locationDocs = await optional(
+      SyncEntity.locationReminder,
       _locationReminders(uid),
-    ).get(server);
+    );
 
     DateTime? cursor;
     void track(Map<String, dynamic> data) {
@@ -149,11 +211,10 @@ class FirestoreSyncSource implements RemoteSyncSource {
       );
     }
     final places = <RemoteItem<Place>>[
-      for (final doc in placeDocs.docs)
-        _item(doc, track, CloudCodec.decodePlace),
+      for (final doc in placeDocs) _item(doc, track, CloudCodec.decodePlace),
     ];
     final locationReminders = <RemoteItem<LocationReminder>>[
-      for (final doc in locationDocs.docs)
+      for (final doc in locationDocs)
         _item(doc, track, CloudCodec.decodeLocationReminder),
     ];
     return RemoteChanges(
@@ -162,6 +223,7 @@ class FirestoreSyncSource implements RemoteSyncSource {
       places: places,
       locationReminders: locationReminders,
       cursor: cursor ?? since,
+      skipped: skipped,
     );
   }
 
@@ -216,7 +278,14 @@ class FirestoreSyncSource implements RemoteSyncSource {
       _locationReminders(uid),
     ]) {
       while (true) {
-        final page = await collection.limit(_batchSize).get();
+        final QuerySnapshot<Map<String, dynamic>> page;
+        try {
+          page = await collection.limit(_batchSize).get();
+        } on FirebaseException catch (error) {
+          // Colecciones que las reglas viejas no conocen: no hay nada.
+          if (isPermissionError(error)) break;
+          rethrow;
+        }
         if (page.docs.isEmpty) break;
         final batch = _firestore.batch();
         for (final doc in page.docs) {

@@ -71,6 +71,13 @@ class Reminder {
       ? snoozedUntil!
       : remindAt;
 
+  /// Hora de la tarea que se muestra al usuario: la del pendiente, o la
+  /// nueva si se pospuso (sin restar la anticipación del aviso).
+  DateTime get shownAt =>
+      status == ReminderStatus.snoozed && snoozedUntil != null
+      ? snoozedUntil!
+      : dueAt;
+
   bool get isActive => status != ReminderStatus.completed;
 
   bool isOverdue(DateTime now) => isActive && dueAt.isBefore(now);

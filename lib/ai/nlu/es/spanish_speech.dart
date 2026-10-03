@@ -95,6 +95,13 @@ abstract final class SpanishSpeech {
       '${day(due, now)} ${time(due)}';
 
   static String recurrence(Recurrence r) {
+    final base = _recurrenceBase(r);
+    final last = r.until;
+    if (base.isEmpty || last == null) return base;
+    return '$base hasta el ${last.day} de ${_months[last.month - 1]}';
+  }
+
+  static String _recurrenceBase(Recurrence r) {
     if (r.interval > 1) {
       return switch (r.frequency) {
         RecurrenceFrequency.daily => 'cada ${r.interval} días',

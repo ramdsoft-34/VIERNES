@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>Invitación a Viernes</title>
+  <style>
+    :root {
+      --ink: #0B0D11; --text: #F2F4F1; --muted: rgba(242,244,241,.62);
+      --accent: #A594FF; --on-accent: #140A3D; --glass: rgba(26,30,38,.55);
+      --border: rgba(255,255,255,.16);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; min-height: 100vh; display: grid; place-items: center;
+      padding: 24px 16px; color: var(--text); background: var(--ink);
+      font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      background-image:
+        radial-gradient(60% 45% at 15% 10%, rgba(255,122,89,.35), transparent 70%),
+        radial-gradient(55% 45% at 90% 85%, rgba(59,91,255,.45), transparent 70%);
+    }
+    main {
+      width: 100%; max-width: 420px; padding: 32px 24px; text-align: center;
+      background: var(--glass); border: 1px solid var(--border);
+      border-radius: 28px; backdrop-filter: blur(22px);
+      -webkit-backdrop-filter: blur(22px);
+    }
+    .avatar {
+      width: 88px; height: 88px; margin: 0 auto 20px; border-radius: 50%;
+      display: grid; place-items: center; font-size: 40px; font-weight: 600;
+      background: var(--accent); color: var(--on-accent);
+    }
+    h1 { margin: 0 0 6px; font-size: 26px; font-weight: 600; letter-spacing: -.02em; }
+    .email { margin: 0 0 18px; color: var(--muted); font-family: ui-monospace, monospace; font-size: 14px; word-break: break-all; }
+    p { color: var(--muted); margin: 0 0 24px; }
+    a.button {
+      display: block; padding: 15px 20px; border-radius: 999px; font-weight: 600;
+      background: var(--accent); color: var(--on-accent); text-decoration: none;
+    }
+    .small { margin-top: 22px; font-size: 14px; }
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="avatar" id="avatar">V</div>
+    <h1 id="title">Invitación a Viernes</h1>
+    <div class="email" id="email"></div>
+    <p id="body">Abre este enlace en el teléfono donde tienes Viernes.</p>
+    <a class="button hidden" id="open" href="#">Abrir en Viernes</a>
+    <p class="small">¿Aún no tienes Viernes? Pídele la app a quien te invitó.
+      Después vuelve a tocar el enlace.</p>
+  </main>
+  <script>
+    (function () {
+      var code = (location.hash || '').replace(/^#/, '');
+      if (!/^[A-Za-z0-9_-]{12,600}$/.test(code)) return;
+      var invite = null;
+      try {
+        var b64 = code.replace(/-/g, '+').replace(/_/g, '/');
+        while (b64.length % 4) b64 += '=';
+        var bytes = atob(b64);
+        var json = decodeURIComponent(Array.prototype.map.call(bytes, function (c) {
+          return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+        }).join(''));
+        invite = JSON.parse(json);
+      } catch (e) { return; }
+      if (!invite || !invite.n) return;
+      document.getElementById('avatar').textContent = invite.n.charAt(0).toUpperCase();
+      document.getElementById('title').textContent = invite.n + ' te invita';
+      document.getElementById('email').textContent = invite.e || '';
+      document.getElementById('body').textContent =
+        'Al aceptar, se agregan como contactos para enviarse recordatorios por voz y compartir listas.';
+      var open = document.getElementById('open');
+      open.href = 'intent://amigo/' + code +
+        '#Intent;scheme=viernes;package=com.ramdsoft.viernes;end';
+      open.classList.remove('hidden');
+    })();
+  </script>
+</body>
+</html>

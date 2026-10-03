@@ -3,6 +3,37 @@
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/);
 versionado [semántico](https://semver.org/lang/es/).
 
+## [0.12.0] — Tu voz, amigos por enlace y sincronización arreglada
+
+### Agregado
+- **Activación solo con tu voz**: se registra la voz diciendo «Viernes»
+  cinco veces (Ajustes → Activación por voz → Tu voz). Sin voz registrada,
+  decir «Viernes» no hace nada; con ella, Viernes compara la voz antes de
+  abrirse (huella MFCC + tono, calibrada con tus propias grabaciones).
+  Exigencia flexible, normal o estricta, prueba «¿me reconoce?» y conteo de
+  voces ignoradas. La voz se guarda solo en el teléfono.
+- **Amigos por enlace**: «Compartir enlace» o código QR en Compartir →
+  Contactos. Quien lo abre agrega con un toque y la otra persona lo agrega
+  de vuelta sola. También «Pegar invitación» si el enlace no abre la app.
+- **Repeticiones con fecha final**: «por 30 días», «durante dos semanas»,
+  «del 5 al 10», «todos los días hasta el 15». Campo «Hasta» en el editor.
+- Se entienden «hazme acuerdo de…», «activa una alarma…» (título
+  «Alarma»), «despiértame…», y se quita relleno como «entonces», «así que»,
+  «esos días», «tienes que estarme recordando».
+- El dictado sigue escuchando si la frase queda a medias («…que tengo
+  que»).
+
+### Cambiado
+- **Colores**: el acento verde pasa a **iris** (índigo violáceo) en toda la
+  app, el ícono, los widgets y las notificaciones.
+- «Ahora» muestra la hora de la tarea, no la del aviso anticipado.
+
+### Corregido
+- **Sincronización**: si la nube rechaza lugares o recordatorios por
+  ubicación (reglas de Firestore sin publicar), lo demás se sincroniza igual
+  y Ajustes explica qué falta, en vez de fallar todo.
+- Etiquetas largas en las tarjetas ya no se desbordan.
+
 ## [0.11.0] — Rediseño Liquid
 
 ### Cambiado

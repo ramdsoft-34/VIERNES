@@ -62,7 +62,7 @@ class NotificationService
 
   /// Hace que el sonido se repita hasta que se atienda (FLAG_INSISTENT).
   static const _flagInsistent = 4;
-  static const _brandColor = Color(0xFF8DB31F);
+  static const _brandColor = Color(0xFF6C5CE7);
   static const _icon = 'ic_stat_viernes';
 
   /// Toques en la notificación o sus botones con la app abierta.

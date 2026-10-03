@@ -139,19 +139,23 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                         context.textTheme.bodyMedium,
                       ).copyWith(color: p.textMuted),
                       todayDecoration: BoxDecoration(
-                        border: Border.all(color: p.voltText),
+                        border: Border.all(color: p.accentText),
                         shape: BoxShape.circle,
                       ),
                       todayTextStyle: AppTheme.monoStyle(
                         context.textTheme.bodyMedium,
-                      ).copyWith(color: p.voltText),
+                      ).copyWith(color: p.accentText),
                       selectedDecoration: BoxDecoration(
-                        color: p.volt,
+                        color: p.accent,
                         shape: BoxShape.circle,
                       ),
-                      selectedTextStyle: AppTheme.monoStyle(
-                        context.textTheme.bodyMedium,
-                      ).copyWith(color: p.onVolt, fontWeight: FontWeight.w500),
+                      selectedTextStyle:
+                          AppTheme.monoStyle(
+                            context.textTheme.bodyMedium,
+                          ).copyWith(
+                            color: p.onAccent,
+                            fontWeight: FontWeight.w500,
+                          ),
                       markerDecoration: BoxDecoration(
                         color: p.ember,
                         shape: BoxShape.circle,

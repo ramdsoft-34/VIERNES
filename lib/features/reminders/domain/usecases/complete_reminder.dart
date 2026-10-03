@@ -36,9 +36,12 @@ class CompleteReminder {
       onTime: !now.isAfter(current.dueAt),
     );
 
-    final updated = current.recurrence.repeats
+    final next = current.recurrence.repeats
+        ? _nextFutureOccurrence(current, now)
+        : null;
+    final updated = next != null
         ? current.copyWith(
-            dueAt: _nextFutureOccurrence(current, now),
+            dueAt: next,
             status: ReminderStatus.pending,
             snoozedUntil: null,
             snoozeCount: 0,
@@ -68,10 +71,11 @@ class CompleteReminder {
   });
 
   /// Salta las ocurrencias cuyo aviso ya pasó (p. ej. si se confirma tarde).
-  DateTime _nextFutureOccurrence(Reminder reminder, DateTime now) {
-    var due = reminder.recurrence.nextAfter(reminder.dueAt)!;
-    while (!due.subtract(reminder.leadTime).isAfter(now)) {
-      due = reminder.recurrence.nextAfter(due)!;
+  /// Nulo si la repetición terminó (pasó su último día).
+  DateTime? _nextFutureOccurrence(Reminder reminder, DateTime now) {
+    var due = reminder.recurrence.nextAfter(reminder.dueAt);
+    while (due != null && !due.subtract(reminder.leadTime).isAfter(now)) {
+      due = reminder.recurrence.nextAfter(due);
     }
     return due;
   }

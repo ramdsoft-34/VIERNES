@@ -81,6 +81,28 @@
                 <action android:name="android.speech.action.VOICE_SEARCH_HANDS_FREE" />
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
+            <!-- Invitaciones de amigos: el enlace que se comparte (verificado
+                 con hosting/public/.well-known/assetlinks.json) y el botón de
+                 la página web. -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="https"
+                    android:host="viernes-ramdsoft.web.app"
+                    android:pathPrefix="/amigo" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="viernes" android:host="amigo" />
+            </intent-filter>
+            <!-- Los enlaces los maneja MainActivity, no el enrutador. -->
+            <meta-data
+                android:name="flutter_deeplinking_enabled"
+                android:value="false" />
         </activity>
 
         <!-- Botón «Viernes» en los ajustes rápidos. -->

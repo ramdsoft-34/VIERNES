@@ -16,8 +16,10 @@ import 'package:viernes/features/reminders/domain/entities/reminder_draft.dart';
 import 'package:viernes/features/reminders/presentation/screens/reminder_editor_screen.dart';
 import 'package:viernes/features/reminders/presentation/screens/reminders_screen.dart';
 import 'package:viernes/features/settings/presentation/settings_screen.dart';
+import 'package:viernes/features/sharing/presentation/friend_invite_screen.dart';
 import 'package:viernes/features/sharing/presentation/shared_list_screen.dart';
 import 'package:viernes/features/sharing/presentation/sharing_screen.dart';
+import 'package:viernes/features/voice_assistant/presentation/voice_enrollment_screen.dart';
 
 final rootNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'root');
 
@@ -58,7 +60,20 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.sharing,
         parentNavigatorKey: rootNavigatorKey,
-        builder: (context, state) => const SharingScreen(),
+        builder: (context, state) => SharingScreen(
+          initialTab: state.uri.queryParameters['tab'] == 'contactos' ? 2 : 0,
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.voiceEnrollment,
+        parentNavigatorKey: rootNavigatorKey,
+        builder: (context, state) => const VoiceEnrollmentScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.friendInvitePath,
+        parentNavigatorKey: rootNavigatorKey,
+        builder: (context, state) =>
+            FriendInviteScreen(code: state.uri.queryParameters['c'] ?? ''),
       ),
       GoRoute(
         path: AppRoutes.sharedListPath,

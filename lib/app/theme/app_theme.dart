@@ -10,8 +10,8 @@ export 'package:viernes/app/theme/liquid_palette.dart';
 /// acento), apple-design (respuesta inmediata, resortes, tipografía con
 /// tracking según el tamaño) y ui-ux-pro-max (contraste, toques de 44 px).
 abstract final class AppTheme {
-  /// Acento de Viernes (voltio).
-  static const seed = Color(0xFFD2F25C);
+  /// Acento de Viernes (iris).
+  static const seed = Color(0xFFA594FF);
 
   static const font = 'Geist';
   static const mono = 'GeistMono';
@@ -67,10 +67,10 @@ abstract final class AppTheme {
     final text = _text(p);
     final scheme = ColorScheme(
       brightness: brightness,
-      primary: p.volt,
-      onPrimary: p.onVolt,
-      primaryContainer: p.volt.withValues(alpha: 0.18),
-      onPrimaryContainer: p.voltText,
+      primary: p.accent,
+      onPrimary: p.onAccent,
+      primaryContainer: p.accent.withValues(alpha: 0.18),
+      onPrimaryContainer: p.accentText,
       secondary: p.textSecondary,
       onSecondary: p.ink,
       secondaryContainer: p.glassFill,
@@ -143,8 +143,8 @@ abstract final class AppTheme {
       iconTheme: IconThemeData(color: p.text, size: 22),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
-          backgroundColor: p.volt,
-          foregroundColor: p.onVolt,
+          backgroundColor: p.accent,
+          foregroundColor: p.onAccent,
           minimumSize: const Size(64, 52),
           padding: const EdgeInsets.symmetric(horizontal: 22),
           textStyle: text.labelLarge,
@@ -186,8 +186,8 @@ abstract final class AppTheme {
         ),
       ),
       floatingActionButtonTheme: FloatingActionButtonThemeData(
-        backgroundColor: p.volt,
-        foregroundColor: p.onVolt,
+        backgroundColor: p.accent,
+        foregroundColor: p.onAccent,
         elevation: 0,
         highlightElevation: 0,
         shape: pill,
@@ -196,7 +196,7 @@ abstract final class AppTheme {
         filled: true,
         fillColor: p.text.withValues(alpha: 0.06),
         labelStyle: text.bodyMedium,
-        floatingLabelStyle: text.labelMedium?.copyWith(color: p.voltText),
+        floatingLabelStyle: text.labelMedium?.copyWith(color: p.accentText),
         hintStyle: text.bodyMedium?.copyWith(color: p.textMuted),
         prefixIconColor: p.textSecondary,
         contentPadding: const EdgeInsets.symmetric(
@@ -213,63 +213,64 @@ abstract final class AppTheme {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: field,
-          borderSide: BorderSide(color: p.voltText, width: 1.4),
+          borderSide: BorderSide(color: p.accentText, width: 1.4),
         ),
       ),
       switchTheme: SwitchThemeData(
         thumbColor: WidgetStateProperty.resolveWith(
-          (s) => s.contains(WidgetState.selected) ? p.onVolt : p.textSecondary,
+          (s) =>
+              s.contains(WidgetState.selected) ? p.onAccent : p.textSecondary,
         ),
         trackColor: WidgetStateProperty.resolveWith(
           (s) => s.contains(WidgetState.selected)
-              ? p.volt
+              ? p.accent
               : p.text.withValues(alpha: 0.1),
         ),
         trackOutlineColor: WidgetStateProperty.all(Colors.transparent),
       ),
       checkboxTheme: CheckboxThemeData(
         fillColor: WidgetStateProperty.resolveWith(
-          (s) => s.contains(WidgetState.selected) ? p.volt : null,
+          (s) => s.contains(WidgetState.selected) ? p.accent : null,
         ),
-        checkColor: WidgetStateProperty.all(p.onVolt),
+        checkColor: WidgetStateProperty.all(p.onAccent),
         side: BorderSide(color: p.textMuted, width: 1.5),
         shape: const CircleBorder(),
       ),
       radioTheme: RadioThemeData(
         fillColor: WidgetStateProperty.resolveWith(
-          (s) => s.contains(WidgetState.selected) ? p.voltText : p.textMuted,
+          (s) => s.contains(WidgetState.selected) ? p.accentText : p.textMuted,
         ),
       ),
       chipTheme: ChipThemeData(
         backgroundColor: p.text.withValues(alpha: 0.07),
-        selectedColor: p.volt,
+        selectedColor: p.accent,
         side: BorderSide(color: p.hairline),
         labelStyle: text.labelMedium,
-        secondaryLabelStyle: text.labelMedium?.copyWith(color: p.onVolt),
-        checkmarkColor: p.onVolt,
+        secondaryLabelStyle: text.labelMedium?.copyWith(color: p.onAccent),
+        checkmarkColor: p.onAccent,
         shape: const StadiumBorder(),
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
       ),
       segmentedButtonTheme: SegmentedButtonThemeData(
         style: SegmentedButton.styleFrom(
           backgroundColor: p.text.withValues(alpha: 0.05),
-          selectedBackgroundColor: p.volt,
-          selectedForegroundColor: p.onVolt,
+          selectedBackgroundColor: p.accent,
+          selectedForegroundColor: p.onAccent,
           foregroundColor: p.text,
           side: BorderSide(color: p.hairline),
           textStyle: text.labelMedium,
         ),
       ),
       sliderTheme: SliderThemeData(
-        activeTrackColor: p.volt,
+        activeTrackColor: p.accent,
         inactiveTrackColor: p.text.withValues(alpha: 0.12),
-        thumbColor: p.volt,
-        overlayColor: p.volt.withValues(alpha: 0.16),
+        thumbColor: p.accent,
+        overlayColor: p.accent.withValues(alpha: 0.16),
         valueIndicatorColor: p.inkRaised,
         valueIndicatorTextStyle: text.labelMedium,
       ),
       progressIndicatorTheme: ProgressIndicatorThemeData(
-        color: p.volt,
+        color: p.accent,
         linearTrackColor: p.text.withValues(alpha: 0.08),
         circularTrackColor: Colors.transparent,
       ),
@@ -277,7 +278,7 @@ abstract final class AppTheme {
         behavior: SnackBarBehavior.floating,
         backgroundColor: p.inkRaised,
         contentTextStyle: text.bodyMedium?.copyWith(color: p.text),
-        actionTextColor: p.voltText,
+        actionTextColor: p.accentText,
         elevation: 0,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(LiquidRadius.md),
@@ -319,28 +320,28 @@ abstract final class AppTheme {
         surfaceTintColor: Colors.transparent,
         headerBackgroundColor: p.inkRaised,
         headerForegroundColor: p.text,
-        todayForegroundColor: WidgetStatePropertyAll(p.voltText),
+        todayForegroundColor: WidgetStatePropertyAll(p.accentText),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(LiquidRadius.lg),
         ),
       ),
       timePickerTheme: TimePickerThemeData(
         backgroundColor: p.inkRaised,
-        dialHandColor: p.volt,
+        dialHandColor: p.accent,
         hourMinuteColor: p.text.withValues(alpha: 0.07),
-        dayPeriodColor: p.volt.withValues(alpha: 0.2),
+        dayPeriodColor: p.accent.withValues(alpha: 0.2),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(LiquidRadius.lg),
         ),
       ),
       tabBarTheme: TabBarThemeData(
         indicator: BoxDecoration(
-          color: p.volt,
+          color: p.accent,
           borderRadius: BorderRadius.circular(LiquidRadius.pill),
         ),
         indicatorSize: TabBarIndicatorSize.tab,
         dividerHeight: 0,
-        labelColor: p.onVolt,
+        labelColor: p.onAccent,
         unselectedLabelColor: p.textSecondary,
         labelStyle: text.labelMedium,
         unselectedLabelStyle: text.labelMedium,

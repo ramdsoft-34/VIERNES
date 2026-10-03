@@ -13,6 +13,7 @@ import 'package:viernes/features/places/domain/place.dart';
 import 'package:viernes/features/reminders/data/drift_reminder_repository.dart';
 import 'package:viernes/features/sync/application/sync_engine.dart';
 import 'package:viernes/features/sync/data/drift_sync_store.dart';
+import 'package:viernes/features/sync/domain/sync_records.dart';
 
 import '../../helpers/builders.dart';
 import '../../helpers/fake_cloud.dart';
@@ -158,6 +159,31 @@ void main() {
   );
 
   group('lugares', () {
+    test(
+      'si la nube rechaza los lugares, lo demás se sincroniza y ellos esperan',
+      () async {
+        cloud.denied = {SyncEntity.place, SyncEntity.locationReminder};
+        await phone.places.savePlace(casa());
+        await DriftReminderRepository(
+          phone.db,
+        ).save(buildReminder(title: 'Pagar el agua'));
+
+        final report = await phone.engine.sync(uid);
+
+        expect(report.skipped, contains(SyncEntity.place));
+        expect(cloud.reminders[uid]!.keys, ['r1']);
+        expect(cloud.places[uid] ?? {}, isEmpty);
+        // El lugar sigue pendiente para cuando se publiquen las reglas.
+        expect(await DriftSyncStore(phone.db).pendingCount(), 1);
+
+        cloud.denied = {};
+        final later = await phone.engine.sync(uid);
+        expect(later.skipped, isEmpty);
+        expect(cloud.places[uid]!.keys, ['casa']);
+        expect(await DriftSyncStore(phone.db).pendingCount(), 0);
+      },
+    );
+
     test('un lugar y su recordatorio llegan al otro teléfono', () async {
       await phone.places.savePlace(casa());
       await phone.places.saveReminder(

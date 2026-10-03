@@ -33,14 +33,20 @@ extension ReminderLabels on AppLocalizations {
   };
 
   String recurrence(Recurrence value) {
+    final String base;
     if (value.frequency == RecurrenceFrequency.weekly &&
         value.weekdays.isNotEmpty) {
       final days = (value.weekdays.toList()..sort())
           .map(weekdayShort)
           .join(', ');
-      return recurrenceWeeklyOn(days);
+      base = recurrenceWeeklyOn(days);
+    } else {
+      base = recurrenceFrequency(value.frequency);
     }
-    return recurrenceFrequency(value.frequency);
+    final last = value.until;
+    if (last == null || !value.repeats) return base;
+    final date = DateFormat("d 'de' MMM", localeName).format(last);
+    return recurrenceUntil(base, date);
   }
 
   String leadTime(Duration value) {

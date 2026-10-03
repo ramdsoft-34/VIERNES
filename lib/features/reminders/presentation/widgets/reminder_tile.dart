@@ -131,7 +131,7 @@ class ReminderTile extends ConsumerWidget {
       key: ValueKey('dismiss-${reminder.id}-${occurrenceAt ?? ''}'),
       background: _SwipeBackground(
         alignment: Alignment.centerLeft,
-        color: LiquidPalette.of(context).volt,
+        color: LiquidPalette.of(context).accent,
         icon: Icons.check,
         label: l10n.actionComplete,
       ),
@@ -192,14 +192,14 @@ class _CompleteButton extends ConsumerWidget {
               height: 26,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: done ? p.volt : Colors.transparent,
+                color: done ? p.accent : Colors.transparent,
                 border: Border.all(
-                  color: done ? p.volt : ring,
+                  color: done ? p.accent : ring,
                   width: 1.6,
                 ),
               ),
               child: done
-                  ? Icon(Icons.check_rounded, size: 16, color: p.onVolt)
+                  ? Icon(Icons.check_rounded, size: 16, color: p.onAccent)
                   : null,
             ),
           ),
@@ -279,9 +279,15 @@ class _Meta extends StatelessWidget {
       children: [
         Icon(icon, size: 14, color: effective),
         const SizedBox(width: 3),
-        Text(
-          label,
-          style: context.textTheme.bodySmall?.copyWith(color: effective),
+        // Etiquetas largas («todos los días hasta el 30 de oct.») no deben
+        // desbordar la tarjeta.
+        Flexible(
+          child: Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: context.textTheme.bodySmall?.copyWith(color: effective),
+          ),
         ),
       ],
     );
@@ -316,7 +322,7 @@ class _SwipeBackground extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final foreground = color.computeLuminance() > 0.5
-        ? const Color(0xFF1B2205)
+        ? const Color(0xFF140A3D)
         : Colors.white;
     return DecoratedBox(
       decoration: BoxDecoration(

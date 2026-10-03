@@ -28,6 +28,9 @@ class FakeRemoteSyncSource implements RemoteSyncSource {
 
   /// Simula no tener internet.
   bool offline = false;
+
+  /// Tipos de dato que la nube rechaza (reglas viejas).
+  Set<SyncEntity> denied = {};
   int pushes = 0;
 
   var _serverClock = DateTime(2026);
@@ -41,9 +44,10 @@ class FakeRemoteSyncSource implements RemoteSyncSource {
   }
 
   @override
-  Future<void> push(String uid, LocalChanges changes) async {
+  Future<Set<SyncEntity>> push(String uid, LocalChanges all) async {
     _check();
     pushes++;
+    final changes = all.without(denied);
     final userReminders = reminders.putIfAbsent(uid, () => {});
     final userEvents = events.putIfAbsent(uid, () => {});
     for (final r in changes.reminders) {
@@ -72,6 +76,7 @@ class FakeRemoteSyncSource implements RemoteSyncSource {
           userLocation[d.entityId] = _Doc(null, d.deletedAt, _tick());
       }
     }
+    return denied;
   }
 
   @override
@@ -125,9 +130,12 @@ class FakeRemoteSyncSource implements RemoteSyncSource {
     return RemoteChanges(
       reminders: changedReminders,
       events: changedEvents,
-      places: changedPlaces,
-      locationReminders: changedLocation,
+      places: denied.contains(SyncEntity.place) ? const [] : changedPlaces,
+      locationReminders: denied.contains(SyncEntity.locationReminder)
+          ? const []
+          : changedLocation,
       cursor: cursor,
+      skipped: denied,
     );
   }
 

@@ -7,7 +7,11 @@ import 'package:viernes/features/sync/domain/sync_records.dart';
 /// proveedor es escribir otra implementación de esta interfaz.
 abstract interface class RemoteSyncSource {
   /// Sube los cambios. Es idempotente: repetir la subida no duplica nada.
-  Future<void> push(String uid, LocalChanges changes);
+  ///
+  /// Devuelve los tipos de dato que la nube rechazó por permisos (p. ej.
+  /// reglas viejas que no conocen los lugares); esos quedan pendientes y el
+  /// resto se sube igual.
+  Future<Set<SyncEntity>> push(String uid, LocalChanges changes);
 
   /// Cambios hechos desde [since] (todo si es nulo).
   Future<RemoteChanges> pull(String uid, {DateTime? since});

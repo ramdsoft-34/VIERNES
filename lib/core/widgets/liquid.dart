@@ -30,7 +30,7 @@ enum AmbientMood {
   /// Más brasa: alertas y lo urgente.
   alert,
 
-  /// Más voltio: la conversación con Viernes.
+  /// Más acento: la conversación con Viernes.
   voice,
 }
 
@@ -131,7 +131,7 @@ class _AmbientPainter extends CustomPainter {
     final w = size.width;
     final h = size.height;
     final a = t * math.pi;
-    final (warm, cool, volt) = switch (mood) {
+    final (warm, cool, accent) = switch (mood) {
       AmbientMood.calm => (0.42, 0.5, 0.1),
       AmbientMood.alert => (0.7, 0.3, 0.06),
       AmbientMood.voice => (0.2, 0.38, 0.32),
@@ -154,8 +154,8 @@ class _AmbientPainter extends CustomPainter {
       canvas,
       Offset(w * (0.4 + 0.15 * math.cos(a * 1.3)), h * (0.92 - 0.05 * t)),
       w * 0.7,
-      palette.volt,
-      volt,
+      palette.accent,
+      accent,
     );
   }
 
@@ -185,7 +185,7 @@ class LiquidGlass extends StatelessWidget {
   final bool blur;
   final EdgeInsetsGeometry? padding;
 
-  /// Color extra del vidrio (p. ej. voltio translúcido).
+  /// Color extra del vidrio (p. ej. acento translúcido).
   final Color? tint;
   final BoxShape shape;
 
@@ -638,12 +638,12 @@ class _SwipeToConfirmState extends State<SwipeToConfirm>
                         width: _knob,
                         height: _knob,
                         decoration: BoxDecoration(
-                          color: p.volt,
+                          color: p.accent,
                           shape: BoxShape.circle,
                         ),
                         child: Icon(
                           _done ? Icons.check_rounded : Icons.arrow_forward,
-                          color: p.onVolt,
+                          color: p.onAccent,
                           size: 28,
                         ),
                       ),
@@ -659,7 +659,7 @@ class _SwipeToConfirmState extends State<SwipeToConfirm>
   }
 }
 
-/// El orbe de Viernes: núcleo voltio que respira y ondas mientras escucha.
+/// El orbe de Viernes: núcleo iris que respira y ondas mientras escucha.
 class VoiceOrb extends StatefulWidget {
   const VoiceOrb({
     this.size = 132,
@@ -673,7 +673,7 @@ class VoiceOrb extends StatefulWidget {
   final bool listening;
   final bool thinking;
 
-  /// Color del núcleo (por defecto, voltio).
+  /// Color del núcleo (por defecto, el acento).
   final Color? color;
 
   @override
@@ -721,7 +721,7 @@ class _VoiceOrbState extends State<VoiceOrb>
   @override
   Widget build(BuildContext context) {
     final p = LiquidPalette.of(context);
-    final color = widget.color ?? p.volt;
+    final color = widget.color ?? p.accent;
     final core = widget.size * 0.47;
     return SizedBox.square(
       dimension: widget.size,
@@ -824,13 +824,13 @@ class LiquidTag extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final p = LiquidPalette.of(context);
-    final fg = color ?? (accent ? p.voltText : p.textSecondary);
+    final fg = color ?? (accent ? p.accentText : p.textSecondary);
     return DecoratedBox(
       decoration: BoxDecoration(
         color: color != null
             ? color!.withValues(alpha: 0.16)
             : accent
-            ? p.volt.withValues(alpha: 0.16)
+            ? p.accent.withValues(alpha: 0.16)
             : p.text.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(LiquidRadius.pill),
       ),

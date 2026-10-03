@@ -66,6 +66,25 @@ class LocalChanges {
       deletions.length +
       places.length +
       locationReminders.length;
+
+  /// Los mismos cambios sin los tipos de dato de [skipped] (los que la nube
+  /// rechazó y quedan pendientes para la próxima vez).
+  LocalChanges without(Set<SyncEntity> skipped) => skipped.isEmpty
+      ? this
+      : LocalChanges(
+          reminders: skipped.contains(SyncEntity.reminder)
+              ? const []
+              : reminders,
+          events: skipped.contains(SyncEntity.event) ? const [] : events,
+          places: skipped.contains(SyncEntity.place) ? const [] : places,
+          locationReminders: skipped.contains(SyncEntity.locationReminder)
+              ? const []
+              : locationReminders,
+          deletions: [
+            for (final d in deletions)
+              if (!skipped.contains(d.entity)) d,
+          ],
+        );
 }
 
 /// Un recordatorio como está en la nube. [reminder] es nulo si se borró.
@@ -121,6 +140,7 @@ class RemoteChanges {
     this.places = const [],
     this.locationReminders = const [],
     this.cursor,
+    this.skipped = const {},
   });
 
   final List<RemoteReminder> reminders;
@@ -131,6 +151,9 @@ class RemoteChanges {
   /// Marca de tiempo del servidor del cambio más reciente recibido; la
   /// próxima descarga parte de aquí.
   final DateTime? cursor;
+
+  /// Tipos de dato que la nube no dejó leer (reglas sin publicar).
+  final Set<SyncEntity> skipped;
 
   bool get isEmpty =>
       reminders.isEmpty &&
@@ -146,10 +169,18 @@ class RemoteChanges {
 /// Resultado de una sincronización.
 @immutable
 class SyncReport {
-  const SyncReport({this.uploaded = 0, this.downloaded = 0});
+  const SyncReport({
+    this.uploaded = 0,
+    this.downloaded = 0,
+    this.skipped = const {},
+  });
 
   final int uploaded;
 
   /// Cambios de la nube que modificaron este teléfono.
   final int downloaded;
+
+  /// Tipos de dato que no se pudieron sincronizar porque la nube los
+  /// rechazó (reglas de seguridad sin publicar). El resto sí se sincronizó.
+  final Set<SyncEntity> skipped;
 }

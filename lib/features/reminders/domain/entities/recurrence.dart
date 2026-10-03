@@ -15,6 +15,7 @@ class Recurrence {
     this.interval = 1,
     this.weekdays = const {},
     this.monthDay,
+    this.until,
   }) : assert(interval >= 1, 'interval debe ser >= 1');
 
   factory Recurrence.weekly(Set<int> weekdays, {int interval = 1}) =>
@@ -52,7 +53,11 @@ class Recurrence {
     );
     if (frequency == RecurrenceFrequency.none) return none;
     final byDay = parts['BYDAY'];
+    final until = parts['UNTIL'];
     return Recurrence(
+      until: until == null || until.length != 8
+          ? null
+          : DateTime.tryParse(until),
       frequency: frequency,
       interval: int.tryParse(parts['INTERVAL'] ?? '') ?? 1,
       weekdays: byDay == null || byDay.isEmpty
@@ -79,6 +84,10 @@ class Recurrence {
 
   final int? monthDay;
 
+  /// Último día (inclusive) en que se repite: «por 30 días», «del 5 al 10».
+  /// Nulo si se repite sin fin. Solo cuenta la fecha, no la hora.
+  final DateTime? until;
+
   bool get repeats => frequency != RecurrenceFrequency.none;
 
   String encode() {
@@ -88,12 +97,36 @@ class Recurrence {
       buffer.write(';BYDAY=${(weekdays.toList()..sort()).join(',')}');
     }
     if (monthDay != null) buffer.write(';BYMONTHDAY=$monthDay');
+    final last = until;
+    if (last != null) {
+      buffer.write(
+        ';UNTIL=${last.year.toString().padLeft(4, '0')}'
+        '${last.month.toString().padLeft(2, '0')}'
+        '${last.day.toString().padLeft(2, '0')}',
+      );
+    }
     return buffer.toString();
   }
 
+  /// La misma regla con otro último día (o sin fin si [until] es nulo).
+  Recurrence withUntil(DateTime? until) => Recurrence(
+    frequency: frequency,
+    interval: interval,
+    weekdays: weekdays,
+    monthDay: monthDay,
+    until: until?.startOfDay,
+  );
+
   /// Siguiente ocurrencia estrictamente posterior a [current], o `null` si no
-  /// se repite. Conserva la hora de reloj.
+  /// se repite o ya pasó su último día ([until]). Conserva la hora de reloj.
   DateTime? nextAfter(DateTime current) {
+    final next = _nextAfter(current);
+    final last = until;
+    if (next == null || last == null) return next;
+    return next.startOfDay.isAfter(last.startOfDay) ? null : next;
+  }
+
+  DateTime? _nextAfter(DateTime current) {
     switch (frequency) {
       case RecurrenceFrequency.none:
         return null;

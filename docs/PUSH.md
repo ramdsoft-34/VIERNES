@@ -35,7 +35,7 @@ npx firebase-tools login
 ```
 
 ```bash
-npx firebase-tools deploy --only functions,firestore:rules,storage
+npx firebase-tools deploy --only functions,firestore:rules,storage,hosting
 ```
 
 Las funciones van en `us-east1` (misma región que Firestore).
@@ -57,3 +57,18 @@ Las funciones van en `us-east1` (misma región que Firestore).
 ```bash
 npx firebase-tools functions:log
 ```
+
+## Enlaces de invitación (0.12.0)
+
+Los enlaces `https://viernes-ramdsoft.web.app/amigo#…` necesitan Firebase
+Hosting (gratis, no requiere el plan Blaze). Sin Blaze se puede publicar solo
+lo que no cuesta:
+
+```bash
+npx firebase-tools login
+npx firebase-tools deploy --only firestore:rules,hosting
+```
+
+`hosting/public/.well-known/assetlinks.json` lleva la huella SHA-256 de la
+llave con la que se firma el APK (hoy la de depuración). Si cambias de llave,
+actualízala para que el enlace abra la app directamente.

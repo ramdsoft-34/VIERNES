@@ -118,11 +118,13 @@ class _SyncTile extends ConsumerWidget {
     final status = switch (sync.phase) {
       SyncPhase.syncing => l10n.accountSyncing,
       SyncPhase.offline => l10n.accountOffline,
+      SyncPhase.error when sync.rulesOutdated => l10n.accountSyncRules,
       SyncPhase.error => l10n.accountSyncError,
-      _ =>
-        sync.lastSyncedAt == null
-            ? l10n.accountNeverSynced
-            : l10n.accountSyncedAt(_when(sync.lastSyncedAt!)),
+      _ when sync.lastSyncedAt == null => l10n.accountNeverSynced,
+      _ when sync.rulesOutdated => l10n.accountSyncPartial(
+        _when(sync.lastSyncedAt!),
+      ),
+      _ => l10n.accountSyncedAt(_when(sync.lastSyncedAt!)),
     };
 
     return ListTile(

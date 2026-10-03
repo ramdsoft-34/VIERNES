@@ -118,4 +118,6 @@ dependencies {
     implementation("com.google.ai.edge.litert:litert:1.4.2")
     // Recordatorios por ubicación (geocercas).
     implementation("com.google.android.gms:play-services-location:21.3.0")
+    // Pruebas del reconocimiento de la voz del dueño (SpeakerVerifierTest).
+    testImplementation("junit:junit:4.13.2")
 }

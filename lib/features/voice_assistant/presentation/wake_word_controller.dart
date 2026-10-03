@@ -4,6 +4,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:viernes/ai/ai_providers.dart';
 import 'package:viernes/ai/speech/speech_recognizer.dart';
+import 'package:viernes/ai/wake_word/voice_profile_service.dart';
 import 'package:viernes/ai/wake_word/wake_model_manager.dart';
 import 'package:viernes/ai/wake_word/wake_sample_store.dart';
 import 'package:viernes/ai/wake_word/wake_word_service.dart';
@@ -19,6 +20,17 @@ import 'package:viernes/l10n/gen/app_localizations.dart';
 final wakeWordServiceProvider = Provider<WakeWordService>(
   (ref) => AndroidWakeWordService(),
 );
+
+/// Voz registrada del dueño. En pruebas se sobrescribe con una falsa.
+final voiceProfileServiceProvider = Provider<VoiceProfileService>(
+  (ref) => AndroidVoiceProfileService(),
+);
+
+/// Estado de la voz registrada (se refresca al invalidarlo).
+final FutureProvider<VoiceProfileStatus> voiceProfileStatusProvider =
+    FutureProvider.autoDispose<VoiceProfileStatus>(
+      (ref) => ref.watch(voiceProfileServiceProvider).status(),
+    );
 
 /// Modelo de Vosk (respaldo). En pruebas se sobrescribe con uno falso.
 final voskModelManagerProvider = Provider<WakeModelManager>(
@@ -50,6 +62,7 @@ class WakeWordState {
     this.modelInstalled = false,
     this.ownModel = false,
     this.canOpenOverOtherApps = false,
+    this.needsVoice = false,
     this.error,
   });
 
@@ -62,6 +75,9 @@ class WakeWordState {
   /// Usa el detector propio incluido en la app (no hay nada que borrar).
   final bool ownModel;
   final bool canOpenOverOtherApps;
+
+  /// Se intentó activar sin una voz registrada.
+  final bool needsVoice;
   final String? error;
 
   bool get isBusy =>
@@ -73,6 +89,7 @@ class WakeWordState {
     bool? modelInstalled,
     bool? ownModel,
     bool? canOpenOverOtherApps,
+    bool? needsVoice,
     String? error,
     bool clearError = false,
   }) => WakeWordState(
@@ -81,6 +98,7 @@ class WakeWordState {
     modelInstalled: modelInstalled ?? this.modelInstalled,
     ownModel: ownModel ?? this.ownModel,
     canOpenOverOtherApps: canOpenOverOtherApps ?? this.canOpenOverOtherApps,
+    needsVoice: !clearError && (needsVoice ?? this.needsVoice),
     error: clearError ? null : error ?? this.error,
   );
 }
@@ -100,6 +118,16 @@ class WakeWordController extends Notifier<WakeWordState> {
   final AppLocalizations _l10n = lookupAppLocalizations(const Locale('es'));
 
   bool get _enabled => ref.read(settingsControllerProvider).wakeWordEnabled;
+
+  /// La activación solo funciona con la voz del dueño registrada.
+  Future<bool> _hasVoice() async {
+    try {
+      return (await ref.read(voiceProfileServiceProvider).status()).enrolled;
+    } on Object catch (error) {
+      AppLogger.error('Estado de la voz registrada', error: error);
+      return false;
+    }
+  }
 
   @override
   WakeWordState build() {
@@ -138,6 +166,16 @@ class WakeWordController extends Notifier<WakeWordState> {
     final mic = await ref.read(speechRecognizerProvider).initialize();
     if (mic != SpeechAvailability.available) {
       _fail(_l10n.wakeErrorMic);
+      return;
+    }
+
+    if (!await _hasVoice()) {
+      if (!ref.mounted) return;
+      state = state.copyWith(
+        phase: WakeWordPhase.off,
+        needsVoice: true,
+        error: _l10n.wakeNeedsVoice,
+      );
       return;
     }
 
@@ -192,7 +230,17 @@ class WakeWordController extends Notifier<WakeWordState> {
 
   /// Al abrir la app: si estaba activada, que siga escuchando.
   Future<void> ensureRunning() async {
-    if (!_enabled || state.isBusy || await _service.isRunning()) return;
+    if (!_enabled || state.isBusy) return;
+    if (!await _hasVoice()) {
+      // Se borró la voz (o es una instalación anterior al registro): sin
+      // voz no se escucha a nadie.
+      if (await _service.isRunning()) await _service.stop();
+      if (ref.mounted) {
+        state = state.copyWith(phase: WakeWordPhase.off, needsVoice: true);
+      }
+      return;
+    }
+    if (await _service.isRunning()) return;
     final path = await _models.installedPath();
     if (path == null) return;
     await _start(path);
@@ -206,6 +254,26 @@ class WakeWordController extends Notifier<WakeWordState> {
 
   Future<void> resume() async {
     if (_enabled) await _service.resume();
+  }
+
+  /// Al terminar de registrar (o borrar) la voz: si la activación estaba
+  /// pedida, arranca o se detiene según corresponda.
+  Future<void> voiceChanged() async {
+    ref.invalidate(voiceProfileStatusProvider);
+    if (!ref.mounted) return;
+    state = state.copyWith(clearError: true);
+    if (_enabled) {
+      await ensureRunning();
+      await resume();
+    }
+    await refresh();
+  }
+
+  /// Borra la voz registrada; la activación por voz deja de funcionar.
+  Future<void> deleteVoice() async {
+    await ref.read(voiceProfileServiceProvider).delete();
+    await disable();
+    ref.invalidate(voiceProfileStatusProvider);
   }
 
   Future<void> removeModel() async {
@@ -325,6 +393,14 @@ class WakeCoordinator with WidgetsBindingObserver {
 
   /// Acceso directo del ícono o del botón de ajustes rápidos.
   void _onAction(String action) {
+    if (action.startsWith('invite:')) {
+      unawaited(
+        _ref
+            .read(appRouterProvider)
+            .push(AppRoutes.friendInvite(action.substring('invite:'.length))),
+      );
+      return;
+    }
     switch (action) {
       case 'briefing':
         _openBriefing();

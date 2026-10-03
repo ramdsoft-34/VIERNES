@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:speech_to_text/speech_recognition_error.dart';
 import 'package:speech_to_text/speech_to_text.dart';
+import 'package:viernes/ai/nlu/es/spanish_text.dart';
 import 'package:viernes/ai/speech/speech_recognizer.dart';
 import 'package:viernes/core/logging/app_logger.dart';
 
@@ -56,12 +57,53 @@ class AndroidSpeechRecognizer implements SpeechRecognizer {
     return ids.where((id) => id.startsWith('es')).firstOrNull;
   }
 
+  /// Frases que terminan en «que», «de», «tengo que»…: el reconocedor de
+  /// Android corta en la primera pausa aunque la persona no haya terminado.
+  static final _unfinished = RegExp(
+    r'\b(?:que|de|del|a|al|para|el|la|los|las|un|una|y|e|o|con|en|por|mi|'
+    'mis|tu|tus|su|sus|tengo|debo|hay|recuerdame|recordarme|recordando|'
+    r'avisame|cuando|como|porque|pero|si)[\s,.]*$',
+  );
+
+  static const _maxContinuations = 2;
+
   @override
   Future<SpeechResult> listen({
     ValueChanged<String>? onPartial,
     Duration silence = const Duration(seconds: 3),
-    Duration maxDuration = const Duration(seconds: 20),
+    Duration maxDuration = const Duration(seconds: 25),
   }) async {
+    final started = DateTime.now();
+    var result = await _listenOnce(onPartial, silence, maxDuration);
+    for (var i = 0; i < _maxContinuations; i++) {
+      final heard = result;
+      if (heard is! SpeechHeard) break;
+      if (!_unfinished.hasMatch(SpanishText.fold(heard.text))) break;
+      final left = maxDuration - DateTime.now().difference(started);
+      if (left < const Duration(seconds: 3)) break;
+      // Sigue escuchando y une lo que falte a lo ya dicho.
+      final more = await _listenOnce(
+        onPartial == null ? null : (p) => onPartial('${heard.text} $p'),
+        silence,
+        left,
+      );
+      switch (more) {
+        case SpeechHeard(:final text):
+          result = SpeechHeard('${heard.text} $text');
+        case SpeechCancelled():
+          return more;
+        case SpeechSilence() || SpeechFailure():
+          return heard;
+      }
+    }
+    return result;
+  }
+
+  Future<SpeechResult> _listenOnce(
+    ValueChanged<String>? onPartial,
+    Duration silence,
+    Duration maxDuration,
+  ) async {
     await cancel();
     final completer = _pending = Completer<SpeechResult>();
     _lastWords = '';
@@ -78,6 +120,8 @@ class AndroidSpeechRecognizer implements SpeechRecognizer {
           pauseFor: silence,
           cancelOnError: true,
           autoPunctuation: true,
+          // Frases largas: aguanta mejor las pausas al pensar.
+          listenMode: ListenMode.dictation,
         ),
       );
     } on Object catch (error) {

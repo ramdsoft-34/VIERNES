@@ -228,7 +228,7 @@ class _StatsGrid extends StatelessWidget {
                         '${stats.completedThisWeek}',
                         style: AppTheme.monoStyle(
                           context.textTheme.displayLarge,
-                        ).copyWith(color: p.voltText),
+                        ).copyWith(color: p.accentText),
                       ),
                     ],
                   ),

@@ -1138,7 +1138,234 @@ class AppLocalizationsEs extends AppLocalizations {
   String get sentCancelled => 'cancelado';
 
   @override
+  String get homeVoiceSetup => 'Registra tu voz';
+
+  @override
+  String get homeVoiceSetupBody =>
+      '«Viernes» ahora solo se activa con tu voz. Tarda un minuto.';
+
+  @override
+  String get wakeNeedsVoice =>
+      'Primero registra tu voz: Viernes solo se activará contigo.';
+
+  @override
+  String get voiceProfileTile => 'Tu voz';
+
+  @override
+  String get voiceProfileMissing =>
+      'Sin registrar. Sin tu voz, decir «Viernes» no hace nada.';
+
+  @override
+  String voiceProfileRegistered(int accepted, int rejected) {
+    String _temp0 = intl.Intl.pluralLogic(
+      accepted,
+      locale: localeName,
+      other: 'veces',
+      one: 'vez',
+    );
+    String _temp1 = intl.Intl.pluralLogic(
+      rejected,
+      locale: localeName,
+      other: 'voces',
+      one: 'voz',
+    );
+    return 'Registrada en este teléfono · te reconoció $accepted $_temp0, ignoró $rejected $_temp1';
+  }
+
+  @override
+  String get voiceProfileRegister => 'Registrar';
+
+  @override
+  String get voiceProfileDelete => 'Borrar mi voz';
+
+  @override
+  String get voiceProfileDeleteNote =>
+      'La activación con «Viernes» se apaga hasta que la registres otra vez.';
+
+  @override
+  String get voiceStrictness => 'Qué tan exigente';
+
+  @override
+  String get voiceStrictnessRelaxed => 'Flexible';
+
+  @override
+  String get voiceStrictnessNormal => 'Normal';
+
+  @override
+  String get voiceStrictnessStrict => 'Estricta';
+
+  @override
+  String get voiceStrictnessRelaxedNote =>
+      'Te reconoce aunque hables lejos o con ruido. Una voz muy parecida a la tuya podría activarlo.';
+
+  @override
+  String get voiceStrictnessNormalNote => 'El equilibrio recomendado.';
+
+  @override
+  String get voiceStrictnessStrictNote =>
+      'Solo tu voz clara y de cerca. A veces tendrás que repetir «Viernes».';
+
+  @override
+  String get voiceEnrollAppBar => 'Tu voz';
+
+  @override
+  String get voiceEnrollTitle => 'Enséñale tu voz a Viernes';
+
+  @override
+  String get voiceEnrollIntro =>
+      'Vas a decir «Viernes» cinco veces. Así solo se activará cuando lo digas tú, no con la tele ni con otras personas.';
+
+  @override
+  String get voiceEnrollRegistered => 'Tu voz ya está registrada';
+
+  @override
+  String get voiceEnrollRegisteredBody =>
+      'Puedes probar si te reconoce o volver a registrarla (por ejemplo, si te cambió la voz o hay muchos rechazos).';
+
+  @override
+  String get voiceEnrollStart => 'Empezar';
+
+  @override
+  String get voiceEnrollAgain => 'Registrarla de nuevo';
+
+  @override
+  String voiceEnrollProgress(int count, int total) {
+    return '$count de $total';
+  }
+
+  @override
+  String get voiceEnrollInstruction =>
+      'Toca el círculo y di «Viernes» con tu voz de siempre, como si lo llamaras.';
+
+  @override
+  String get voiceEnrollTapToRecord => 'Toca el círculo para grabar';
+
+  @override
+  String get voiceEnrollSayNow => 'Di «Viernes»…';
+
+  @override
+  String get voiceEnrollGood => '¡Bien! Otra vez.';
+
+  @override
+  String get voiceEnrollQuiet =>
+      'No te escuché. Habla un poco más fuerte o acércate.';
+
+  @override
+  String get voiceEnrollShort => 'Fue muy corto. Di «Viernes» completo.';
+
+  @override
+  String get voiceEnrollSaving => 'Guardando tu voz…';
+
+  @override
+  String get voiceEnrollDone => 'Listo, ya reconozco tu voz';
+
+  @override
+  String get voiceEnrollDoneBody =>
+      'Prueba diciendo «Viernes»: toca el círculo.';
+
+  @override
+  String get voiceEnrollActivate => 'Activar «Viernes»';
+
+  @override
+  String get voiceEnrollFinish => 'Terminar';
+
+  @override
+  String get voiceEnrollPrivacy =>
+      'Tu voz se guarda solo en este teléfono. No se sube a tu cuenta ni a internet. Reconoce voces distintas, pero no es un sistema de seguridad: alguien con una voz muy parecida podría activarlo.';
+
+  @override
+  String get voiceTestTitle => 'Probar si me reconoce';
+
+  @override
+  String get voiceTestYes => 'Te reconocí';
+
+  @override
+  String voiceTestYesBody(int percent) {
+    return 'Parecido: $percent %. Así se abrirá Viernes cuando lo llames.';
+  }
+
+  @override
+  String get voiceTestNo => 'No te reconocí';
+
+  @override
+  String get voiceTestNoBody =>
+      'Prueba otra vez hablando normal y de cerca. Si sigue pasando, regístrala de nuevo o elige «Flexible».';
+
+  @override
   String get contactsAdd => 'Agregar contacto';
+
+  @override
+  String get contactsAddByEmail => 'Agregar escribiendo el correo';
+
+  @override
+  String get inviteTitle => 'Invitación';
+
+  @override
+  String get inviteInvalid => 'Esta invitación no sirve';
+
+  @override
+  String get inviteInvalidBody =>
+      'El enlace está incompleto. Pídele a la persona que te lo vuelva a enviar.';
+
+  @override
+  String inviteFrom(String name) {
+    return '$name te invita';
+  }
+
+  @override
+  String get inviteExplain =>
+      'Al aceptar, se agregan como contactos: podrán enviarse recordatorios por voz y compartir listas.';
+
+  @override
+  String inviteAccept(String name) {
+    return 'Agregar a $name';
+  }
+
+  @override
+  String get inviteSelf => 'Es tu propia invitación. Envíasela a otra persona.';
+
+  @override
+  String inviteAdded(String name) {
+    return 'Listo. $name quedó en tus contactos y tú en los suyos.';
+  }
+
+  @override
+  String inviteAddedOnlyHere(String name) {
+    return '$name quedó en tus contactos. No pude avisarle a su teléfono; cuando tenga internet, pídele que te agregue con tu enlace.';
+  }
+
+  @override
+  String get inviteSeeContacts => 'Ver mis contactos';
+
+  @override
+  String get inviteCardTitle => 'Invita con un enlace';
+
+  @override
+  String get inviteCardBody =>
+      'Envíalo por WhatsApp o muestra el código QR. Con un toque quedan agregados los dos, sin escribir correos.';
+
+  @override
+  String get inviteShare => 'Compartir enlace';
+
+  @override
+  String get inviteShareSubject => 'Agrégame en Viernes';
+
+  @override
+  String get inviteQr => 'Mostrar código QR';
+
+  @override
+  String get inviteQrTitle => 'Escanéalo con la cámara';
+
+  @override
+  String get inviteQrBody =>
+      'La otra persona lo escanea con la cámara del teléfono y se abre Viernes.';
+
+  @override
+  String get invitePaste => 'Pegar invitación';
+
+  @override
+  String get invitePasteNothing =>
+      'No encontré una invitación en lo que copiaste.';
 
   @override
   String get contactsEmpty => 'Sin contactos';
@@ -1226,8 +1453,31 @@ class AppLocalizationsEs extends AppLocalizations {
       'Sin conexión: se sincronizará al volver internet';
 
   @override
+  String recurrenceUntil(String base, String date) {
+    return '$base hasta el $date';
+  }
+
+  @override
+  String get fieldUntil => 'Hasta';
+
+  @override
+  String get untilForever => 'Sin fecha final';
+
+  @override
+  String get untilClear => 'Quitar fecha final';
+
+  @override
   String get accountSyncError =>
       'No se pudo sincronizar. Se reintentará en un momento.';
+
+  @override
+  String get accountSyncRules =>
+      'La nube rechazó la sincronización: faltan publicar las reglas de Firestore (docs/CUENTAS.md).';
+
+  @override
+  String accountSyncPartial(String time) {
+    return 'Sincronizado $time. Los lugares esperan a que se publiquen las reglas nuevas de la nube.';
+  }
 
   @override
   String accountPending(int count) {

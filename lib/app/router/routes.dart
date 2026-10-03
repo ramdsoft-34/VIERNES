@@ -19,8 +19,18 @@ abstract final class AppRoutes {
   static const learning = '/aprendizaje';
 
   static const sharing = '/compartir';
+
+  /// Compartir, en la pestaña de contactos.
+  static const sharingContacts = '/compartir?tab=contactos';
+
+  /// Invitación de un amigo (enlace o texto pegado).
+  static const friendInvitePath = '/amigo';
+  static String friendInvite(String code) => '/amigo?c=$code';
   static const sharedListPath = '/lista/:id';
   static String sharedList(String id) => '/lista/$id';
+
+  /// Registrar la voz para la activación con «Viernes».
+  static const voiceEnrollment = '/voz';
 
   static const places = '/lugares';
   static const birthdays = '/cumpleanos';

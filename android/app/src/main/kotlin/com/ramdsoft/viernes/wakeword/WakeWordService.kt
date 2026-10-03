@@ -80,6 +80,58 @@ class WakeWordService : Service() {
 
         fun intent(context: Context, action: String) =
             Intent(context, WakeWordService::class.java).setAction(action)
+
+        /** Cambia cada vez que se registra, ajusta o borra la voz. */
+        @Volatile
+        private var profileVersion = 0
+
+        fun reloadVoiceProfile() {
+            profileVersion++
+        }
+
+        private const val VOICE_PREFS = "wake_voice"
+        const val KEY_REJECTED = "rejected"
+        const val KEY_ACCEPTED = "accepted"
+
+        fun voiceCounts(context: Context): Pair<Int, Int> {
+            val prefs = context.getSharedPreferences(VOICE_PREFS, Context.MODE_PRIVATE)
+            return prefs.getInt(KEY_ACCEPTED, 0) to prefs.getInt(KEY_REJECTED, 0)
+        }
+    }
+
+    /** Voz registrada del dueño. Sin ella, la activación no funciona. */
+    private var voiceProfile: SpeakerVerifier.Profile? = null
+    private var loadedProfileVersion = -1
+
+    private fun currentVoiceProfile(): SpeakerVerifier.Profile? {
+        if (loadedProfileVersion != profileVersion) {
+            loadedProfileVersion = profileVersion
+            voiceProfile = SpeakerVerifier.load(filesDir)
+        }
+        return voiceProfile
+    }
+
+    private fun countVoice(key: String) {
+        val prefs = getSharedPreferences(VOICE_PREFS, Context.MODE_PRIVATE)
+        prefs.edit().putInt(key, prefs.getInt(key, 0) + 1).apply()
+    }
+
+    /** ¿La voz de los últimos segundos es la del dueño? */
+    private fun isOwnerVoice(profile: SpeakerVerifier.Profile): Boolean {
+        val ordered = ShortArray(history.size) { history[(historyPos + it) % history.size] }
+        val print = SpeakerVerifier.analyze(ordered).print ?: return false
+        val check = profile.check(print)
+        Log.i(
+            TAG,
+            "Voz: distancia %.2f (límite %.2f), tono %.1f → %s".format(
+                check.distance,
+                check.threshold,
+                check.pitchDiff,
+                if (check.accepted) "dueño" else "otra persona",
+            ),
+        )
+        countVoice(if (check.accepted) KEY_ACCEPTED else KEY_REJECTED)
+        return check.accepted
     }
 
     private val mainHandler = Handler(Looper.getMainLooper())
@@ -184,6 +236,12 @@ class WakeWordService : Service() {
     }
 
     private fun listenLoop() {
+        if (currentVoiceProfile() == null) {
+            // Sin voz registrada no se activa con nadie.
+            Log.w(TAG, "Sin voz registrada: la activación por voz queda apagada")
+            mainHandler.post { stopEverything() }
+            return
+        }
         val engine = obtainEngine() ?: run {
             mainHandler.post { stopEverything() }
             return
@@ -222,9 +280,16 @@ class WakeWordService : Service() {
                 val confidence = engine.process(buffer, read) ?: continue
                 Log.i(TAG, "\"Viernes\" con confianza $confidence (umbral $threshold)")
                 if (confidence >= threshold) {
+                    val profile = currentVoiceProfile()
+                    if (profile == null) {
+                        listening = false
+                        mainHandler.post { stopEverything() }
+                        break
+                    }
+                    engine.reset()
+                    if (!isOwnerVoice(profile)) continue
                     listening = false
                     if (saveSamples) saveSample(confidence)
-                    engine.reset()
                     mainHandler.post { onWakeWord() }
                 }
             }

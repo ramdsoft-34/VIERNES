@@ -40,10 +40,13 @@ abstract final class VoiceDraftBuilder {
   static Recurrence recurrence(Recurrence r, DateTime due) =>
       switch (r.frequency) {
         RecurrenceFrequency.monthly when r.monthDay == null =>
-          Recurrence.monthly(due.day, interval: r.interval),
+          Recurrence.monthly(
+            due.day,
+            interval: r.interval,
+          ).withUntil(r.until),
         RecurrenceFrequency.yearly when r.monthDay == null => Recurrence.yearly(
           due.day,
-        ),
+        ).withUntil(r.until),
         _ => r,
       };
 

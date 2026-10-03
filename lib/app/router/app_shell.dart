@@ -209,10 +209,10 @@ class _OrbButton extends StatelessWidget {
                 height: 26,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: p.volt,
+                  color: p.accent,
                   boxShadow: [
                     BoxShadow(
-                      color: p.volt.withValues(alpha: 0.22),
+                      color: p.accent.withValues(alpha: 0.22),
                       spreadRadius: 6,
                     ),
                   ],
