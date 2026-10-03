@@ -1600,6 +1600,186 @@ abstract class AppLocalizations {
   /// **'Entorno'**
   String get settingsEnvironment;
 
+  /// No description provided for @placesTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Lugares'**
+  String get placesTitle;
+
+  /// No description provided for @placesAdd.
+  ///
+  /// In es, this message translates to:
+  /// **'Agregar lugar'**
+  String get placesAdd;
+
+  /// No description provided for @placesAddTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Guardar este lugar'**
+  String get placesAddTitle;
+
+  /// No description provided for @placesAddHint.
+  ///
+  /// In es, this message translates to:
+  /// **'Se guarda tu ubicación actual. Hazlo cuando estés en el lugar.'**
+  String get placesAddHint;
+
+  /// No description provided for @placesName.
+  ///
+  /// In es, this message translates to:
+  /// **'Nombre'**
+  String get placesName;
+
+  /// No description provided for @placesRadiusLabel.
+  ///
+  /// In es, this message translates to:
+  /// **'Distancia para avisar'**
+  String get placesRadiusLabel;
+
+  /// No description provided for @placesRadius.
+  ///
+  /// In es, this message translates to:
+  /// **'A {meters} m'**
+  String placesRadius(int meters);
+
+  /// No description provided for @placesUseHere.
+  ///
+  /// In es, this message translates to:
+  /// **'Guardar aquí'**
+  String get placesUseHere;
+
+  /// No description provided for @placesLocating.
+  ///
+  /// In es, this message translates to:
+  /// **'Buscando tu ubicación…'**
+  String get placesLocating;
+
+  /// No description provided for @placesNoLocation.
+  ///
+  /// In es, this message translates to:
+  /// **'No pude obtener tu ubicación. Revisa que el GPS esté encendido.'**
+  String get placesNoLocation;
+
+  /// No description provided for @placesSaved.
+  ///
+  /// In es, this message translates to:
+  /// **'Guardé «{name}»'**
+  String placesSaved(String name);
+
+  /// No description provided for @placesEmpty.
+  ///
+  /// In es, this message translates to:
+  /// **'Aún no tienes lugares'**
+  String get placesEmpty;
+
+  /// No description provided for @placesEmptySubtitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Guarda Casa, Trabajo o el supermercado para que Viernes te avise al llegar.'**
+  String get placesEmptySubtitle;
+
+  /// No description provided for @placeHome.
+  ///
+  /// In es, this message translates to:
+  /// **'Casa'**
+  String get placeHome;
+
+  /// No description provided for @placeWork.
+  ///
+  /// In es, this message translates to:
+  /// **'Trabajo'**
+  String get placeWork;
+
+  /// No description provided for @placeSupermarket.
+  ///
+  /// In es, this message translates to:
+  /// **'Supermercado'**
+  String get placeSupermarket;
+
+  /// No description provided for @placeGym.
+  ///
+  /// In es, this message translates to:
+  /// **'Gimnasio'**
+  String get placeGym;
+
+  /// No description provided for @locationPermissionTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Permiso de ubicación'**
+  String get locationPermissionTitle;
+
+  /// No description provided for @locationPermissionFine.
+  ///
+  /// In es, this message translates to:
+  /// **'Para guardar lugares, Viernes necesita saber dónde estás.'**
+  String get locationPermissionFine;
+
+  /// No description provided for @locationPermissionBackground.
+  ///
+  /// In es, this message translates to:
+  /// **'Para avisarte con la app cerrada, elige «Permitir todo el tiempo». Viernes solo usa tu ubicación para estos avisos.'**
+  String get locationPermissionBackground;
+
+  /// No description provided for @locationRemindersTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Por ubicación'**
+  String get locationRemindersTitle;
+
+  /// No description provided for @locationRemindersAdd.
+  ///
+  /// In es, this message translates to:
+  /// **'Nuevo por ubicación'**
+  String get locationRemindersAdd;
+
+  /// No description provided for @locationRemindersEmpty.
+  ///
+  /// In es, this message translates to:
+  /// **'Sin recordatorios por ubicación'**
+  String get locationRemindersEmpty;
+
+  /// No description provided for @locationRemindersEmptySubtitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Dile a Viernes: «recuérdame comprar leche cuando llegue a casa».'**
+  String get locationRemindersEmptySubtitle;
+
+  /// No description provided for @locationOnArrive.
+  ///
+  /// In es, this message translates to:
+  /// **'Al llegar a {place}'**
+  String locationOnArrive(String place);
+
+  /// No description provided for @locationOnLeave.
+  ///
+  /// In es, this message translates to:
+  /// **'Al salir de {place}'**
+  String locationOnLeave(String place);
+
+  /// No description provided for @locationArrive.
+  ///
+  /// In es, this message translates to:
+  /// **'Al llegar'**
+  String get locationArrive;
+
+  /// No description provided for @locationLeave.
+  ///
+  /// In es, this message translates to:
+  /// **'Al salir'**
+  String get locationLeave;
+
+  /// No description provided for @settingsPlaces.
+  ///
+  /// In es, this message translates to:
+  /// **'Lugares y recordatorios por ubicación'**
+  String get settingsPlaces;
+
+  /// No description provided for @settingsPlacesSubtitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Avisos al llegar a casa, al trabajo o al supermercado'**
+  String get settingsPlacesSubtitle;
+
   /// No description provided for @welcomeTitle.
   ///
   /// In es, this message translates to:

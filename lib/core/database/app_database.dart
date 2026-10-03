@@ -89,7 +89,47 @@ class NluSamples extends Table {
   DateTimeColumn get createdAt => dateTime()();
 }
 
-@DriftDatabase(tables: [Reminders, ReminderEvents, NluSamples, SyncTombstones])
+/// Lugares guardados por el usuario (Casa, Trabajo, Supermercado…).
+@DataClassName('PlaceRow')
+class Places extends Table {
+  TextColumn get id => text()();
+  TextColumn get name => text().withLength(min: 1, max: 60)();
+  RealColumn get latitude => real()();
+  RealColumn get longitude => real()();
+  RealColumn get radiusMeters => real().withDefault(const Constant(150))();
+  DateTimeColumn get createdAt => dateTime()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+}
+
+/// «Recuérdame comprar leche cuando llegue a casa».
+@DataClassName('LocationReminderRow')
+class LocationReminders extends Table {
+  TextColumn get id => text()();
+  TextColumn get title => text().withLength(min: 1, max: 200)();
+  TextColumn get placeId => text()();
+
+  /// Verdadero: al llegar; falso: al salir.
+  BoolColumn get onArrive => boolean().withDefault(const Constant(true))();
+  BoolColumn get done => boolean().withDefault(const Constant(false))();
+  DateTimeColumn get createdAt => dateTime()();
+  DateTimeColumn get completedAt => dateTime().nullable()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+}
+
+@DriftDatabase(
+  tables: [
+    Reminders,
+    ReminderEvents,
+    NluSamples,
+    SyncTombstones,
+    Places,
+    LocationReminders,
+  ],
+)
 class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
@@ -100,8 +140,9 @@ class AppDatabase extends _$AppDatabase {
   /// - 2: ejemplos para entrenar la IA (`nlu_samples`).
   /// - 3: sincronización con la cuenta (`dirty`, `sync_id`,
   ///   `sync_tombstones`).
+  /// - 4: recordatorios por ubicación (`places`, `location_reminders`).
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -119,6 +160,10 @@ class AppDatabase extends _$AppDatabase {
         );
         await m.create(idxEventsSyncId);
         await m.createTable(syncTombstones);
+      }
+      if (from < 4) {
+        await m.createTable(places);
+        await m.createTable(locationReminders);
       }
     },
     // Los botones de la notificación escriben desde otro proceso de Flutter:

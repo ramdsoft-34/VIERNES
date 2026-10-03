@@ -116,4 +116,6 @@ dependencies {
     implementation("net.java.dev.jna:jna:5.19.1@aar")
     // Detector propio de "Viernes" (modelos openWakeWord en assets/wakeword).
     implementation("com.google.ai.edge.litert:litert:1.4.2")
+    // Recordatorios por ubicación (geocercas).
+    implementation("com.google.android.gms:play-services-location:21.3.0")
 }

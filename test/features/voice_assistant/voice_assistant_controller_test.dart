@@ -1,17 +1,24 @@
+import 'package:drift/native.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:viernes/ai/ai_providers.dart';
 import 'package:viernes/ai/nlu/es/spanish_speech.dart';
 import 'package:viernes/ai/speech/speech_recognizer.dart';
 import 'package:viernes/app/providers.dart';
+import 'package:viernes/core/database/app_database.dart';
 import 'package:viernes/core/utils/clock.dart';
+import 'package:viernes/features/places/data/places_repository.dart';
+import 'package:viernes/features/places/domain/place.dart';
+import 'package:viernes/features/places/presentation/places_providers.dart';
 import 'package:viernes/features/reminders/domain/entities/reminder_enums.dart';
 import 'package:viernes/features/reminders/presentation/providers/reminder_providers.dart';
 import 'package:viernes/features/voice_assistant/domain/voice_state.dart';
 import 'package:viernes/features/voice_assistant/presentation/voice_assistant_controller.dart';
 
 import '../../helpers/builders.dart';
+import '../../helpers/fake_location.dart';
 import '../../helpers/fake_reminder_repository.dart';
 import '../../helpers/fake_speech.dart';
 
@@ -26,6 +33,7 @@ void main() {
   Future<ProviderContainer> buildContainer(
     FakeSpeechRecognizer recognizer, {
     Map<String, Object> prefs = const {},
+    List<Override> extra = const [],
   }) async {
     SharedPreferences.setMockInitialValues(prefs);
     final sharedPrefs = await SharedPreferences.getInstance();
@@ -41,6 +49,7 @@ void main() {
         speechRecognizerProvider.overrideWithValue(recognizer),
         speakerProvider.overrideWithValue(speaker),
         trainingDataRepositoryProvider.overrideWithValue(training),
+        ...extra,
       ],
     );
     addTearDown(container.dispose);
@@ -294,6 +303,64 @@ void main() {
     );
     expect(created.title, 'Se acerca: Cumpleaños de Sofi');
     expect(created.dueAt, DateTime(2026, 10, 8, 18));
+  });
+
+  test('recordatorio por ubicación con un lugar guardado', () async {
+    final recognizer = FakeSpeechRecognizer(
+      script: const [
+        SpeechHeard('recuérdame comprar leche cuando llegue a casa'),
+        SpeechHeard('sí'),
+      ],
+    );
+    final db = AppDatabase(NativeDatabase.memory());
+    addTearDown(db.close);
+    final places = PlacesRepository(db);
+    await places.savePlace(
+      Place(
+        id: 'casa',
+        name: 'Casa',
+        latitude: 1,
+        longitude: 1,
+        createdAt: now,
+      ),
+    );
+    final c = await buildContainer(
+      recognizer,
+      extra: [
+        placesRepositoryProvider.overrideWithValue(places),
+        locationBridgeProvider.overrideWithValue(FakeLocationBridge()),
+      ],
+    );
+
+    await run(c);
+
+    final saved = (await places.activeReminders()).single;
+    expect(saved.title, 'Comprar leche');
+    expect(saved.onArrive, isTrue);
+    expect(
+      speaker.spoken.last,
+      startsWith('Listo, te aviso cuando llegues a Casa'),
+    );
+    expect(repository.reminders, isEmpty);
+  });
+
+  test('si el lugar no existe lo explica', () async {
+    final recognizer = FakeSpeechRecognizer(
+      script: const [SpeechHeard('comprar pan cuando pase por la panadería')],
+    );
+    final db = AppDatabase(NativeDatabase.memory());
+    addTearDown(db.close);
+    final c = await buildContainer(
+      recognizer,
+      extra: [
+        placesRepositoryProvider.overrideWithValue(PlacesRepository(db)),
+        locationBridgeProvider.overrideWithValue(FakeLocationBridge()),
+      ],
+    );
+
+    await run(c);
+
+    expect(stateOf(c).message, contains('No tengo guardado'));
   });
 
   test('si avisa en el pasado pregunta para cuándo', () async {

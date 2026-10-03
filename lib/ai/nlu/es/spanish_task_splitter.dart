@@ -14,7 +14,7 @@ abstract final class SpanishTaskSplitter {
 
   /// Infinitivo con pronombres pegados (llamarla, mandarle, tomarme…).
   static final _infinitive = RegExp(
-    r'^[a-z]{2,}(?:ar|er|ir)'
+    '^[a-z]{2,}(?:ar|er|ir)'
     r'(?:me|te|le|les|lo|la|los|las|se|nos)?(?:lo|la|los|las)?$',
   );
 

@@ -918,6 +918,111 @@ class AppLocalizationsEs extends AppLocalizations {
   String get settingsEnvironment => 'Entorno';
 
   @override
+  String get placesTitle => 'Lugares';
+
+  @override
+  String get placesAdd => 'Agregar lugar';
+
+  @override
+  String get placesAddTitle => 'Guardar este lugar';
+
+  @override
+  String get placesAddHint =>
+      'Se guarda tu ubicación actual. Hazlo cuando estés en el lugar.';
+
+  @override
+  String get placesName => 'Nombre';
+
+  @override
+  String get placesRadiusLabel => 'Distancia para avisar';
+
+  @override
+  String placesRadius(int meters) {
+    return 'A $meters m';
+  }
+
+  @override
+  String get placesUseHere => 'Guardar aquí';
+
+  @override
+  String get placesLocating => 'Buscando tu ubicación…';
+
+  @override
+  String get placesNoLocation =>
+      'No pude obtener tu ubicación. Revisa que el GPS esté encendido.';
+
+  @override
+  String placesSaved(String name) {
+    return 'Guardé «$name»';
+  }
+
+  @override
+  String get placesEmpty => 'Aún no tienes lugares';
+
+  @override
+  String get placesEmptySubtitle =>
+      'Guarda Casa, Trabajo o el supermercado para que Viernes te avise al llegar.';
+
+  @override
+  String get placeHome => 'Casa';
+
+  @override
+  String get placeWork => 'Trabajo';
+
+  @override
+  String get placeSupermarket => 'Supermercado';
+
+  @override
+  String get placeGym => 'Gimnasio';
+
+  @override
+  String get locationPermissionTitle => 'Permiso de ubicación';
+
+  @override
+  String get locationPermissionFine =>
+      'Para guardar lugares, Viernes necesita saber dónde estás.';
+
+  @override
+  String get locationPermissionBackground =>
+      'Para avisarte con la app cerrada, elige «Permitir todo el tiempo». Viernes solo usa tu ubicación para estos avisos.';
+
+  @override
+  String get locationRemindersTitle => 'Por ubicación';
+
+  @override
+  String get locationRemindersAdd => 'Nuevo por ubicación';
+
+  @override
+  String get locationRemindersEmpty => 'Sin recordatorios por ubicación';
+
+  @override
+  String get locationRemindersEmptySubtitle =>
+      'Dile a Viernes: «recuérdame comprar leche cuando llegue a casa».';
+
+  @override
+  String locationOnArrive(String place) {
+    return 'Al llegar a $place';
+  }
+
+  @override
+  String locationOnLeave(String place) {
+    return 'Al salir de $place';
+  }
+
+  @override
+  String get locationArrive => 'Al llegar';
+
+  @override
+  String get locationLeave => 'Al salir';
+
+  @override
+  String get settingsPlaces => 'Lugares y recordatorios por ubicación';
+
+  @override
+  String get settingsPlacesSubtitle =>
+      'Avisos al llegar a casa, al trabajo o al supermercado';
+
+  @override
   String get welcomeTitle => 'Hola, soy Viernes';
 
   @override

@@ -178,6 +178,8 @@ class DriftSyncStore {
     await _db.delete(_db.reminderEvents).go();
     await _db.delete(_db.syncTombstones).go();
     await _db.delete(_db.nluSamples).go();
+    await _db.delete(_db.locationReminders).go();
+    await _db.delete(_db.places).go();
   });
 
   Future<SyncTombstoneRow?> _tombstone(SyncEntity entity, String id) =>

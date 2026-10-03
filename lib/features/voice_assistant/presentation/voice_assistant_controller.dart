@@ -5,6 +5,7 @@ import 'package:viernes/ai/ai_providers.dart';
 import 'package:viernes/ai/dataset/training_sample.dart';
 import 'package:viernes/ai/nlu/es/category_classifier.dart';
 import 'package:viernes/ai/nlu/es/spanish_cancel_detector.dart';
+import 'package:viernes/ai/nlu/es/spanish_place_trigger.dart';
 import 'package:viernes/ai/nlu/es/spanish_relative_event.dart';
 import 'package:viernes/ai/nlu/es/spanish_reply_parser.dart';
 import 'package:viernes/ai/nlu/es/spanish_rule_interpreter.dart';
@@ -15,6 +16,8 @@ import 'package:viernes/ai/speech/speech_recognizer.dart';
 import 'package:viernes/app/providers.dart';
 import 'package:viernes/core/error/result.dart';
 import 'package:viernes/core/logging/app_logger.dart';
+import 'package:viernes/features/places/domain/place.dart';
+import 'package:viernes/features/places/presentation/places_providers.dart';
 import 'package:viernes/features/reminders/domain/entities/reminder.dart';
 import 'package:viernes/features/reminders/domain/entities/reminder_draft.dart';
 import 'package:viernes/features/reminders/domain/entities/reminder_enums.dart';
@@ -225,6 +228,14 @@ class VoiceAssistantController extends Notifier<VoiceState> {
     }
 
     _set(state.copyWith(stage: VoiceStage.thinking, isListening: false));
+
+    // «Cuando llegue a casa»: recordatorio por ubicación, no por hora.
+    final placeRequest = SpanishPlaceTrigger.parse(first);
+    if (placeRequest != null) {
+      await _saveByPlace(session, placeRequest);
+      return;
+    }
+
     final interpretation = await ref
         .read(reminderInterpreterProvider)
         .interpret(first, _now);
@@ -263,6 +274,69 @@ class VoiceAssistantController extends Notifier<VoiceState> {
       return;
     }
     await _save(session);
+  }
+
+  /// Guarda un recordatorio por ubicación tras confirmar (si está activada
+  /// la confirmación por voz).
+  Future<void> _saveByPlace(int session, PlaceTriggerRequest request) async {
+    final repository = ref.read(placesRepositoryProvider);
+    final place = SpanishPlaceTrigger.findPlace(
+      request.placeText,
+      await repository.places(),
+    );
+    if (!_alive(session)) return;
+    if (place == null) {
+      await _finish(
+        session,
+        SpanishSpeech.unknownPlace(request.placeText),
+        failed: true,
+      );
+      return;
+    }
+    var title = request.task;
+    if (title.isEmpty) {
+      final answer = await _ask(session, SpanishSpeech.askTitle);
+      if (answer == null || !_alive(session)) return;
+      _utterances.add(answer);
+      if (SpanishCancelDetector.isCancel(answer)) {
+        await _finish(session, SpanishSpeech.cancelled);
+        return;
+      }
+      title = SpanishRuleInterpreter.cleanTitle(answer);
+    }
+    final where = SpanishSpeech.atPlace(place.name, onArrive: request.onArrive);
+    if (ref.read(settingsControllerProvider).voiceConfirmation) {
+      final reply = await _ask(session, '$title, $where. ¿Lo guardo?');
+      if (reply == null || !_alive(session)) return;
+      _utterances.add(reply);
+      final kind = ref.read(replyParserProvider).parse(reply, _now).kind;
+      if (kind != ReplyKind.affirm) {
+        await _finish(session, SpanishSpeech.cancelled);
+        return;
+      }
+    }
+    await repository.saveReminder(
+      LocationReminder(
+        id: ref.read(idGeneratorProvider).next(),
+        title: title,
+        placeId: place.id,
+        onArrive: request.onArrive,
+        createdAt: _now,
+      ),
+    );
+    final permission = await ref.read(locationBridgeProvider).status();
+    if (!_alive(session)) return;
+    _set(
+      state.copyWith(
+        stage: VoiceStage.done,
+        message: SpanishSpeech.savedAtPlace(
+          where,
+          needsPermission: !permission.ready,
+        ),
+        isListening: false,
+      ),
+    );
+    await _speaker.speak(state.message);
   }
 
   /// Si la frase pide un aviso relativo a otro recordatorio y ese

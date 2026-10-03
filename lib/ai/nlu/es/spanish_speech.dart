@@ -152,6 +152,20 @@ abstract final class SpanishSpeech {
   static String savedMany(int count, DateTime remindAt, DateTime now) =>
       'Listo. Guardé $count recordatorios para ${when(remindAt, now)}.';
 
+  /// «cuando llegues a Casa» / «cuando salgas del Trabajo».
+  static String atPlace(String place, {required bool onArrive}) =>
+      onArrive ? 'cuando llegues a $place' : 'cuando salgas de $place';
+
+  static String savedAtPlace(String where, {required bool needsPermission}) =>
+      needsPermission
+      ? 'Listo, te aviso $where. Para avisarte con la app cerrada, permite '
+            'la ubicación todo el tiempo en Ajustes, Lugares.'
+      : 'Listo, te aviso $where.';
+
+  static String unknownPlace(String place) =>
+      'No tengo guardado «$place». Guárdalo en Ajustes, Lugares, '
+      'y vuelve a pedírmelo.';
+
   /// Título del aviso previo a un evento sin tarea propia.
   static String upcoming(String eventTitle) => 'Se acerca: $eventTitle';
 

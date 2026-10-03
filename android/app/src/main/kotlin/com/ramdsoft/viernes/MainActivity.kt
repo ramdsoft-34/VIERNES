@@ -9,6 +9,7 @@ import android.os.Bundle
 import android.provider.Settings
 import android.view.WindowManager
 import androidx.core.content.ContextCompat
+import com.ramdsoft.viernes.location.LocationChannel
 import com.ramdsoft.viernes.wakeword.OpenWakeWordEngine
 import com.ramdsoft.viernes.wakeword.WakeWordService
 import io.flutter.embedding.android.FlutterActivity
@@ -19,6 +20,7 @@ import io.flutter.plugin.common.MethodChannel
 class MainActivity : FlutterActivity() {
 
     private var wakeChannel: MethodChannel? = null
+    private var location: LocationChannel? = null
 
     /** La app se abrió porque se dijo "Viernes"; Flutter lo consulta al iniciar. */
     private var pendingWake = false
@@ -31,6 +33,7 @@ class MainActivity : FlutterActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
+        location?.onIntent(intent, fromNewIntent = true)
         if (intent.action == WakeWordService.ACTION_WAKE) onWakeIntent(notifyFlutter = true)
     }
 
@@ -63,6 +66,7 @@ class MainActivity : FlutterActivity() {
         wakeChannel = MethodChannel(messenger, WAKE_CHANNEL).apply {
             setMethodCallHandler(::onWakeWordCall)
         }
+        location = LocationChannel(this, messenger).also { it.onIntent(intent, fromNewIntent = false) }
     }
 
     // --- Activación por voz ------------------------------------------------
@@ -112,6 +116,15 @@ class MainActivity : FlutterActivity() {
             startService(WakeWordService.intent(this, action))
         }
         result.success(null)
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray,
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        location?.onPermissionResult(requestCode)
     }
 
     // --- Pantalla de bloqueo -------------------------------------------------

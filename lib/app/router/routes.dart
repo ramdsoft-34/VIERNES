@@ -18,6 +18,9 @@ abstract final class AppRoutes {
 
   static const learning = '/aprendizaje';
 
+  static const places = '/lugares';
+  static const locationReminders = '/por-ubicacion';
+
   /// Primera apertura: invitación a iniciar sesión.
   static const welcome = '/bienvenida';
 

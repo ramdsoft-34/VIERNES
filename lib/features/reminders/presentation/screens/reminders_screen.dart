@@ -25,6 +25,14 @@ class RemindersScreen extends StatelessWidget {
       child: Scaffold(
         appBar: AppBar(
           title: Text(l10n.navReminders),
+          actions: [
+            IconButton(
+              tooltip: l10n.locationRemindersTitle,
+              icon: const Icon(Icons.location_on_outlined),
+              onPressed: () =>
+                  unawaited(context.push(AppRoutes.locationReminders)),
+            ),
+          ],
           bottom: TabBar(
             tabs: [
               Tab(text: l10n.remindersTabPending),
