@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="widget_title">Viernes</string>
+    <string name="widget_loading">Cargando…</string>
+    <string name="widget_empty">Todo en orden. Toca el micrófono para crear un recordatorio.</string>
+    <string name="widget_description">Tus próximos recordatorios y un botón para hablar con Viernes</string>
+    <string name="widget_mic_description">Hablar con Viernes</string>
+
+    <style name="WidgetRow">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_marginTop">4dp</item>
+        <item name="android:ellipsize">end</item>
+        <item name="android:maxLines">1</item>
+        <item name="android:textColor">#FFFFFF</item>
+        <item name="android:textSize">13sp</item>
+    </style>
+</resources>

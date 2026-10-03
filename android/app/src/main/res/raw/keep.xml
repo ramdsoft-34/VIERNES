@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- En release, R8 elimina los recursos que no ve referenciados en el código.
+     Estos se usan por nombre, así que hay que conservarlos explícitamente:
+     - ic_stat_viernes: ícono de notificación (desde Dart); sin él las
+       notificaciones fallan en silencio.
+     - default_web_client_id: lo lee google_sign_in para iniciar sesión con
+       Google. Este archivo reemplaza el keep.xml del plugin (mismo nombre),
+       por eso se repite aquí. -->
+<resources xmlns:tools="http://schemas.android.com/tools"
+    tools:keep="@drawable/ic_stat_viernes,@mipmap/ic_launcher,@string/default_web_client_id" />

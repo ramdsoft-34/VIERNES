@@ -1,0 +1,186 @@
+import 'dart:async';
+
+import 'package:viernes/features/account/domain/app_user.dart';
+import 'package:viernes/features/account/domain/auth_repository.dart';
+import 'package:viernes/features/reminders/domain/entities/reminder.dart';
+import 'package:viernes/features/reminders/domain/entities/reminder_event.dart';
+import 'package:viernes/features/sync/domain/remote_sync_source.dart';
+import 'package:viernes/features/sync/domain/sync_records.dart';
+
+class _Doc<T> {
+  _Doc(this.value, this.updatedAt, this.serverAt);
+
+  final T? value;
+  final DateTime updatedAt;
+  final DateTime serverAt;
+}
+
+/// Nube en memoria con reloj de servidor propio, compartible entre varios
+/// "teléfonos" en una prueba.
+class FakeRemoteSyncSource implements RemoteSyncSource {
+  final reminders = <String, Map<String, _Doc<Reminder>>>{};
+  final events = <String, Map<String, _Doc<ReminderEvent>>>{};
+  final settings = <String, Map<String, Object?>>{};
+  final profiles = <String, AppUser>{};
+
+  /// Simula no tener internet.
+  bool offline = false;
+  int pushes = 0;
+
+  var _serverClock = DateTime(2026);
+
+  DateTime _tick() => _serverClock = _serverClock.add(
+    const Duration(seconds: 1),
+  );
+
+  void _check() {
+    if (offline) throw TimeoutException('sin internet');
+  }
+
+  @override
+  Future<void> push(String uid, LocalChanges changes) async {
+    _check();
+    pushes++;
+    final userReminders = reminders.putIfAbsent(uid, () => {});
+    final userEvents = events.putIfAbsent(uid, () => {});
+    for (final r in changes.reminders) {
+      userReminders[r.id] = _Doc(r, r.updatedAt, _tick());
+    }
+    for (final e in changes.events) {
+      userEvents[e.syncId!] = _Doc(e, e.occurredAt, _tick());
+    }
+    for (final d in changes.deletions) {
+      switch (d.entity) {
+        case SyncEntity.reminder:
+          userReminders[d.entityId] = _Doc(null, d.deletedAt, _tick());
+        case SyncEntity.event:
+          userEvents[d.entityId] = _Doc(null, d.deletedAt, _tick());
+      }
+    }
+  }
+
+  @override
+  Future<RemoteChanges> pull(String uid, {DateTime? since}) async {
+    _check();
+    bool isNew(_Doc<Object?> doc) =>
+        since == null || doc.serverAt.isAfter(since);
+    var cursor = since;
+    void track(_Doc<Object?> doc) {
+      if (cursor == null || doc.serverAt.isAfter(cursor!)) {
+        cursor = doc.serverAt;
+      }
+    }
+
+    final changedReminders = <RemoteReminder>[];
+    for (final MapEntry(:key, :value) in (reminders[uid] ?? {}).entries) {
+      if (!isNew(value)) continue;
+      track(value);
+      changedReminders.add(
+        RemoteReminder(
+          id: key,
+          updatedAt: value.updatedAt,
+          reminder: value.value,
+        ),
+      );
+    }
+    final changedEvents = <RemoteEvent>[];
+    for (final MapEntry(:key, :value) in (events[uid] ?? {}).entries) {
+      if (!isNew(value)) continue;
+      track(value);
+      changedEvents.add(RemoteEvent(syncId: key, event: value.value));
+    }
+    return RemoteChanges(
+      reminders: changedReminders,
+      events: changedEvents,
+      cursor: cursor,
+    );
+  }
+
+  @override
+  Future<void> saveProfile(
+    AppUser user, {
+    required Map<String, Object?> client,
+  }) async {
+    _check();
+    profiles[user.uid] = user;
+  }
+
+  @override
+  Future<Map<String, Object?>?> loadSettings(String uid) async {
+    _check();
+    return settings[uid];
+  }
+
+  @override
+  Future<void> saveSettings(String uid, Map<String, Object?> values) async {
+    _check();
+    settings[uid] = Map.of(values);
+  }
+
+  @override
+  Future<void> deleteAll(String uid) async {
+    _check();
+    reminders.remove(uid);
+    events.remove(uid);
+    settings.remove(uid);
+    profiles.remove(uid);
+  }
+
+  /// Recordatorios vivos (no borrados) de la cuenta.
+  int liveReminders(String uid) =>
+      (reminders[uid] ?? {}).values.where((d) => d.value != null).length;
+}
+
+class FakeAuthRepository implements AuthRepository {
+  FakeAuthRepository({this.nextUser});
+
+  /// Cuenta que "elige" el usuario en la ventana de Google.
+  AppUser? nextUser;
+  AuthErrorCode? failWith;
+  bool deleted = false;
+  int reauthentications = 0;
+
+  final _controller = StreamController<AppUser?>.broadcast();
+  AppUser? _current;
+
+  @override
+  bool get isAvailable => true;
+
+  @override
+  AppUser? get currentUser => _current;
+
+  @override
+  Stream<AppUser?> authStateChanges() async* {
+    yield _current;
+    yield* _controller.stream;
+  }
+
+  @override
+  Future<AppUser> signInWithGoogle() async {
+    final code = failWith;
+    if (code != null) throw AuthException(code);
+    final user = nextUser!;
+    _current = user;
+    _controller.add(user);
+    return user;
+  }
+
+  @override
+  Future<void> signOut() async {
+    _current = null;
+    _controller.add(null);
+  }
+
+  @override
+  Future<void> reauthenticate() async {
+    final code = failWith;
+    if (code != null) throw AuthException(code);
+    reauthentications++;
+  }
+
+  @override
+  Future<void> deleteUser() async {
+    deleted = true;
+    await signOut();
+  }
+}

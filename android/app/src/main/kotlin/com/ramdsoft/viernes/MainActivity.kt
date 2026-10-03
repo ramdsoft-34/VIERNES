@@ -1,0 +1,145 @@
+package com.ramdsoft.viernes
+
+import android.app.NotificationManager
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
+import android.os.Build
+import android.os.Bundle
+import android.provider.Settings
+import android.view.WindowManager
+import androidx.core.content.ContextCompat
+import com.ramdsoft.viernes.wakeword.WakeWordService
+import io.flutter.embedding.android.FlutterActivity
+import io.flutter.embedding.engine.FlutterEngine
+import io.flutter.plugin.common.MethodCall
+import io.flutter.plugin.common.MethodChannel
+
+class MainActivity : FlutterActivity() {
+
+    private var wakeChannel: MethodChannel? = null
+
+    /** La app se abrió porque se dijo "Viernes"; Flutter lo consulta al iniciar. */
+    private var pendingWake = false
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        if (intent?.action == WakeWordService.ACTION_WAKE) onWakeIntent(notifyFlutter = false)
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        if (intent.action == WakeWordService.ACTION_WAKE) onWakeIntent(notifyFlutter = true)
+    }
+
+    private fun onWakeIntent(notifyFlutter: Boolean) {
+        getSystemService(NotificationManager::class.java)
+            .cancel(WakeWordService.NOTIFICATION_WAKE_ID)
+        // Que la conversación se vea aunque el teléfono esté bloqueado; Flutter
+        // lo desactiva al cerrarla.
+        setShowOverLockScreen(true)
+        if (notifyFlutter && wakeChannel != null) {
+            wakeChannel?.invokeMethod("onWake", null)
+        } else {
+            pendingWake = true
+        }
+    }
+
+    override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
+        super.configureFlutterEngine(flutterEngine)
+        val messenger = flutterEngine.dartExecutor.binaryMessenger
+        MethodChannel(messenger, SYSTEM_CHANNEL).setMethodCallHandler { call, result ->
+            when (call.method) {
+                "setShowOverLockScreen" -> {
+                    setShowOverLockScreen(call.argument<Boolean>("enabled") == true)
+                    result.success(null)
+                }
+                "canUseFullScreenIntent" -> result.success(canUseFullScreenIntent())
+                else -> result.notImplemented()
+            }
+        }
+        wakeChannel = MethodChannel(messenger, WAKE_CHANNEL).apply {
+            setMethodCallHandler(::onWakeWordCall)
+        }
+    }
+
+    // --- Activación por voz ------------------------------------------------
+
+    private fun onWakeWordCall(call: MethodCall, result: MethodChannel.Result) {
+        when (call.method) {
+            "start" -> {
+                val service = WakeWordService.intent(this, WakeWordService.ACTION_START)
+                    .putExtra(WakeWordService.EXTRA_MODEL_PATH, call.argument<String>("modelPath"))
+                    .putExtra(
+                        WakeWordService.EXTRA_THRESHOLD,
+                        (call.argument<Double>("threshold") ?: 0.8).toFloat(),
+                    )
+                ContextCompat.startForegroundService(this, service)
+                result.success(null)
+            }
+            "stop" -> sendToService(WakeWordService.ACTION_STOP, result)
+            "pause" -> sendToService(WakeWordService.ACTION_PAUSE, result)
+            "resume" -> sendToService(WakeWordService.ACTION_RESUME, result)
+            "isRunning" -> result.success(WakeWordService.isRunning)
+            "consumeLaunchWake" -> {
+                result.success(pendingWake)
+                pendingWake = false
+            }
+            "canDrawOverlays" -> result.success(Settings.canDrawOverlays(this))
+            "requestDrawOverlays" -> {
+                startActivity(
+                    Intent(
+                        Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                        Uri.parse("package:$packageName"),
+                    ),
+                )
+                result.success(null)
+            }
+            else -> result.notImplemented()
+        }
+    }
+
+    private fun sendToService(action: String, result: MethodChannel.Result) {
+        if (WakeWordService.isRunning) {
+            startService(WakeWordService.intent(this, action))
+        }
+        result.success(null)
+    }
+
+    // --- Pantalla de bloqueo -------------------------------------------------
+
+    /**
+     * Muestra la app sobre la pantalla de bloqueo y enciende la pantalla.
+     * Solo se activa durante una alerta o una conversación iniciada con la
+     * voz; el resto de la app sigue protegido por el bloqueo del teléfono.
+     */
+    private fun setShowOverLockScreen(enabled: Boolean) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
+            setShowWhenLocked(enabled)
+            setTurnScreenOn(enabled)
+        } else {
+            @Suppress("DEPRECATION")
+            val flags = WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED or
+                WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON
+            if (enabled) window.addFlags(flags) else window.clearFlags(flags)
+        }
+        if (enabled) {
+            window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        } else {
+            window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        }
+    }
+
+    /** Android 14+ exige que el usuario permita las alertas a pantalla completa. */
+    private fun canUseFullScreenIntent(): Boolean {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) return true
+        val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        return manager.canUseFullScreenIntent()
+    }
+
+    companion object {
+        private const val SYSTEM_CHANNEL = "com.ramdsoft.viernes/system"
+        private const val WAKE_CHANNEL = "com.ramdsoft.viernes/wake_word"
+    }
+}
