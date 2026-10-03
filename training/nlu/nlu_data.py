@@ -221,14 +221,91 @@ def _variant(text: str, rng: random.Random) -> str:
     return text
 
 
-def generate(n: int, seed: int, task_templates: list[str]) -> list[Example]:
+VERBS = [
+    "llamar", "pagar", "comprar", "enviar", "mandar", "revisar", "entregar", "recoger",
+    "llevar", "traer", "buscar", "lavar", "limpiar", "arreglar", "cocinar", "preparar",
+    "estudiar", "leer", "escribir", "responder", "contestar", "confirmar", "cancelar",
+    "renovar", "reservar", "agendar", "imprimir", "firmar", "escanear", "subir", "bajar",
+    "descargar", "instalar", "actualizar", "cargar", "guardar", "sacar", "poner", "quitar",
+    "cambiar", "devolver", "prestar", "vender", "regalar", "felicitar", "visitar",
+    "acompañar", "esperar", "despertar", "bañar", "peinar", "alimentar", "regar", "podar",
+    "barrer", "trapear", "planchar", "doblar", "empacar", "desempacar", "organizar",
+    "ordenar", "botar", "reciclar", "medir", "pesar", "contar", "calcular", "transferir",
+    "consignar", "retirar", "cobrar", "facturar", "cotizar", "negociar", "diseñar",
+    "programar", "probar", "grabar", "editar", "publicar", "compartir", "invitar",
+    "saludar", "practicar", "ensayar", "entrenar", "correr", "nadar", "caminar",
+    "montar", "manejar", "parquear", "tanquear", "inflar", "desinfectar", "vacunar",
+    "tomar", "tomarme", "aplicar", "recordar", "repasar", "terminar", "empezar",
+    "comenzar", "abrir", "cerrar", "apagar", "prender", "encender", "conectar",
+    "desconectar", "hornear", "descongelar", "servir", "pedir", "solicitar",
+    "tramitar", "radicar", "matricular", "inscribir", "averiguar", "preguntar",
+]
+OBJECTS = [
+    "el informe", "la factura", "el recibo", "los documentos", "la cédula", "el pasaporte",
+    "la licencia", "el carro", "la moto", "la bicicleta", "las llantas", "el aceite",
+    "la ropa", "las sábanas", "los platos", "la cocina", "el baño", "la nevera",
+    "el horno", "la lavadora", "las matas", "el jardín", "el perro", "el gato",
+    "los niños", "la niña", "el bebé", "la torta", "el almuerzo", "la comida",
+    "el mercado", "las compras", "el regalo", "las flores", "las fotos", "el video",
+    "la presentación", "el proyecto", "la tarea", "el examen", "el parcial", "la tesis",
+    "el contrato", "la cotización", "la propuesta", "el correo", "el mensaje",
+    "la llamada", "la cita", "la reunión", "la reserva", "los tiquetes", "el vuelo",
+    "la maleta", "las medicinas", "la pastilla", "la vitamina", "la insulina",
+    "las gafas", "el celular", "el computador", "la tablet", "el cargador",
+    "la contraseña", "la aplicación", "la página web", "el servidor", "la base de datos",
+    "el arriendo", "la cuota", "el préstamo", "la tarjeta", "los servicios",
+    "la luz", "el agua", "el gas", "el internet", "la pensión", "el seguro",
+    "el paquete", "el pedido", "el domicilio", "la caja", "las llaves", "la puerta",
+    "la basura", "el reciclaje", "las cuentas", "el presupuesto", "los impuestos",
+    "la declaración de renta", "el certificado", "la constancia", "la matrícula",
+    "el uniforme", "los zapatos", "la camisa", "el vestido", "la chaqueta",
+    "el libro", "la guitarra", "el piano", "la clase", "el curso", "el taller",
+]
+OBJECT_SUFFIXES = ["", "", "", " de {name}", " para {name}", " en {place}", " a {name}",
+                   " con {name}", " del trabajo", " de la casa", " del colegio"]
+
+# Palabras inventadas: reemplazan palabras de la tarea para que el modelo
+# aprenda por el contexto y no memorice el vocabulario.
+_SYLLABLES = ["ma", "lo", "te", "xi", "fo", "ru", "ne", "ca", "zu", "lei", "dy", "pra",
+              "tor", "quin", "bel", "ga", "mon", "tri", "sa", "vo", "jen", "gui", "char"]
+_VERB_ENDINGS = ["ar", "er", "ir", "arle", "arme", "earle"]
+
+
+def _fake_word(rng: random.Random, verb: bool = False) -> str:
+    word = "".join(rng.choice(_SYLLABLES) for _ in range(rng.randint(2, 3)))
+    return word + rng.choice(_VERB_ENDINGS) if verb else word
+
+
+def _task_text(rng: random.Random, pools, task_source) -> str:
+    templates, verbs, objects = task_source
+    if rng.random() < 0.45:
+        return _fill(rng.choice(templates), rng, pools)
+    obj = rng.choice(objects) + rng.choice(OBJECT_SUFFIXES)
+    return _fill(f"{rng.choice(verbs)} {obj}", rng, pools)
+
+
+def _dropout_task(text: str, rng: random.Random, rate: float) -> str:
+    if rate <= 0:
+        return text
+    words = text.split()
+    out = []
+    for i, w in enumerate(words):
+        if rng.random() < rate:
+            out.append(_fake_word(rng, verb=(i == 0)))
+        else:
+            out.append(w)
+    return " ".join(out)
+
+
+def generate(n: int, seed: int, task_source, word_dropout: float = 0.0) -> list[Example]:
     rng = random.Random(seed)
     pools = {"name": NAMES, "place": PLACES, "item": ITEMS, "bill": BILLS}
     out: list[Example] = []
     while len(out) < n:
         r = rng.random()
         if r < 0.70:
-            out.append(_create(rng, pools, task_templates))
+            task = _dropout_task(_task_text(rng, pools, task_source), rng, word_dropout)
+            out.append(_create(rng, task))
         elif r < 0.82:
             q, _ = rng.choice(QUERIES)
             d = rng.choice(QUERY_DATES)
@@ -243,8 +320,7 @@ def generate(n: int, seed: int, task_templates: list[str]) -> list[Example]:
     return out
 
 
-def _create(rng: random.Random, pools, task_templates) -> Example:
-    task = _fill(rng.choice(task_templates), rng, pools)
+def _create(rng: random.Random, task: str) -> Example:
     cmd = rng.choice(COMMANDS)
     parts: dict[str, tuple[str, str]] = {"task": (task, "TAREA")}
     if rng.random() < 0.8:
@@ -253,14 +329,16 @@ def _create(rng: random.Random, pools, task_templates) -> Example:
         parts["time"] = (rng.choice(TIMES), "HORA")
     if rng.random() < 0.15:
         parts["rep"] = (rng.choice(REPS), "REP")
-        parts.pop("date", None) if rng.random() < 0.6 else None
+        if rng.random() < 0.6:
+            parts.pop("date", None)
     if rng.random() < 0.1:
         parts["prio"] = (rng.choice(PRIOS), "PRIO")
     if rng.random() < 0.1:
         parts["antic"] = (rng.choice(ANTICS), "ANTIC")
 
     when = [k for k in ("date", "time", "rep") if k in parts]
-    rng.shuffle(when) if rng.random() < 0.3 else None
+    if rng.random() < 0.3:
+        rng.shuffle(when)
     extras = [k for k in ("prio", "antic") if k in parts]
     order_choice = rng.random()
     if order_choice < 0.5:
@@ -277,21 +355,28 @@ def _create(rng: random.Random, pools, task_templates) -> Example:
         if key == "cmd":
             segments.append((cmd, "O"))
         else:
-            text, label = parts[key]
-            segments.append((text, label))
+            segments.append(parts[key])
         if rng.random() < 0.12:
             segments.append((rng.choice(["por favor", "porfa", "eh", "pues"]), "O"))
     segments = [(_variant(t, rng), l) for t, l in segments]
     return _segments_to_example(segments, "crear")
 
 
-def split_task_templates(seed: int = 7, holdout: float = 0.2):
-    """Separa plantillas de tareas para medir si generaliza a tareas nuevas."""
+def split_tasks(seed: int = 7, holdout: float = 0.2):
+    """Separa plantillas, verbos y objetos para medir si generaliza a tareas
+    que nunca vio."""
     rng = random.Random(seed)
-    templates = TASK_TEMPLATES[:]
-    rng.shuffle(templates)
-    k = int(len(templates) * holdout)
-    return templates[k:], templates[:k]
+
+    def split(items):
+        items = items[:]
+        rng.shuffle(items)
+        k = int(len(items) * holdout)
+        return items[k:], items[:k]
+
+    t_train, t_test = split(TASK_TEMPLATES)
+    v_train, v_test = split(sorted(set(VERBS)))
+    o_train, o_test = split(OBJECTS)
+    return (t_train, v_train, o_train), (t_test, v_test, o_test)
 
 
 # ---------------------------------------------------------------------------

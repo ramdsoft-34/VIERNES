@@ -40,8 +40,10 @@ MAX_LEN = 32
 EMB = 48
 HIDDEN = 96
 OOV_BUCKETS = 512
+SUFFIX_BUCKETS = 256
+SUFFIX_EMB = 16
 MIN_COUNT = 2
-VERSION = "nn-es-1.0"
+VERSION = "nn-es-1.1"
 
 
 def build_vocab(examples):
@@ -59,9 +61,15 @@ def token_id(token, index, vocab_size):
     return vocab_size + data.fnv1a(token) % OOV_BUCKETS
 
 
+def suffix_id(token):
+    """Terminación de la palabra (-ar, -cion…): ayuda con palabras nuevas."""
+    return data.fnv1a("~" + data.normalize_token(token)[-3:]) % SUFFIX_BUCKETS
+
+
 def encode(examples, index, vocab_size):
     n = len(examples)
     ids = np.zeros((n, MAX_LEN), np.int32)
+    sfx = np.zeros((n, MAX_LEN), np.int32)
     tags = np.zeros((n, MAX_LEN), np.int32)
     weights = np.zeros((n, MAX_LEN), np.float32)
     intents = np.zeros((n,), np.int32)
@@ -70,16 +78,21 @@ def encode(examples, index, vocab_size):
         toks = ex.tokens[:MAX_LEN]
         for j, tok in enumerate(toks):
             ids[i, j] = token_id(tok, index, vocab_size)
+            sfx[i, j] = suffix_id(tok)
             tags[i, j] = tag_index[ex.tags[j]]
             weights[i, j] = ex.weights[j] if ex.weights else 1.0
         intents[i] = data.INTENTS.index(ex.intent)
-    return ids, tags, weights, intents
+    return {"ids": ids, "sfx": sfx}, tags, weights, intents
 
 
 def build_model(total_ids):
     ids = keras.Input((MAX_LEN,), dtype="int32", name="ids")
+    sfx = keras.Input((MAX_LEN,), dtype="int32", name="sfx")
     mask = keras.ops.expand_dims(keras.ops.cast(ids > 0, "float32"), -1)
-    x = keras.layers.Embedding(total_ids, EMB, name="embedding")(ids) * mask
+    x = keras.layers.Concatenate()([
+        keras.layers.Embedding(total_ids, EMB, name="embedding")(ids),
+        keras.layers.Embedding(SUFFIX_BUCKETS, SUFFIX_EMB, name="suffix")(sfx),
+    ]) * mask
     h = keras.layers.Conv1D(HIDDEN, 3, padding="same", activation="relu",
                             name="conv1")(x) * mask
     h = keras.layers.Dropout(0.15)(h)
@@ -90,7 +103,7 @@ def build_model(total_ids):
     pooled = keras.ops.max(h + (mask - 1.0) * 1e4, axis=1)
     intent = keras.layers.Dense(len(data.INTENTS), activation="softmax",
                                 name="intent")(keras.layers.Dropout(0.2)(pooled))
-    model = keras.Model(ids, {"tags": tags, "intent": intent})
+    model = keras.Model({"ids": ids, "sfx": sfx}, {"tags": tags, "intent": intent})
     model.compile(
         optimizer=keras.optimizers.Adam(2e-3),
         loss={"tags": "sparse_categorical_crossentropy",
@@ -151,6 +164,7 @@ def export(model, vocab, out_dir: Path, metrics):
     layers = {l.name: l for l in model.layers}
     weights = {
         "embedding": layers["embedding"].get_weights()[0],
+        "suffix": layers["suffix"].get_weights()[0],
         "conv1.kernel": layers["conv1"].get_weights()[0],
         "conv1.bias": layers["conv1"].get_weights()[1],
         "conv2.kernel": layers["conv2"].get_weights()[0],
@@ -165,6 +179,7 @@ def export(model, vocab, out_dir: Path, metrics):
         "createdAt": dt.datetime.now(dt.timezone.utc).isoformat(),
         "maxLen": MAX_LEN,
         "oovBuckets": OOV_BUCKETS,
+        "suffixBuckets": SUFFIX_BUCKETS,
         "vocab": vocab,
         "tags": data.TAGS,
         "intents": data.INTENTS,
@@ -192,12 +207,16 @@ def export_parity(model, vocab, out_dir: Path):
     for s in sentences:
         toks = data.tokenize(s)[:MAX_LEN]
         ids = [token_id(t, index, len(vocab)) for t, _, _ in toks]
+        sfx = [suffix_id(t) for t, _, _ in toks]
         padded = np.zeros((1, MAX_LEN), np.int32)
         padded[0, :len(ids)] = ids
-        pred = model.predict(padded, verbose=0)
+        padded_sfx = np.zeros((1, MAX_LEN), np.int32)
+        padded_sfx[0, :len(sfx)] = sfx
+        pred = model.predict({"ids": padded, "sfx": padded_sfx}, verbose=0)
         cases.append({
             "text": s,
             "ids": ids,
+            "sfx": sfx,
             "intent": [round(float(p), 5) for p in pred["intent"][0]],
             "tags": [data.TAGS[k] for k in pred["tags"][0, :len(ids)].argmax(-1)],
             "tagProbs": [round(float(p), 5) for p in pred["tags"][0, :len(ids)].max(-1)],
@@ -221,10 +240,10 @@ def main():
     np.random.seed(1)
     tf.random.set_seed(1)
 
-    train_templates, test_templates = data.split_task_templates()
-    train = data.generate(args.n, seed=1, task_templates=train_templates)
-    valid = data.generate(3000, seed=2, task_templates=train_templates)
-    unseen = data.generate(3000, seed=3, task_templates=test_templates)
+    train_tasks, test_tasks = data.split_tasks()
+    train = data.generate(args.n, seed=1, task_source=train_tasks, word_dropout=0.2)
+    valid = data.generate(3000, seed=2, task_source=train_tasks)
+    unseen = data.generate(3000, seed=3, task_source=test_tasks)
 
     real_paths = [Path(p) for p in args.real if Path(p).exists()]
     real = data.load_real(real_paths)
@@ -250,9 +269,9 @@ def main():
     vx, vy_tags, vw_tags, vy_int = encode(valid, index, len(vocab))
     model.fit(
         x, {"tags": y_tags, "intent": y_int},
-        sample_weight={"tags": w_tags, "intent": np.ones(len(x), np.float32)},
+        sample_weight={"tags": w_tags, "intent": np.ones(len(y_int), np.float32)},
         validation_data=(vx, {"tags": vy_tags, "intent": vy_int},
-                         {"tags": vw_tags, "intent": np.ones(len(vx), np.float32)}),
+                         {"tags": vw_tags, "intent": np.ones(len(vy_int), np.float32)}),
         epochs=args.epochs, batch_size=64, verbose=2,
         callbacks=[keras.callbacks.EarlyStopping(patience=2, restore_best_weights=True)],
     )
