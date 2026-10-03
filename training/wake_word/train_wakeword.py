@@ -319,6 +319,26 @@ def build_classifier():
     return model
 
 
+def scores_on_stream(model, stream) -> np.ndarray:
+    """Probabilidad en cada instante de un audio continuo de características
+    (una fila de 96 valores cada 80 ms), como lo vería el teléfono."""
+    stream = np.asarray(stream)
+    if stream.ndim == 3:  # ya viene en ventanas de 16
+        windows_of = lambda a, b: stream[a:b]  # noqa: E731
+        total = len(stream)
+    else:
+        from numpy.lib.stride_tricks import sliding_window_view
+
+        all_windows = sliding_window_view(stream, (16, stream.shape[1]))[:, 0]
+        windows_of = lambda a, b: all_windows[a:b]  # noqa: E731
+        total = len(all_windows)
+    out = []
+    for i in range(0, total, 50_000):
+        batch = np.asarray(windows_of(i, i + 50_000), np.float32)
+        out.append(model.predict(batch, batch_size=4096, verbose=0)[:, 0])
+    return np.concatenate(out)
+
+
 def false_activations_per_hour(scores: np.ndarray, threshold: float) -> float:
     """El conjunto de validación de openWakeWord son ventanas seguidas cada
     80 ms (~11 h). Una activación cuenta una vez aunque dure varias ventanas."""
@@ -407,11 +427,8 @@ def main():
               class_weight={0: 1.0, 1: float(min(weight_pos, 50))})
 
     # Métricas
-    val_scores = np.concatenate([
-        model.predict(np.asarray(val_features[i:i + 50_000], np.float32),
-                      batch_size=4096, verbose=0)[:, 0]
-        for i in range(0, len(val_features), 50_000)
-    ])
+    model.save(work / "classifier.keras")
+    val_scores = scores_on_stream(model, val_features)
     test_scores = model.predict(pos_test, batch_size=1024, verbose=0)[:, 0] \
         if len(pos_test) else np.zeros(0)
     hard_scores = model.predict(neg_hard, batch_size=1024, verbose=0)[:, 0]
