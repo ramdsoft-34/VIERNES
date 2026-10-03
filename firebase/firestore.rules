@@ -1,10 +1,13 @@
 rules_version = '2';
 
 // Reglas de seguridad de Viernes.
-// Cada usuario solo puede leer y escribir sus propios datos:
+// Cada usuario solo puede leer y escribir sus propios datos, más lo que
+// comparte (recordatorios enviados y listas):
 //   users/{uid}                  perfil y preferencias
 //   users/{uid}/reminders/{id}   recordatorios
 //   users/{uid}/events/{id}      historial
+//   shared_reminders/{id}        de una persona a otra
+//   lists/{id}, lists/{id}/items listas compartidas
 // Copia este archivo en Firebase → Firestore Database → Reglas → Publicar.
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -29,6 +32,69 @@ service cloud.firestore {
         allow read, delete: if isOwner(uid);
         allow create, update: if isOwner(uid)
           && request.resource.data.size() < 20;
+      }
+    }
+
+    // --- Compartir ---------------------------------------------------------
+
+    function myEmail() {
+      return request.auth.token.email.lower();
+    }
+
+    // Recordatorio de una persona a otra (por correo). Lo ven quien lo envía
+    // y quien lo recibe; el que recibe solo cambia el estado.
+    match /shared_reminders/{id} {
+      allow create: if request.auth != null
+        && request.resource.data.fromUid == request.auth.uid
+        && request.resource.data.fromEmail == myEmail()
+        && request.resource.data.status == 'sent'
+        && request.resource.data.title is string
+        && request.resource.data.title.size() <= 200;
+      allow read: if request.auth != null
+        && (resource.data.fromUid == request.auth.uid
+            || resource.data.toEmail == myEmail());
+      allow update: if request.auth != null
+        && (
+          // El que recibe: aceptado o hecho.
+          (resource.data.toEmail == myEmail()
+            && request.resource.data.diff(resource.data).affectedKeys()
+                 .hasOnly(['status', 'doneAt'])
+            && request.resource.data.status in ['accepted', 'done'])
+          // El que envía: cancelarlo.
+          || (resource.data.fromUid == request.auth.uid
+            && request.resource.data.diff(resource.data).affectedKeys()
+                 .hasOnly(['status'])
+            && request.resource.data.status == 'cancelled')
+        );
+      allow delete: if request.auth != null
+        && resource.data.fromUid == request.auth.uid;
+    }
+
+    // Listas compartidas: las ven y editan sus miembros.
+    match /lists/{listId} {
+      function isMember(data) {
+        return request.auth != null && myEmail() in data.memberEmails;
+      }
+
+      allow create: if request.auth != null
+        && request.resource.data.ownerUid == request.auth.uid
+        && myEmail() in request.resource.data.memberEmails
+        && request.resource.data.memberEmails.size() <= 20;
+      allow read: if isMember(resource.data);
+      // Cualquier miembro puede invitar o salirse; solo el dueño la cambia de
+      // nombre o de dueño.
+      allow update: if isMember(resource.data)
+        && request.resource.data.ownerUid == resource.data.ownerUid
+        && request.resource.data.memberEmails.size() <= 20
+        && (request.resource.data.name == resource.data.name
+            || resource.data.ownerUid == request.auth.uid);
+      allow delete: if request.auth != null
+        && resource.data.ownerUid == request.auth.uid;
+
+      match /items/{itemId} {
+        allow read, write: if request.auth != null
+          && myEmail() in get(/databases/$(database)/documents/lists/$(listId))
+               .data.memberEmails;
       }
     }
 

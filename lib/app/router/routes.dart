@@ -18,6 +18,10 @@ abstract final class AppRoutes {
 
   static const learning = '/aprendizaje';
 
+  static const sharing = '/compartir';
+  static const sharedListPath = '/lista/:id';
+  static String sharedList(String id) => '/lista/$id';
+
   static const places = '/lugares';
   static const locationReminders = '/por-ubicacion';
 

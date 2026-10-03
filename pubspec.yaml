@@ -2,7 +2,7 @@ name: viernes
 description: "Viernes — asistente personal de recordatorios por voz que hace seguimiento hasta que confirmas cada tarea."
 publish_to: 'none'
 
-version: 0.8.0+9
+version: 0.9.0+10
 
 environment:
   sdk: ^3.12.2

@@ -9,13 +9,16 @@ import 'package:viernes/ai/nlu/es/spanish_place_trigger.dart';
 import 'package:viernes/ai/nlu/es/spanish_relative_event.dart';
 import 'package:viernes/ai/nlu/es/spanish_reply_parser.dart';
 import 'package:viernes/ai/nlu/es/spanish_rule_interpreter.dart';
+import 'package:viernes/ai/nlu/es/spanish_share_parser.dart';
 import 'package:viernes/ai/nlu/es/spanish_speech.dart';
 import 'package:viernes/ai/nlu/es/spanish_task_splitter.dart';
+import 'package:viernes/ai/nlu/es/spanish_text.dart';
 import 'package:viernes/ai/nlu/interpretation.dart';
 import 'package:viernes/ai/speech/speech_recognizer.dart';
 import 'package:viernes/app/providers.dart';
 import 'package:viernes/core/error/result.dart';
 import 'package:viernes/core/logging/app_logger.dart';
+import 'package:viernes/features/account/presentation/account_providers.dart';
 import 'package:viernes/features/places/domain/place.dart';
 import 'package:viernes/features/places/presentation/places_providers.dart';
 import 'package:viernes/features/reminders/domain/entities/reminder.dart';
@@ -23,6 +26,9 @@ import 'package:viernes/features/reminders/domain/entities/reminder_draft.dart';
 import 'package:viernes/features/reminders/domain/entities/reminder_enums.dart';
 import 'package:viernes/features/reminders/presentation/providers/reminder_providers.dart';
 import 'package:viernes/features/settings/presentation/settings_controller.dart';
+import 'package:viernes/features/sharing/data/contacts_repository.dart';
+import 'package:viernes/features/sharing/domain/sharing_models.dart';
+import 'package:viernes/features/sharing/presentation/sharing_providers.dart';
 import 'package:viernes/features/voice_assistant/domain/voice_draft_builder.dart';
 import 'package:viernes/features/voice_assistant/domain/voice_state.dart';
 
@@ -79,6 +85,9 @@ class VoiceAssistantController extends Notifier<VoiceState> {
   bool _corrected = false;
   bool _firstWasCancel = false;
 
+  /// «Recuérdale a Sofi…»: se envía a este contacto en vez de guardarse.
+  Contact? _shareTo;
+
   /// Si la conversación confirma que de verdad dijeron «Viernes»: hubo una
   /// frase y no fue «me equivoqué» / «nada». Sirve para etiquetar la
   /// grabación de la activación.
@@ -116,6 +125,7 @@ class VoiceAssistantController extends Notifier<VoiceState> {
     _draft = ParsedReminder.empty;
     _corrected = false;
     _firstWasCancel = false;
+    _shareTo = null;
     _queuedDecision = null;
     state = const VoiceState(stage: VoiceStage.listening);
     try {
@@ -229,6 +239,56 @@ class VoiceAssistantController extends Notifier<VoiceState> {
 
     _set(state.copyWith(stage: VoiceStage.thinking, isListening: false));
 
+    // Listas compartidas: «agrega leche a la lista del mercado».
+    final listAdd = SpanishShareParser.parseListAdd(first);
+    if (listAdd != null) {
+      await _addToList(session, listAdd);
+      return;
+    }
+    final listToRead = SpanishShareParser.parseListRead(first);
+    if (listToRead != null) {
+      await _readList(session, listToRead);
+      return;
+    }
+
+    // «Recuérdale a Sofi…»: se le envía a su Viernes.
+    final share = SpanishShareParser.parseShare(first);
+    if (share != null) {
+      final user = ref.read(authRepositoryProvider).currentUser;
+      if (user == null) {
+        await _finish(session, SpanishSpeech.shareNeedsAccount, failed: true);
+        return;
+      }
+      final match = matchContactPrefix(
+        share.afterTo,
+        ref.read(contactsProvider),
+      );
+      if (match == null) {
+        await _finish(
+          session,
+          SpanishSpeech.unknownContact(share.afterTo.split(' ').first),
+          failed: true,
+        );
+        return;
+      }
+      _shareTo = match.contact;
+      final rest = match.rest.replaceFirst(
+        RegExp(r'^que\s+', caseSensitive: false),
+        '',
+      );
+      _draft =
+          (await ref.read(reminderInterpreterProvider).interpret(rest, _now))
+              .reminder;
+      if (!_alive(session)) return;
+      if (!await _fillMissing(session)) return;
+      if (ref.read(settingsControllerProvider).voiceConfirmation &&
+          !await _confirm(session)) {
+        return;
+      }
+      await _save(session);
+      return;
+    }
+
     // «Cuando llegue a casa»: recordatorio por ubicación, no por hora.
     final placeRequest = SpanishPlaceTrigger.parse(first);
     if (placeRequest != null) {
@@ -274,6 +334,136 @@ class VoiceAssistantController extends Notifier<VoiceState> {
       return;
     }
     await _save(session);
+  }
+
+  Future<void> _addToList(int session, ListAddRequest request) async {
+    final user = ref.read(authRepositoryProvider).currentUser;
+    final email = user?.email;
+    if (user == null || email == null) {
+      await _finish(session, SpanishSpeech.shareNeedsAccount, failed: true);
+      return;
+    }
+    try {
+      final list = await _findList(email, request.listName);
+      if (!_alive(session)) return;
+      if (list == null) {
+        await _finish(
+          session,
+          SpanishSpeech.listNotFound(request.listName),
+          failed: true,
+        );
+        return;
+      }
+      final ids = ref.read(idGeneratorProvider);
+      await ref.read(sharingRepositoryProvider).addItems(list.id, [
+        for (final item in request.items)
+          SharedListItem(
+            id: ids.next(),
+            text: item,
+            addedBy: user.firstName ?? email,
+            addedAt: _now,
+          ),
+      ]);
+      if (!_alive(session)) return;
+      await _finish(
+        session,
+        SpanishSpeech.addedToList(request.items, list.name),
+      );
+    } on Object catch (error) {
+      AppLogger.info('Lista compartida: $error');
+      if (_alive(session)) {
+        await _finish(session, SpanishSpeech.shareFailed, failed: true);
+      }
+    }
+  }
+
+  Future<void> _readList(int session, String listName) async {
+    final email = ref.read(authRepositoryProvider).currentUser?.email;
+    if (email == null) {
+      await _finish(session, SpanishSpeech.shareNeedsAccount, failed: true);
+      return;
+    }
+    try {
+      final list = await _findList(email, listName);
+      if (!_alive(session)) return;
+      if (list == null) {
+        await _finish(
+          session,
+          SpanishSpeech.listNotFound(listName),
+          failed: true,
+        );
+        return;
+      }
+      final items = await ref
+          .read(sharingRepositoryProvider)
+          .watchItems(list.id)
+          .first
+          .timeout(const Duration(seconds: 10));
+      if (!_alive(session)) return;
+      await _finish(
+        session,
+        SpanishSpeech.listContents(list.name, [
+          for (final i in items)
+            if (!i.done) i.text,
+        ]),
+      );
+    } on Object catch (error) {
+      AppLogger.info('Lista compartida: $error');
+      if (_alive(session)) {
+        await _finish(session, SpanishSpeech.shareFailed, failed: true);
+      }
+    }
+  }
+
+  Future<SharedList?> _findList(String email, String spoken) async {
+    final lists = await ref
+        .read(sharingRepositoryProvider)
+        .watchLists(email)
+        .first
+        .timeout(const Duration(seconds: 10));
+    final wanted = SpanishText.fold(spoken).trim();
+    for (final list in lists) {
+      if (list.key == wanted) return list;
+    }
+    for (final list in lists) {
+      if (list.key.contains(wanted) || wanted.contains(list.key)) return list;
+    }
+    return null;
+  }
+
+  /// Envía el recordatorio a [_shareTo] en vez de guardarlo aquí.
+  Future<void> _sendShared(int session, ReminderDraft draft) async {
+    final contact = _shareTo!;
+    final user = ref.read(authRepositoryProvider).currentUser;
+    if (user == null || user.email == null) {
+      await _finish(session, SpanishSpeech.shareNeedsAccount, failed: true);
+      return;
+    }
+    try {
+      await ref
+          .read(sharingRepositoryProvider)
+          .send(
+            SharedReminder(
+              id: ref.read(idGeneratorProvider).next(),
+              fromUid: user.uid,
+              fromName: user.firstName ?? user.email!,
+              fromEmail: user.email!,
+              toEmail: contact.email,
+              title: draft.title,
+              dueAt: draft.dueAt,
+              leadTime: draft.leadTime,
+              createdAt: _now,
+            ),
+          )
+          .timeout(const Duration(seconds: 15));
+      if (!_alive(session)) return;
+      await _finish(session, SpanishSpeech.sentTo(contact.name));
+    } on Object catch (error) {
+      AppLogger.info('No se pudo enviar el recordatorio: $error');
+      if (_alive(session)) {
+        await _finish(session, SpanishSpeech.shareFailed, failed: true);
+      }
+    }
   }
 
   /// Guarda un recordatorio por ubicación tras confirmar (si está activada
@@ -477,6 +667,7 @@ class VoiceAssistantController extends Notifier<VoiceState> {
       final preview = _preview();
       final taskCount = SpanishTaskSplitter.split(preview.title).length;
       final question =
+          (_shareTo == null ? '' : SpanishSpeech.sendTo(_shareTo!.name)) +
           (taskCount > 1 ? SpanishSpeech.severalTasks(taskCount) : '') +
           SpanishSpeech.confirmation(
             title: preview.title,
@@ -631,6 +822,10 @@ class VoiceAssistantController extends Notifier<VoiceState> {
       utterances: _utterances,
       confidence: _initial?.confidence,
     );
+    if (_shareTo != null) {
+      await _sendShared(session, draft);
+      return;
+    }
     // «Pagar la luz y llamar a mi mamá»: un recordatorio por tarea, con la
     // misma fecha y hora.
     final tasks = SpanishTaskSplitter.split(draft.title);

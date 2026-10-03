@@ -187,6 +187,13 @@ class SettingsScreen extends ConsumerWidget {
               ),
               const _TrainingDataTile(),
               ListTile(
+                leading: const Icon(Icons.group_outlined),
+                title: Text(l10n.settingsSharing),
+                subtitle: Text(l10n.settingsSharingSubtitle),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => unawaited(context.push(AppRoutes.sharing)),
+              ),
+              ListTile(
                 leading: const Icon(Icons.place_outlined),
                 title: Text(l10n.settingsPlaces),
                 subtitle: Text(l10n.settingsPlacesSubtitle),

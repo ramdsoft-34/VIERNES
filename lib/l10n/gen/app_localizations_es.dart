@@ -903,6 +903,15 @@ class AppLocalizationsEs extends AppLocalizations {
       'Si está muy segura, la red decide qué tarea guardar. Si no, mandan las reglas.';
 
   @override
+  String neuralCompare(int count, int rules, int neural) {
+    return 'Con tus $count frases: reglas $rules % · red neuronal $neural %';
+  }
+
+  @override
+  String get neuralCompareNeedsData =>
+      'Con 10 frases guardadas (activando «Ayudar a entrenar a Viernes») podrás comparar reglas y red con tu forma de hablar.';
+
+  @override
   String get neuralTry => 'Prueba la red';
 
   @override
@@ -1021,6 +1030,132 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get settingsPlacesSubtitle =>
       'Avisos al llegar a casa, al trabajo o al supermercado';
+
+  @override
+  String get sharingTitle => 'Compartir';
+
+  @override
+  String get sharingSignIn => 'Inicia sesión para compartir';
+
+  @override
+  String get sharingSignInSubtitle =>
+      'Las listas y los recordatorios compartidos usan tu cuenta de Google.';
+
+  @override
+  String get sharingOffline =>
+      'Sin conexión. Las listas compartidas necesitan internet.';
+
+  @override
+  String get sharingTabLists => 'Listas';
+
+  @override
+  String get sharingTabSent => 'Enviados';
+
+  @override
+  String get sharingTabContacts => 'Contactos';
+
+  @override
+  String get settingsSharing => 'Compartir';
+
+  @override
+  String get settingsSharingSubtitle =>
+      'Listas compartidas, recordatorios enviados y contactos';
+
+  @override
+  String get listsNew => 'Nueva lista';
+
+  @override
+  String get listsName => 'Nombre de la lista';
+
+  @override
+  String get listsNameHint => 'Mercado';
+
+  @override
+  String get listsEmpty => 'Aún no tienes listas';
+
+  @override
+  String get listsEmptySubtitle =>
+      'Crea una (mercado, pendientes de la casa…) y compártela. O dile a Viernes: «agrega leche a la lista del mercado».';
+
+  @override
+  String listsMembers(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count personas',
+      one: 'Solo tú',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get listsShare => 'Compartir lista';
+
+  @override
+  String get listsShareByEmail => 'Con otro correo…';
+
+  @override
+  String get listsAddItem => 'Agregar…';
+
+  @override
+  String get listsNoItems => 'Lista vacía';
+
+  @override
+  String get listsNoItemsSubtitle =>
+      'Escribe arriba o dile a Viernes qué agregar.';
+
+  @override
+  String listsAddedBy(String name) {
+    return 'Lo agregó $name';
+  }
+
+  @override
+  String get listsClearDone => 'Quitar los marcados';
+
+  @override
+  String get listsDelete => 'Eliminar lista';
+
+  @override
+  String get listsLeave => 'Salir de la lista';
+
+  @override
+  String get sentEmpty => 'No has enviado recordatorios';
+
+  @override
+  String get sentEmptySubtitle =>
+      'Dile a Viernes: «recuérdale a Sofi recoger el paquete mañana a las 5».';
+
+  @override
+  String get sentPending => 'enviado';
+
+  @override
+  String get sentAccepted => 'en su agenda';
+
+  @override
+  String get sentDone => '¡lo hizo!';
+
+  @override
+  String get sentCancelled => 'cancelado';
+
+  @override
+  String get contactsAdd => 'Agregar contacto';
+
+  @override
+  String get contactsEmpty => 'Sin contactos';
+
+  @override
+  String get contactsEmptySubtitle =>
+      'Agrega a quienes usan Viernes para enviarles recordatorios por voz.';
+
+  @override
+  String get contactsHint =>
+      'Usa el correo con el que esa persona inicia sesión en Viernes.';
+
+  @override
+  String get contactsName => 'Nombre (como lo dirás)';
+
+  @override
+  String get contactsEmail => 'Correo de Google';
 
   @override
   String get welcomeTitle => 'Hola, soy Viernes';

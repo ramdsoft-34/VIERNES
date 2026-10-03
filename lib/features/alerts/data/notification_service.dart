@@ -15,6 +15,7 @@ import 'package:viernes/features/alerts/domain/alert_scheduler.dart';
 import 'package:viernes/features/alerts/domain/notification_ids.dart';
 import 'package:viernes/features/alerts/domain/planned_alert.dart';
 import 'package:viernes/features/settings/domain/app_settings.dart';
+import 'package:viernes/features/sharing/application/shared_inbox.dart';
 import 'package:viernes/features/summaries/application/agenda_sync.dart';
 import 'package:viernes/features/summaries/domain/summary_planner.dart';
 import 'package:viernes/l10n/gen/app_localizations.dart';
@@ -37,7 +38,8 @@ class AlertPermissions {
 }
 
 /// Notificaciones locales y alarmas exactas de Android.
-class NotificationService implements AlertScheduler, SummaryScheduler {
+class NotificationService
+    implements AlertScheduler, SummaryScheduler, InfoNotifier {
   NotificationService({
     required this._settings,
     required this._l10n,
@@ -232,6 +234,32 @@ class NotificationService implements AlertScheduler, SummaryScheduler {
       );
     }
   }
+
+  // --- Avisos inmediatos (compartidos) -----------------------------------
+
+  @override
+  Future<void> showInfo({
+    required int id,
+    required String title,
+    required String body,
+  }) => _plugin.show(
+    id: id,
+    title: title,
+    body: body,
+    notificationDetails: const NotificationDetails(
+      android: AndroidNotificationDetails(
+        'sharing',
+        'Compartidos',
+        channelDescription:
+            'Recordatorios que te envían y avisos cuando alguien completa '
+            'lo que le enviaste',
+        icon: _icon,
+        color: _brandColor,
+        importance: Importance.high,
+        priority: Priority.high,
+      ),
+    ),
+  );
 
   // --- Permisos -----------------------------------------------------------
 

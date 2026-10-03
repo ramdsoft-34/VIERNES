@@ -9,17 +9,23 @@ import 'package:viernes/ai/speech/speech_recognizer.dart';
 import 'package:viernes/app/providers.dart';
 import 'package:viernes/core/database/app_database.dart';
 import 'package:viernes/core/utils/clock.dart';
+import 'package:viernes/features/account/domain/app_user.dart';
+import 'package:viernes/features/account/presentation/account_providers.dart';
 import 'package:viernes/features/places/data/places_repository.dart';
 import 'package:viernes/features/places/domain/place.dart';
 import 'package:viernes/features/places/presentation/places_providers.dart';
 import 'package:viernes/features/reminders/domain/entities/reminder_enums.dart';
 import 'package:viernes/features/reminders/presentation/providers/reminder_providers.dart';
+import 'package:viernes/features/sharing/domain/sharing_models.dart';
+import 'package:viernes/features/sharing/presentation/sharing_providers.dart';
 import 'package:viernes/features/voice_assistant/domain/voice_state.dart';
 import 'package:viernes/features/voice_assistant/presentation/voice_assistant_controller.dart';
 
 import '../../helpers/builders.dart';
+import '../../helpers/fake_cloud.dart';
 import '../../helpers/fake_location.dart';
 import '../../helpers/fake_reminder_repository.dart';
+import '../../helpers/fake_sharing.dart';
 import '../../helpers/fake_speech.dart';
 
 void main() {
@@ -361,6 +367,81 @@ void main() {
     await run(c);
 
     expect(stateOf(c).message, contains('No tengo guardado'));
+  });
+
+  group('compartir', () {
+    const ana = AppUser(
+      uid: 'ana',
+      email: 'ana@gmail.com',
+      displayName: 'Ana Pérez',
+    );
+    late FakeSharingRepository sharing;
+
+    Future<ProviderContainer> sharingContainer(List<String> script) async {
+      sharing = FakeSharingRepository();
+      final auth = FakeAuthRepository(nextUser: ana);
+      await auth.signInWithGoogle();
+      return buildContainer(
+        FakeSpeechRecognizer(script: [for (final s in script) SpeechHeard(s)]),
+        prefs: {
+          'settings.contacts': '[{"name":"Sofi","email":"sofi@gmail.com"}]',
+        },
+        extra: [
+          authRepositoryProvider.overrideWithValue(auth),
+          sharingRepositoryProvider.overrideWithValue(sharing),
+        ],
+      );
+    }
+
+    test('recuérdale a un contacto envía el recordatorio', () async {
+      final c = await sharingContainer([
+        'recuérdale a Sofi recoger el paquete mañana a las 5 de la tarde',
+        'sí',
+      ]);
+
+      await run(c);
+
+      final sent = sharing.shared.values.single;
+      expect(sent.toEmail, 'sofi@gmail.com');
+      expect(sent.fromName, 'Ana');
+      expect(sent.title, 'Recoger el paquete');
+      expect(sent.dueAt, DateTime(2026, 10, 2, 17));
+      expect(speaker.spoken[1], startsWith('Le envío a Sofi'));
+      expect(stateOf(c).message, startsWith('Listo, se lo envié a Sofi'));
+      expect(repository.reminders, isEmpty);
+    });
+
+    test('agrega elementos a una lista compartida', () async {
+      final c = await sharingContainer([
+        'agrega leche y pan a la lista del mercado',
+      ]);
+      await sharing.createList(
+        SharedList(
+          id: 'm',
+          name: 'Mercado',
+          ownerUid: 'ana',
+          memberEmails: const ['ana@gmail.com'],
+          createdAt: now,
+        ),
+      );
+
+      await run(c);
+
+      expect(
+        sharing.items['m']!.values.map((i) => i.text).toSet(),
+        {'Leche', 'Pan'},
+      );
+      expect(stateOf(c).message, contains('a la lista Mercado'));
+    });
+
+    test('sin el contacto lo explica', () async {
+      final c = await sharingContainer(['recuérdale a Juan llamar al banco']);
+
+      await run(c);
+
+      expect(stateOf(c).message, contains('No tengo a'));
+      expect(sharing.shared, isEmpty);
+    });
   });
 
   test('si avisa en el pasado pregunta para cuándo', () async {

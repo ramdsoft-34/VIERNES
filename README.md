@@ -17,6 +17,7 @@ qué necesitas recordar y te hará seguimiento hasta que confirmes que lo hicist
 | 6 | Recolección de datos e IA propia v1 (aprendizaje en el teléfono) | ✅ |
 | 6.5 | Cuentas con Google y respaldo en la nube | ✅ |
 | 6.6 | IA propia: detector «Viernes» y red neuronal (Colab) | ✅ |
+| 6.7 | Ubicación, compartir (listas y recordatorios) y varias tareas por frase | ✅ |
 | 7 | Publicación en Google Play | ⏳ |
 
 ## Requisitos

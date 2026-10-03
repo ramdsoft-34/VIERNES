@@ -146,3 +146,26 @@ users/{uid}/events/{syncId}    historial (deleted: true si se deshizo)
 - **Play Store (Fase 7)**: agregar los SHA-1 de la clave de publicación y de
   Play App Signing, y declarar en «Seguridad de los datos» el correo, el
   nombre y el contenido de la app guardado en la nube.
+
+## Actualización 0.9.0 — Compartir
+
+Las listas y los recordatorios compartidos usan dos colecciones nuevas en
+Firestore (`shared_reminders` y `lists`). **Hay que volver a publicar las
+reglas**: Firebase → Firestore Database → Reglas → pega el contenido actual de
+[`firebase/firestore.rules`](../firebase/firestore.rules) → **Publicar**.
+
+Sin este paso, enviar recordatorios o crear listas falla con «permiso
+denegado» (lo demás de la app sigue funcionando).
+
+Cómo funciona:
+
+- **Contactos**: nombre + correo de Google con el que esa persona usa Viernes.
+  Se guardan con tus preferencias y viajan con tu cuenta.
+- **Recordatorio compartido**: queda en `shared_reminders` con el correo del
+  destinatario. Su app lo recibe al abrirse (o en vivo si está abierta), lo
+  agrega a su agenda y lo marca «en su agenda». Al completarlo se marca
+  «hecho» y a quien lo envió le llega un aviso.
+- **Listas**: cada lista guarda los correos de sus miembros; todos la ven y la
+  editan en tiempo real. Solo el dueño puede borrarla.
+- Las reglas solo dejan ver a quien envía, a quien recibe y a los miembros de
+  cada lista.

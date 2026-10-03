@@ -24,7 +24,8 @@ enum ReminderPriority {
 enum ReminderCategory { personal, work, study, health, home, finance, other }
 
 /// Cómo se creó el recordatorio. Sirve para medir la calidad del asistente.
-enum ReminderSource { manual, voice }
+/// `shared`: llegó de otra persona («recuérdale a Sofi…»).
+enum ReminderSource { manual, voice, shared }
 
 enum ReminderEventType {
   created,

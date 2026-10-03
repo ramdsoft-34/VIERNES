@@ -27,6 +27,11 @@ class RemindersScreen extends StatelessWidget {
           title: Text(l10n.navReminders),
           actions: [
             IconButton(
+              tooltip: l10n.sharingTitle,
+              icon: const Icon(Icons.group_outlined),
+              onPressed: () => unawaited(context.push(AppRoutes.sharing)),
+            ),
+            IconButton(
               tooltip: l10n.locationRemindersTitle,
               icon: const Icon(Icons.location_on_outlined),
               onPressed: () =>

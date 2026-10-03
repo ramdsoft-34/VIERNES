@@ -265,6 +265,19 @@ class _NeuralCardState extends ConsumerState<_NeuralCard> {
                   ? null
                   : Text(l10n.neuralAccuracy(accuracy)),
             ),
+            if (ref.watch(neuralComparisonProvider).value case final c?)
+              ListTile(
+                leading: const Icon(Icons.compare_arrows),
+                title: Text(
+                  c.meaningful
+                      ? l10n.neuralCompare(
+                          c.samples,
+                          (c.rulesAccuracy * 100).round(),
+                          (c.neuralAccuracy * 100).round(),
+                        )
+                      : l10n.neuralCompareNeedsData,
+                ),
+              ),
             SwitchListTile(
               secondary: const Icon(Icons.science_outlined),
               title: Text(l10n.neuralTitles),

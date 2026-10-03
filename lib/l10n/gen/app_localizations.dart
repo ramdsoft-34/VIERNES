@@ -1570,6 +1570,18 @@ abstract class AppLocalizations {
   /// **'Si está muy segura, la red decide qué tarea guardar. Si no, mandan las reglas.'**
   String get neuralTitlesSubtitle;
 
+  /// No description provided for @neuralCompare.
+  ///
+  /// In es, this message translates to:
+  /// **'Con tus {count} frases: reglas {rules} % · red neuronal {neural} %'**
+  String neuralCompare(int count, int rules, int neural);
+
+  /// No description provided for @neuralCompareNeedsData.
+  ///
+  /// In es, this message translates to:
+  /// **'Con 10 frases guardadas (activando «Ayudar a entrenar a Viernes») podrás comparar reglas y red con tu forma de hablar.'**
+  String get neuralCompareNeedsData;
+
   /// No description provided for @neuralTry.
   ///
   /// In es, this message translates to:
@@ -1779,6 +1791,222 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'Avisos al llegar a casa, al trabajo o al supermercado'**
   String get settingsPlacesSubtitle;
+
+  /// No description provided for @sharingTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Compartir'**
+  String get sharingTitle;
+
+  /// No description provided for @sharingSignIn.
+  ///
+  /// In es, this message translates to:
+  /// **'Inicia sesión para compartir'**
+  String get sharingSignIn;
+
+  /// No description provided for @sharingSignInSubtitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Las listas y los recordatorios compartidos usan tu cuenta de Google.'**
+  String get sharingSignInSubtitle;
+
+  /// No description provided for @sharingOffline.
+  ///
+  /// In es, this message translates to:
+  /// **'Sin conexión. Las listas compartidas necesitan internet.'**
+  String get sharingOffline;
+
+  /// No description provided for @sharingTabLists.
+  ///
+  /// In es, this message translates to:
+  /// **'Listas'**
+  String get sharingTabLists;
+
+  /// No description provided for @sharingTabSent.
+  ///
+  /// In es, this message translates to:
+  /// **'Enviados'**
+  String get sharingTabSent;
+
+  /// No description provided for @sharingTabContacts.
+  ///
+  /// In es, this message translates to:
+  /// **'Contactos'**
+  String get sharingTabContacts;
+
+  /// No description provided for @settingsSharing.
+  ///
+  /// In es, this message translates to:
+  /// **'Compartir'**
+  String get settingsSharing;
+
+  /// No description provided for @settingsSharingSubtitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Listas compartidas, recordatorios enviados y contactos'**
+  String get settingsSharingSubtitle;
+
+  /// No description provided for @listsNew.
+  ///
+  /// In es, this message translates to:
+  /// **'Nueva lista'**
+  String get listsNew;
+
+  /// No description provided for @listsName.
+  ///
+  /// In es, this message translates to:
+  /// **'Nombre de la lista'**
+  String get listsName;
+
+  /// No description provided for @listsNameHint.
+  ///
+  /// In es, this message translates to:
+  /// **'Mercado'**
+  String get listsNameHint;
+
+  /// No description provided for @listsEmpty.
+  ///
+  /// In es, this message translates to:
+  /// **'Aún no tienes listas'**
+  String get listsEmpty;
+
+  /// No description provided for @listsEmptySubtitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Crea una (mercado, pendientes de la casa…) y compártela. O dile a Viernes: «agrega leche a la lista del mercado».'**
+  String get listsEmptySubtitle;
+
+  /// No description provided for @listsMembers.
+  ///
+  /// In es, this message translates to:
+  /// **'{count, plural, =1{Solo tú} other{{count} personas}}'**
+  String listsMembers(int count);
+
+  /// No description provided for @listsShare.
+  ///
+  /// In es, this message translates to:
+  /// **'Compartir lista'**
+  String get listsShare;
+
+  /// No description provided for @listsShareByEmail.
+  ///
+  /// In es, this message translates to:
+  /// **'Con otro correo…'**
+  String get listsShareByEmail;
+
+  /// No description provided for @listsAddItem.
+  ///
+  /// In es, this message translates to:
+  /// **'Agregar…'**
+  String get listsAddItem;
+
+  /// No description provided for @listsNoItems.
+  ///
+  /// In es, this message translates to:
+  /// **'Lista vacía'**
+  String get listsNoItems;
+
+  /// No description provided for @listsNoItemsSubtitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Escribe arriba o dile a Viernes qué agregar.'**
+  String get listsNoItemsSubtitle;
+
+  /// No description provided for @listsAddedBy.
+  ///
+  /// In es, this message translates to:
+  /// **'Lo agregó {name}'**
+  String listsAddedBy(String name);
+
+  /// No description provided for @listsClearDone.
+  ///
+  /// In es, this message translates to:
+  /// **'Quitar los marcados'**
+  String get listsClearDone;
+
+  /// No description provided for @listsDelete.
+  ///
+  /// In es, this message translates to:
+  /// **'Eliminar lista'**
+  String get listsDelete;
+
+  /// No description provided for @listsLeave.
+  ///
+  /// In es, this message translates to:
+  /// **'Salir de la lista'**
+  String get listsLeave;
+
+  /// No description provided for @sentEmpty.
+  ///
+  /// In es, this message translates to:
+  /// **'No has enviado recordatorios'**
+  String get sentEmpty;
+
+  /// No description provided for @sentEmptySubtitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Dile a Viernes: «recuérdale a Sofi recoger el paquete mañana a las 5».'**
+  String get sentEmptySubtitle;
+
+  /// No description provided for @sentPending.
+  ///
+  /// In es, this message translates to:
+  /// **'enviado'**
+  String get sentPending;
+
+  /// No description provided for @sentAccepted.
+  ///
+  /// In es, this message translates to:
+  /// **'en su agenda'**
+  String get sentAccepted;
+
+  /// No description provided for @sentDone.
+  ///
+  /// In es, this message translates to:
+  /// **'¡lo hizo!'**
+  String get sentDone;
+
+  /// No description provided for @sentCancelled.
+  ///
+  /// In es, this message translates to:
+  /// **'cancelado'**
+  String get sentCancelled;
+
+  /// No description provided for @contactsAdd.
+  ///
+  /// In es, this message translates to:
+  /// **'Agregar contacto'**
+  String get contactsAdd;
+
+  /// No description provided for @contactsEmpty.
+  ///
+  /// In es, this message translates to:
+  /// **'Sin contactos'**
+  String get contactsEmpty;
+
+  /// No description provided for @contactsEmptySubtitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Agrega a quienes usan Viernes para enviarles recordatorios por voz.'**
+  String get contactsEmptySubtitle;
+
+  /// No description provided for @contactsHint.
+  ///
+  /// In es, this message translates to:
+  /// **'Usa el correo con el que esa persona inicia sesión en Viernes.'**
+  String get contactsHint;
+
+  /// No description provided for @contactsName.
+  ///
+  /// In es, this message translates to:
+  /// **'Nombre (como lo dirás)'**
+  String get contactsName;
+
+  /// No description provided for @contactsEmail.
+  ///
+  /// In es, this message translates to:
+  /// **'Correo de Google'**
+  String get contactsEmail;
 
   /// No description provided for @welcomeTitle.
   ///

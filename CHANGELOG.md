@@ -3,6 +3,35 @@
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/);
 versionado [semántico](https://semver.org/lang/es/).
 
+## [0.9.0] — Ubicación, compartir y más naturalidad
+
+### Agregado
+- **Varias tareas en una frase**: «recuérdame mañana a las 8 pagar la luz y
+  llamar a mi mamá» crea un recordatorio por tarea.
+- **Avisos relativos a otro recordatorio**: «avísame dos días antes del
+  cumpleaños de Sofi» calcula la fecha desde tu agenda.
+- **Recordatorios por ubicación**: «recuérdame comprar leche cuando llegue a
+  casa» / «al salir del trabajo». Lugares guardados con tu ubicación actual
+  (Ajustes → Lugares) y geocercas de Android que avisan con la app cerrada y
+  se restauran solas al reiniciar el teléfono.
+- **Recordatorios compartidos**: «recuérdale a Sofi recoger el paquete mañana
+  a las 5». Le llega a su Viernes, y a ti te avisa cuando lo hace. Pestaña
+  Enviados con el estado de cada uno.
+- **Listas compartidas** en tiempo real (mercado, casa…): crear, invitar por
+  correo, marcar y quitar. Por voz: «agrega leche y pan a la lista del
+  mercado», «¿qué hay en la lista del mercado?».
+- **Contactos** para compartir (viajan con tu cuenta).
+- **Sonido al activarse** «Viernes» (se puede apagar).
+- **Tras reiniciar el teléfono**, una notificación para reactivar la escucha.
+- **Grabaciones de cada activación** (solo con consentimiento), etiquetadas
+  como reales o por error, exportables para reentrenar el detector.
+- «Cómo aprende Viernes»: comparación de **reglas frente a red neuronal**
+  con tus frases reales.
+
+### Técnico
+- Base de datos v4: `places` y `location_reminders`.
+- Reglas de Firestore para `shared_reminders` y `lists`.
+
 ## [0.8.0] — IA propia: detector «Viernes» e intérprete neuronal
 
 ### Agregado

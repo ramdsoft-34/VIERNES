@@ -166,6 +166,35 @@ abstract final class SpanishSpeech {
       'No tengo guardado «$place». Guárdalo en Ajustes, Lugares, '
       'y vuelve a pedírmelo.';
 
+  // --- Compartir -------------------------------------------------------------
+
+  static const shareNeedsAccount =
+      'Para compartir, inicia sesión con Google en Ajustes, Cuenta.';
+
+  static String unknownContact(String name) =>
+      'No tengo a «$name» en tus contactos. Agrégalo en Compartir, '
+      'Contactos.';
+
+  static String sendTo(String name) => 'Le envío a $name: ';
+
+  static String sentTo(String name) =>
+      'Listo, se lo envié a $name. Te aviso cuando lo haga.';
+
+  static const shareFailed =
+      'No pude enviarlo. Revisa tu conexión e inténtalo de nuevo.';
+
+  static String listNotFound(String name) =>
+      'No encontré la lista «$name». Créala en Compartir, Listas.';
+
+  static String addedToList(List<String> items, String list) =>
+      'Listo, agregué ${_joinList([for (final i in items) i.toLowerCase()])} '
+      'a la lista $list.';
+
+  static String listContents(String list, List<String> items) => items.isEmpty
+      ? 'La lista $list está vacía.'
+      : 'En la lista $list tienes: '
+            '${_joinList([for (final i in items) i.toLowerCase()])}.';
+
   /// Título del aviso previo a un evento sin tarea propia.
   static String upcoming(String eventTitle) => 'Se acerca: $eventTitle';
 

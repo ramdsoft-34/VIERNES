@@ -2,6 +2,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:viernes/ai/dataset/training_data_repository.dart';
 import 'package:viernes/ai/learning/accuracy_report.dart';
+import 'package:viernes/ai/learning/neural_comparison.dart';
 import 'package:viernes/ai/learning/personal_model.dart';
 import 'package:viernes/ai/nlu/es/category_classifier.dart';
 import 'package:viernes/ai/nlu/es/spanish_reply_parser.dart';
@@ -108,4 +109,15 @@ final FutureProvider<AccuracyReport> accuracyReportProvider =
       ref.watch(trainingSampleCountProvider);
       final samples = await ref.read(trainingDataRepositoryProvider).all();
       return AccuracyReport.from(samples);
+    });
+
+/// Reglas frente a red neuronal con las frases reales del usuario. Nulo si
+/// la red no está disponible.
+final FutureProvider<NeuralComparison?> neuralComparisonProvider =
+    FutureProvider.autoDispose<NeuralComparison?>((ref) async {
+      ref.watch(trainingSampleCountProvider);
+      final tagger = await ref.watch(neuralTaggerProvider.future);
+      if (tagger == null) return null;
+      final samples = await ref.read(trainingDataRepositoryProvider).all();
+      return NeuralComparison.compute(samples, tagger);
     });

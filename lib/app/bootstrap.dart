@@ -18,6 +18,7 @@ import 'package:viernes/features/account/presentation/account_providers.dart';
 import 'package:viernes/features/alerts/application/alert_action_handler.dart';
 import 'package:viernes/features/alerts/presentation/alert_providers.dart';
 import 'package:viernes/features/places/presentation/places_providers.dart';
+import 'package:viernes/features/sharing/presentation/sharing_providers.dart';
 import 'package:viernes/features/sync/presentation/sync_controller.dart';
 import 'package:viernes/features/voice_assistant/presentation/wake_word_controller.dart';
 
@@ -86,6 +87,7 @@ Future<void> bootstrap(AppFlavor flavor) async {
   container.read(wakeCoordinatorProvider).start();
   container.read(syncControllerProvider.notifier).start();
   unawaited(container.read(placesCoordinatorProvider).start());
+  container.read(sharingCoordinatorProvider).start();
   // Carga la red neuronal propia en segundo plano.
   unawaited(container.read(neuralTaggerProvider.future));
 

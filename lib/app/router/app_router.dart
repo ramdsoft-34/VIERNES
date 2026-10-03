@@ -15,6 +15,8 @@ import 'package:viernes/features/reminders/domain/entities/reminder_draft.dart';
 import 'package:viernes/features/reminders/presentation/screens/reminder_editor_screen.dart';
 import 'package:viernes/features/reminders/presentation/screens/reminders_screen.dart';
 import 'package:viernes/features/settings/presentation/settings_screen.dart';
+import 'package:viernes/features/sharing/presentation/shared_list_screen.dart';
+import 'package:viernes/features/sharing/presentation/sharing_screen.dart';
 
 final rootNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'root');
 
@@ -51,6 +53,17 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.welcome,
         parentNavigatorKey: rootNavigatorKey,
         builder: (context, state) => const WelcomeScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.sharing,
+        parentNavigatorKey: rootNavigatorKey,
+        builder: (context, state) => const SharingScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.sharedListPath,
+        parentNavigatorKey: rootNavigatorKey,
+        builder: (context, state) =>
+            SharedListScreen(listId: state.pathParameters['id']!),
       ),
       GoRoute(
         path: AppRoutes.places,
