@@ -394,9 +394,10 @@ def main():
     # Entrenamiento: los negativos difíciles se repiten para que pesen.
     x = np.concatenate([pos_train.astype(np.float16), neg_hard.astype(np.float16),
                         neg_hard.astype(np.float16), neg_general])
+    n_general = len(neg_general)
     del neg_general
     y = np.concatenate([np.ones(len(pos_train)), np.zeros(2 * len(neg_hard)),
-                        np.zeros(len(neg_general))]).astype(np.float32)
+                        np.zeros(n_general)]).astype(np.float32)
     order = np.random.permutation(len(x))
     x, y = x[order], y[order]
     weight_pos = len(y) / (2 * max(1, y.sum()))
@@ -437,7 +438,7 @@ def main():
         "positives_train": int(len(pos_train)),
         "positives_new_voice": int(len(pos_test)),
         "hard_negatives": int(len(neg_hard)),
-        "general_negatives": int(len(neg_general)),
+        "general_negatives": int(n_general),
         "holdout_voice": HOLDOUT_VOICE,
     }, indent=2), encoding="utf-8")
     print(f"Listo: {out}")
