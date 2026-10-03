@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:viernes/app/app.dart';
 import 'package:viernes/app/providers.dart';
 import 'package:viernes/core/utils/clock.dart';
+import 'package:viernes/features/attachments/presentation/attachment_providers.dart';
 import 'package:viernes/features/reminders/domain/entities/reminder_enums.dart';
 import 'package:viernes/features/reminders/presentation/providers/reminder_providers.dart';
 
@@ -30,6 +31,9 @@ void main() {
           clockProvider.overrideWithValue(FixedClock(now)),
           idGeneratorProvider.overrideWithValue(SequentialIds()),
           nowProvider.overrideWith((ref) => Stream.value(now)),
+          remindersWithAttachmentsProvider.overrideWith(
+            (ref) => Stream.value(const <String>{}),
+          ),
         ],
         child: const ViernesApp(),
       ),

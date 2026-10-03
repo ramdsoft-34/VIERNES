@@ -40,4 +40,12 @@ abstract interface class SharingRepository {
   Future<void> setItemDone(String listId, String itemId, {required bool done});
 
   Future<void> deleteItem(String listId, String itemId);
+
+  /// Asigna el elemento a una persona (o a nadie si [email] es nulo).
+  Future<void> assignItem(
+    String listId,
+    String itemId, {
+    required String? email,
+    required String? name,
+  });
 }

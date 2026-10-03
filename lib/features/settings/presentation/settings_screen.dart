@@ -13,6 +13,7 @@ import 'package:viernes/features/account/presentation/account_tiles.dart';
 import 'package:viernes/features/alerts/presentation/permissions_widgets.dart';
 import 'package:viernes/features/reminders/presentation/reminder_formatters.dart';
 import 'package:viernes/features/settings/domain/app_settings.dart';
+import 'package:viernes/features/settings/presentation/assistant_tiles.dart';
 import 'package:viernes/features/settings/presentation/settings_controller.dart';
 import 'package:viernes/features/summaries/presentation/add_widget_tile.dart';
 import 'package:viernes/features/voice_assistant/presentation/wake_word_settings.dart';
@@ -172,6 +173,7 @@ class SettingsScreen extends ConsumerWidget {
                 onChanged: (v) =>
                     update((s) => s.copyWith(voiceConfirmation: v)),
               ),
+              const AssistantTiles(),
             ],
           ),
           SectionHeader(l10n.settingsSectionPrivacy),

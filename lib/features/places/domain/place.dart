@@ -11,6 +11,7 @@ class Place {
     required this.longitude,
     required this.createdAt,
     this.radiusMeters = defaultRadius,
+    this.updatedAt,
   });
 
   static const defaultRadius = 150.0;
@@ -24,6 +25,9 @@ class Place {
   /// Qué tan cerca hay que estar para «llegar» (Android recomienda ≥ 100 m).
   final double radiusMeters;
   final DateTime createdAt;
+
+  /// Último cambio (sincronización). Nulo: igual a [createdAt].
+  final DateTime? updatedAt;
 
   /// Nombre normalizado para buscarlo por voz («el súper» → «super»).
   String get key => SpanishText.fold(name).trim();
@@ -52,6 +56,7 @@ class LocationReminder {
     this.onArrive = true,
     this.done = false,
     this.completedAt,
+    this.updatedAt,
   });
 
   final String id;
@@ -63,6 +68,9 @@ class LocationReminder {
   final bool done;
   final DateTime createdAt;
   final DateTime? completedAt;
+
+  /// Último cambio (sincronización). Nulo: igual a [createdAt].
+  final DateTime? updatedAt;
 
   @override
   bool operator ==(Object other) =>

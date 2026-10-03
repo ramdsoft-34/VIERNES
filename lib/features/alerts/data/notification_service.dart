@@ -14,6 +14,7 @@ import 'package:viernes/features/alerts/data/background_alert_handler.dart';
 import 'package:viernes/features/alerts/domain/alert_scheduler.dart';
 import 'package:viernes/features/alerts/domain/notification_ids.dart';
 import 'package:viernes/features/alerts/domain/planned_alert.dart';
+import 'package:viernes/features/reminders/presentation/reminder_formatters.dart';
 import 'package:viernes/features/settings/domain/app_settings.dart';
 import 'package:viernes/features/sharing/application/shared_inbox.dart';
 import 'package:viernes/features/summaries/application/agenda_sync.dart';
@@ -45,9 +46,13 @@ class NotificationService
     required this._l10n,
     FlutterLocalNotificationsPlugin? plugin,
     this._bridge = const SystemBridge(),
+    this._snoozeDuration,
   }) : _plugin = plugin ?? FlutterLocalNotificationsPlugin();
 
   final AppSettings Function() _settings;
+
+  /// Tiempo del botón «Recordar después» (aprendido o de Ajustes).
+  final Duration Function()? _snoozeDuration;
   final AppLocalizations _l10n;
   final FlutterLocalNotificationsPlugin _plugin;
   final SystemBridge _bridge;
@@ -141,6 +146,7 @@ class NotificationService
     AlertContent content,
   ) {
     final settings = _settings();
+    final snooze = _snoozeDuration?.call() ?? settings.snoozeDuration;
     final sound = settings.soundEnabled && !alert.silent;
     final vibration = settings.vibrationEnabled && !alert.silent;
     // En Android 8+ sonido y vibración pertenecen al canal y no se pueden
@@ -189,7 +195,7 @@ class NotificationService
         ),
         AndroidNotificationAction(
           AlertActions.snooze,
-          '⏰ ${_l10n.actionSnooze}',
+          '⏰ ${_l10n.duration(snooze)}',
         ),
       ],
     );
@@ -226,7 +232,13 @@ class NotificationService
                       _l10n.summaryMoveToTomorrow,
                     ),
                   ]
-                : null,
+                : [
+                    AndroidNotificationAction(
+                      AlertActions.listenSummary,
+                      '🔊 ${_l10n.summaryListen}',
+                      showsUserInterface: true,
+                    ),
+                  ],
           ),
         ),
         // Un resumen no necesita precisión de alarma.

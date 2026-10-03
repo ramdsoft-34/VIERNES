@@ -99,6 +99,12 @@ class Places extends Table {
   RealColumn get radiusMeters => real().withDefault(const Constant(150))();
   DateTimeColumn get createdAt => dateTime()();
 
+  /// Último cambio (para resolver conflictos entre teléfonos).
+  DateTimeColumn get updatedAt => dateTime().nullable()();
+
+  /// Hay cambios que aún no se subieron a la cuenta.
+  BoolColumn get dirty => boolean().withDefault(const Constant(true))();
+
   @override
   Set<Column<Object>> get primaryKey => {id};
 }
@@ -115,6 +121,30 @@ class LocationReminders extends Table {
   BoolColumn get done => boolean().withDefault(const Constant(false))();
   DateTimeColumn get createdAt => dateTime()();
   DateTimeColumn get completedAt => dateTime().nullable()();
+  DateTimeColumn get updatedAt => dateTime().nullable()();
+  BoolColumn get dirty => boolean().withDefault(const Constant(true))();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+}
+
+/// Foto o nota de voz de un recordatorio. El archivo vive en el teléfono
+/// ([localPath]) y, con cuenta, también en la nube ([remotePath]).
+@DataClassName('AttachmentRow')
+@TableIndex(name: 'idx_attachments_reminder', columns: {#reminderId})
+class Attachments extends Table {
+  TextColumn get id => text()();
+  TextColumn get reminderId => text()();
+
+  /// `photo` o `audio`.
+  TextColumn get kind => text()();
+  TextColumn get localPath => text().nullable()();
+  TextColumn get remotePath => text().nullable()();
+
+  /// Duración de la nota de voz.
+  IntColumn get durationMs => integer().nullable()();
+  DateTimeColumn get createdAt => dateTime()();
+  BoolColumn get dirty => boolean().withDefault(const Constant(true))();
 
   @override
   Set<Column<Object>> get primaryKey => {id};
@@ -128,6 +158,7 @@ class LocationReminders extends Table {
     SyncTombstones,
     Places,
     LocationReminders,
+    Attachments,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -141,8 +172,10 @@ class AppDatabase extends _$AppDatabase {
   /// - 3: sincronización con la cuenta (`dirty`, `sync_id`,
   ///   `sync_tombstones`).
   /// - 4: recordatorios por ubicación (`places`, `location_reminders`).
+  /// - 5: lugares sincronizados con la cuenta (`dirty`, `updated_at`) y
+  ///   adjuntos (`attachments`).
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -164,7 +197,13 @@ class AppDatabase extends _$AppDatabase {
       if (from < 4) {
         await m.createTable(places);
         await m.createTable(locationReminders);
+      } else if (from < 5) {
+        await m.addColumn(places, places.updatedAt);
+        await m.addColumn(places, places.dirty);
+        await m.addColumn(locationReminders, locationReminders.updatedAt);
+        await m.addColumn(locationReminders, locationReminders.dirty);
       }
+      if (from < 5) await m.createTable(attachments);
     },
     // Los botones de la notificación escriben desde otro proceso de Flutter:
     // si la base está ocupada, esperar en vez de fallar.
@@ -180,4 +219,7 @@ class AppDatabase extends _$AppDatabase {
 abstract final class SyncEntities {
   static const reminder = 'reminder';
   static const event = 'event';
+  static const place = 'place';
+  static const locationReminder = 'location_reminder';
+  static const attachment = 'attachment';
 }

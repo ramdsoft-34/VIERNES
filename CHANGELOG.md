@@ -3,6 +3,50 @@
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/);
 versionado [semántico](https://semver.org/lang/es/).
 
+## [0.10.0] — Asistente más completo
+
+### Agregado
+- **Avisos al instante en Compartir** (mensajes push): si alguien te envía un
+  recordatorio, llega a tu agenda con sus avisos aunque la app esté cerrada;
+  también «lo hizo ✓», asignaciones e invitaciones a listas. Funciones de la
+  nube en `functions/` (requiere el plan Blaze, ver docs/PUSH.md).
+- **Resumen del día hablado**: «buenos días», «¿cómo está mi día?» o tocar el
+  resumen de la mañana (botón «Escuchar»). Lee lo de hoy, lo vencido, tu
+  calendario y lo que se acerca (cumpleaños, prioridad alta).
+- **Google Calendar** (calendario del teléfono, solo lectura, opcional):
+  «¿tengo algo el viernes?», el resumen y la pestaña Calendario muestran tus
+  eventos.
+- **Cumpleaños de tus contactos**: se agregan como recordatorios anuales con
+  aviso previo (0–7 días); opción de agregar solos los nuevos.
+- **Costumbres**: si creas la misma tarea cada día, semana o mes, Viernes
+  propone dejarla repetitiva.
+- **Posponer aprende de ti**: el botón «Posponer» y el de la notificación usan
+  el tiempo que sueles elegir; «Otro tiempo» ordena las opciones por uso.
+- **Fotos y notas de voz** en los recordatorios (editor, alerta y un clip en
+  la lista). Se respaldan en la cuenta con Firebase Storage.
+- **Responsables en las listas**: «agrega pagar el internet a la lista de la
+  casa para Sofi», «¿qué me toca en la lista de la casa?», asignar desde la
+  lista y aviso a quien le toca.
+- **Listas sin internet**: copia en el teléfono y cola de cambios que se sube
+  sola al volver la conexión.
+- **Lugares sincronizados** con la cuenta (lugares y recordatorios por
+  ubicación).
+- **Modo conducción** (automático con Android Auto o el Bluetooth del carro):
+  respuestas cortas y botones grandes.
+- **Botón de los audífonos / asistente**: Viernes puede abrirse con el botón
+  del asistente (elegirlo en el teléfono).
+- **Accesos rápidos**: botón en los ajustes rápidos, accesos al mantener el
+  ícono (Hablar, Mi día, Nuevo) y widget pequeño de micrófono.
+- **Batería**: la escucha de «Viernes» no ejecuta el modelo pesado en
+  silencio, se pausa con 15 % o menos (sin cargar) y «Cómo aprende Viernes»
+  muestra su consumo.
+
+### Técnico
+- Base de datos v5: `dirty`/`updated_at` en lugares y `attachments`.
+- Firestore: `users/{uid}/places`, `location_reminders`, `attachments`,
+  `push_tokens`; reglas de Storage en `firebase/storage.rules`.
+- Permisos nuevos: calendario y contactos (lectura), Bluetooth.
+
 ## [0.9.0] — Ubicación, compartir y más naturalidad
 
 ### Agregado

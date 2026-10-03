@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:viernes/core/utils/enum_x.dart';
+import 'package:viernes/features/places/domain/place.dart';
 import 'package:viernes/features/reminders/domain/entities/recurrence.dart';
 import 'package:viernes/features/reminders/domain/entities/reminder.dart';
 import 'package:viernes/features/reminders/domain/entities/reminder_enums.dart';
@@ -94,6 +95,54 @@ abstract final class CloudCodec {
         occurredAt: readDate(data['occurredAt']) ?? DateTime(1970),
         onTime: data['onTime'] as bool?,
       );
+
+  static Map<String, Object?> encodePlace(Place p) => {
+    'v': formatVersion,
+    'name': p.name,
+    'latitude': p.latitude,
+    'longitude': p.longitude,
+    'radiusMeters': p.radiusMeters,
+    'createdAt': _seconds(p.createdAt),
+    'updatedAt': _seconds(p.updatedAt ?? p.createdAt),
+    'deleted': false,
+  };
+
+  static Place decodePlace(String id, Map<String, Object?> data) => Place(
+    id: id,
+    name: data['name'] as String? ?? '',
+    latitude: (data['latitude'] as num?)?.toDouble() ?? 0,
+    longitude: (data['longitude'] as num?)?.toDouble() ?? 0,
+    radiusMeters:
+        (data['radiusMeters'] as num?)?.toDouble() ?? Place.defaultRadius,
+    createdAt: readDate(data['createdAt']) ?? DateTime(1970),
+    updatedAt: readDate(data['updatedAt']),
+  );
+
+  static Map<String, Object?> encodeLocationReminder(LocationReminder r) => {
+    'v': formatVersion,
+    'title': r.title,
+    'placeId': r.placeId,
+    'onArrive': r.onArrive,
+    'done': r.done,
+    'createdAt': _seconds(r.createdAt),
+    'completedAt': _secondsOrNull(r.completedAt),
+    'updatedAt': _seconds(r.updatedAt ?? r.createdAt),
+    'deleted': false,
+  };
+
+  static LocationReminder decodeLocationReminder(
+    String id,
+    Map<String, Object?> data,
+  ) => LocationReminder(
+    id: id,
+    title: data['title'] as String? ?? '',
+    placeId: data['placeId'] as String? ?? '',
+    onArrive: data['onArrive'] != false,
+    done: data['done'] == true,
+    createdAt: readDate(data['createdAt']) ?? DateTime(1970),
+    completedAt: readDate(data['completedAt']),
+    updatedAt: readDate(data['updatedAt']),
+  );
 
   /// Acepta `Timestamp` (lo que devuelve Firestore) o `DateTime`.
   static DateTime? readDate(Object? value) => switch (value) {

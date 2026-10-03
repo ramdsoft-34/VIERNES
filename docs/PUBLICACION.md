@@ -1,6 +1,6 @@
 # Publicación y firma
 
-## 1. Crear la clave de publicación (una sola vez)
+X## 1. Crear la clave de publicación (una sola vez)
 
 ```bash
 keytool -genkey -v -keystore %USERPROFILE%\viernes-upload.jks -keyalg RSA -keysize 2048 -validity 10000 -alias viernes

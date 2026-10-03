@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:viernes/ai/nlu/es/spanish_speech.dart';
+import 'package:viernes/core/platform/device_data.dart';
 import 'package:viernes/core/utils/date_x.dart';
 import 'package:viernes/features/alerts/domain/notification_ids.dart';
 import 'package:viernes/features/calendar/domain/calendar_occurrences.dart';
@@ -61,6 +62,7 @@ abstract final class SummaryPlanner {
     required Iterable<Reminder> active,
     required AppSettings settings,
     required DateTime now,
+    List<CalendarEvent> events = const [],
   }) {
     if (!settings.morningSummaryEnabled && !settings.nightSummaryEnabled) {
       return const [];
@@ -77,23 +79,32 @@ abstract final class SummaryPlanner {
     for (var offset = 0; offset < days; offset++) {
       final day = today.addDays(offset);
       final occurrences = byDay[day] ?? const <Occurrence>[];
+      final dayEvents = [
+        for (final e in events)
+          if (e.start.isBefore(day.addDays(1)) && e.end.isAfter(day) ||
+              e.start.isSameDay(day))
+            e,
+      ];
 
       if (settings.morningSummaryEnabled) {
         final at = day.withTime(
           settings.morningSummaryTime.hour,
           settings.morningSummaryTime.minute,
         );
-        if (at.isAfter(now) && occurrences.isNotEmpty) {
+        if (at.isAfter(now) &&
+            (occurrences.isNotEmpty || dayEvents.isNotEmpty)) {
           plans.add(
             PlannedSummary(
               notificationId: idFor(SummaryKind.morning, offset),
               kind: SummaryKind.morning,
               at: at,
               title: SpanishSpeech.morningSummaryTitle,
-              body: SpanishSpeech.morningSummary([
-                for (final o in occurrences) (o.reminder.title, o.at),
-              ]),
-              count: occurrences.length,
+              body: SpanishSpeech.morningSummary(
+                [for (final o in occurrences) (o.reminder.title, o.at)],
+                events: dayEvents,
+                now: at,
+              ),
+              count: occurrences.length + dayEvents.length,
             ),
           );
         }

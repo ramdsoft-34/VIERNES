@@ -14,6 +14,15 @@ enum WakeEngine {
   vosk,
 }
 
+/// Modo conducción: respuestas cortas y botones grandes.
+enum DrivingMode {
+  off,
+
+  /// Se activa solo con el modo carro de Android o el Bluetooth del carro.
+  auto,
+  on,
+}
+
 /// Preferencias del usuario.
 @immutable
 class AppSettings {
@@ -40,6 +49,13 @@ class AppSettings {
     this.neuralTitles = false,
     this.wakeChime = true,
     this.personalLearning = true,
+    this.includeCalendar = false,
+    this.speakBriefing = true,
+    this.drivingMode = DrivingMode.auto,
+    this.lowBatteryPause = true,
+    this.autoBirthdays = false,
+    this.birthdayTime = const DayTime(8, 0),
+    this.birthdayDaysBefore = 1,
   });
 
   static const leadTimeOptions = <Duration>[
@@ -52,6 +68,9 @@ class AppSettings {
     Duration(hours: 2),
     Duration(days: 1),
   ];
+
+  /// Días de anticipación para el aviso previo de un cumpleaños.
+  static const birthdayDaysOptions = <int>[0, 1, 2, 3, 7];
 
   static const snoozeOptions = <Duration>[
     Duration(minutes: 5),
@@ -107,6 +126,28 @@ class AppSettings {
   /// horarios, anticipación). Todo ocurre en el teléfono.
   final bool personalLearning;
 
+  /// Leer el calendario del teléfono (Google Calendar) para responder
+  /// «¿tengo algo el viernes?» y para los resúmenes.
+  final bool includeCalendar;
+
+  /// Al tocar el resumen de la mañana, Viernes lo lee en voz alta.
+  final bool speakBriefing;
+
+  final DrivingMode drivingMode;
+
+  /// Pausar la escucha de «Viernes» con poca batería (15 % o menos, sin
+  /// cargar).
+  final bool lowBatteryPause;
+
+  /// Agregar solos los cumpleaños nuevos de los contactos.
+  final bool autoBirthdays;
+
+  /// Hora del aviso de cada cumpleaños.
+  final DayTime birthdayTime;
+
+  /// Días antes para el aviso previo (0 = sin aviso previo).
+  final int birthdayDaysBefore;
+
   /// Confianza mínima que exige el detector según la sensibilidad
   /// (entre 0,95 y 0,65).
   double get wakeThreshold => 0.95 - 0.3 * wakeSensitivity.clamp(0, 1);
@@ -151,6 +192,13 @@ class AppSettings {
     bool? neuralTitles,
     bool? wakeChime,
     bool? personalLearning,
+    bool? includeCalendar,
+    bool? speakBriefing,
+    DrivingMode? drivingMode,
+    bool? lowBatteryPause,
+    bool? autoBirthdays,
+    DayTime? birthdayTime,
+    int? birthdayDaysBefore,
   }) => AppSettings(
     defaultLeadTime: defaultLeadTime ?? this.defaultLeadTime,
     snoozeDuration: snoozeDuration ?? this.snoozeDuration,
@@ -174,5 +222,12 @@ class AppSettings {
     neuralTitles: neuralTitles ?? this.neuralTitles,
     wakeChime: wakeChime ?? this.wakeChime,
     personalLearning: personalLearning ?? this.personalLearning,
+    includeCalendar: includeCalendar ?? this.includeCalendar,
+    speakBriefing: speakBriefing ?? this.speakBriefing,
+    drivingMode: drivingMode ?? this.drivingMode,
+    lowBatteryPause: lowBatteryPause ?? this.lowBatteryPause,
+    autoBirthdays: autoBirthdays ?? this.autoBirthdays,
+    birthdayTime: birthdayTime ?? this.birthdayTime,
+    birthdayDaysBefore: birthdayDaysBefore ?? this.birthdayDaysBefore,
   );
 }

@@ -12,6 +12,8 @@ import 'package:viernes/app/theme/app_theme.dart';
 import 'package:viernes/core/error/result.dart';
 import 'package:viernes/core/extensions/context_x.dart';
 import 'package:viernes/core/platform/system_bridge.dart';
+import 'package:viernes/features/alerts/presentation/alert_providers.dart';
+import 'package:viernes/features/attachments/presentation/attachments_section.dart';
 import 'package:viernes/features/reminders/domain/entities/reminder.dart';
 import 'package:viernes/features/reminders/domain/entities/reminder_enums.dart';
 import 'package:viernes/features/reminders/presentation/providers/reminder_providers.dart';
@@ -77,7 +79,13 @@ class _AlertScreenState extends ConsumerState<AlertScreen> {
     });
   }
 
-  Future<void> _snooze(Reminder reminder, Duration delay) async {
+  /// [chosen]: el usuario eligió el tiempo (se aprende de eso).
+  Future<void> _snooze(
+    Reminder reminder,
+    Duration delay, {
+    bool chosen = false,
+  }) async {
+    if (chosen) await ref.read(snoozeHabitsProvider).record(delay);
     await _run(
       () => ref.read(snoozeReminderProvider)(reminder.id, delay),
       (_) => context.l10n.feedbackSnoozed(context.l10n.duration(delay)),
@@ -116,6 +124,11 @@ class _AlertScreenState extends ConsumerState<AlertScreen> {
 
   Future<void> _chooseSnooze(Reminder reminder) async {
     final l10n = context.l10n;
+    final habits = ref.read(snoozeHabitsProvider);
+    final learned = ref.read(settingsControllerProvider).personalLearning
+        ? habits.learned()
+        : null;
+    final options = habits.ordered(AppSettings.snoozeOptions);
     final delay = await showModalBottomSheet<Duration>(
       context: context,
       showDragHandle: true,
@@ -132,10 +145,13 @@ class _AlertScreenState extends ConsumerState<AlertScreen> {
                 style: context.textTheme.titleMedium,
               ),
             ),
-            for (final option in AppSettings.snoozeOptions)
+            for (final option in options)
               ListTile(
                 leading: const Icon(Icons.snooze),
                 title: Text(l10n.alertSnoozeIn(l10n.duration(option))),
+                subtitle: option == learned
+                    ? Text(l10n.alertSnoozeUsual)
+                    : null,
                 onTap: () => Navigator.of(context).pop(option),
               ),
             ListTile(
@@ -147,7 +163,7 @@ class _AlertScreenState extends ConsumerState<AlertScreen> {
         ),
       ),
     );
-    if (delay != null) await _snooze(reminder, delay);
+    if (delay != null) await _snooze(reminder, delay, chosen: true);
   }
 
   Future<void> _replyByVoice(Reminder reminder) async {
@@ -186,8 +202,9 @@ class _AlertScreenState extends ConsumerState<AlertScreen> {
         await _snooze(
           reminder,
           until == null
-              ? ref.read(settingsControllerProvider).snoozeDuration
+              ? ref.read(preferredSnoozeProvider)()
               : until.difference(now),
+          chosen: until != null,
         );
       case AlertReplyKind.dismiss:
         // "Ya no lo necesito": se elimina (queda en el historial).
@@ -309,6 +326,14 @@ class _AlertScreenState extends ConsumerState<AlertScreen> {
               style: TextStyle(color: scheme.onSurfaceVariant),
             ),
           ],
+          const SizedBox(height: 12),
+          Center(
+            child: AttachmentsSection(
+              reminderId: reminder.id,
+              readOnly: true,
+              dark: true,
+            ),
+          ),
           const Spacer(),
           if (_resultMessage != null || _listening || _heard.isNotEmpty)
             Padding(
@@ -337,17 +362,44 @@ class _AlertScreenState extends ConsumerState<AlertScreen> {
               label: Text(l10n.actionComplete),
             ),
             const SizedBox(height: 12),
-            OutlinedButton.icon(
-              style: OutlinedButton.styleFrom(
-                minimumSize: const Size.fromHeight(56),
-                foregroundColor: scheme.onSurface,
-                textStyle: context.textTheme.titleMedium,
-              ),
-              onPressed: _busy
-                  ? null
-                  : () => unawaited(_chooseSnooze(reminder)),
-              icon: const Icon(Icons.snooze),
-              label: Text(l10n.actionSnooze),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      minimumSize: const Size.fromHeight(56),
+                      foregroundColor: scheme.onSurface,
+                      textStyle: context.textTheme.titleMedium,
+                    ),
+                    onPressed: _busy
+                        ? null
+                        : () => unawaited(
+                            _snooze(
+                              reminder,
+                              ref.read(preferredSnoozeProvider)(),
+                            ),
+                          ),
+                    icon: const Icon(Icons.snooze),
+                    label: Text(
+                      l10n.alertSnoozeFor(
+                        l10n.duration(ref.read(preferredSnoozeProvider)()),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                IconButton.outlined(
+                  tooltip: l10n.alertSnoozeOther,
+                  style: IconButton.styleFrom(
+                    minimumSize: const Size(56, 56),
+                    foregroundColor: scheme.onSurface,
+                  ),
+                  onPressed: _busy
+                      ? null
+                      : () => unawaited(_chooseSnooze(reminder)),
+                  icon: const Icon(Icons.more_time),
+                ),
+              ],
             ),
             const SizedBox(height: 12),
             TextButton.icon(

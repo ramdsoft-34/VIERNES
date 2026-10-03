@@ -4,6 +4,8 @@ import android.content.Context
 import java.io.FileInputStream
 import java.nio.MappedByteBuffer
 import java.nio.channels.FileChannel
+import kotlin.math.max
+import kotlin.math.sqrt
 import kotlin.random.Random
 import org.tensorflow.lite.Interpreter
 
@@ -19,6 +21,11 @@ import org.tensorflow.lite.Interpreter
  *
  * El flujo replica `openwakeword.utils.AudioFeatures` en modo streaming para
  * que el teléfono calcule exactamente lo mismo que en el entrenamiento.
+ *
+ * Ahorro de batería: tras más de 1,3 s de silencio (el largo de la ventana
+ * del clasificador) no se ejecutan el modelo de embeddings ni el
+ * clasificador; se repite el último embedding de silencio. Con el primer
+ * sonido fuerte vuelve a analizar todo, así que la palabra no se pierde.
  */
 class OpenWakeWordEngine(
     context: Context,
@@ -48,6 +55,31 @@ class OpenWakeWordEngine(
     private val embOutput = Array(1) { Array(1) { Array(1) { FloatArray(EMBEDDING) } } }
     private val clsInput = Array(1) { Array(FEATURES) { FloatArray(EMBEDDING) } }
     private val clsOutput = Array(1) { FloatArray(1) }
+
+    /** Cifras de consumo (las lee el servicio y las reinicia). */
+    var frames = 0L
+        private set
+    var skippedFrames = 0L
+        private set
+    var inferenceNanos = 0L
+        private set
+    var inferences = 0L
+        private set
+
+    /** Nivel de ruido de fondo (RMS de muestras int16). */
+    private var noiseFloor = INITIAL_NOISE
+    private var quietRun = 0
+    private var silenceEmbedding: FloatArray? = null
+    private var gate = false
+
+    fun takeStats(): LongArray {
+        val values = longArrayOf(frames, skippedFrames, inferenceNanos, inferences)
+        frames = 0
+        skippedFrames = 0
+        inferenceNanos = 0
+        inferences = 0
+        return values
+    }
 
     init {
         melspec.resizeInput(0, intArrayOf(1, CHUNK + MEL_CONTEXT))
@@ -83,22 +115,60 @@ class OpenWakeWordEngine(
             if (mel.size > MEL_WINDOW) mel.removeFirst()
         }
 
+        val quiet = isQuiet(chunk)
+        if (gate) frames++
+        val cached = silenceEmbedding
+        if (gate && quietRun > FEATURES && cached != null) {
+            // Silencio largo: la ventana entera es silencio, no hay palabra.
+            features.addLast(cached.copyOf())
+            if (features.size > FEATURES) features.removeFirst()
+            skippedFrames++
+            return 0f
+        }
+
+        val started = System.nanoTime()
         for (r in 0 until MEL_WINDOW) {
             val row = mel[r]
             for (b in 0 until MEL_BANDS) embInput[0][r][b][0] = row[b]
         }
         embedding.run(embInput, embOutput)
-        features.addLast(embOutput[0][0][0].copyOf())
+        val current = embOutput[0][0][0].copyOf()
+        features.addLast(current)
         if (features.size > FEATURES) features.removeFirst()
+        if (quiet) silenceEmbedding = current
 
         for (f in 0 until FEATURES) {
             System.arraycopy(features[f], 0, clsInput[0][f], 0, EMBEDDING)
         }
         classifier.run(clsInput, clsOutput)
+        if (gate) {
+            inferenceNanos += System.nanoTime() - started
+            inferences++
+        }
         return clsOutput[0][0]
     }
 
+    /** Actualiza el ruido de fondo y dice si este bloque es silencio. */
+    private fun isQuiet(chunk: FloatArray): Boolean {
+        var sum = 0.0
+        for (v in chunk) sum += v * v
+        val rms = sqrt(sum / chunk.size).toFloat()
+        // Baja rápido hacia el silencio; sube muy despacio con el ruido.
+        noiseFloor = if (rms < noiseFloor) {
+            noiseFloor * 0.9f + rms * 0.1f
+        } else {
+            noiseFloor * 0.998f + rms * 0.002f
+        }
+        val quiet = rms < max(noiseFloor * QUIET_FACTOR, MIN_SPEECH_RMS)
+        quietRun = if (quiet) quietRun + 1 else 0
+        return quiet
+    }
+
     override fun reset() {
+        gate = false
+        quietRun = 0
+        silenceEmbedding = null
+        noiseFloor = INITIAL_NOISE
         raw.fill(0f)
         pendingCount = 0
         mel.clear()
@@ -114,6 +184,11 @@ class OpenWakeWordEngine(
             step(pending)
         }
         pendingCount = 0
+        // El ruido de arranque no cuenta como silencio real.
+        quietRun = 0
+        silenceEmbedding = null
+        noiseFloor = INITIAL_NOISE
+        gate = true
     }
 
     override fun close() {
@@ -135,6 +210,13 @@ class OpenWakeWordEngine(
         private const val EMBEDDING = 96
         private const val FEATURES = 16
         private const val WARMUP_CHUNKS = 50
+
+        /** Silencio: menos de 2,5 veces el ruido de fondo… */
+        private const val QUIET_FACTOR = 2.5f
+
+        /** …y nunca por encima de esto (voz baja a un par de metros). */
+        private const val MIN_SPEECH_RMS = 120f
+        private const val INITIAL_NOISE = 200f
 
         fun isAvailable(context: Context, assetDir: String = DEFAULT_ASSET_DIR): Boolean =
             runCatching { context.assets.list(assetDir)?.contains("viernes.tflite") == true }

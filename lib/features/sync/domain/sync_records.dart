@@ -1,9 +1,10 @@
 import 'package:flutter/foundation.dart';
+import 'package:viernes/features/places/domain/place.dart';
 import 'package:viernes/features/reminders/domain/entities/reminder.dart';
 import 'package:viernes/features/reminders/domain/entities/reminder_event.dart';
 
 /// Qué tipo de dato se borró.
-enum SyncEntity { reminder, event }
+enum SyncEntity { reminder, event, place, locationReminder }
 
 /// Un borrado local que falta avisar a la nube.
 @immutable
@@ -38,6 +39,8 @@ class LocalChanges {
     this.reminders = const [],
     this.events = const [],
     this.deletions = const [],
+    this.places = const [],
+    this.locationReminders = const [],
   });
 
   final List<Reminder> reminders;
@@ -46,9 +49,23 @@ class LocalChanges {
   final List<ReminderEvent> events;
   final List<Tombstone> deletions;
 
-  bool get isEmpty => reminders.isEmpty && events.isEmpty && deletions.isEmpty;
+  /// Lugares guardados (con `updatedAt`).
+  final List<Place> places;
+  final List<LocationReminder> locationReminders;
 
-  int get length => reminders.length + events.length + deletions.length;
+  bool get isEmpty =>
+      reminders.isEmpty &&
+      events.isEmpty &&
+      deletions.isEmpty &&
+      places.isEmpty &&
+      locationReminders.isEmpty;
+
+  int get length =>
+      reminders.length +
+      events.length +
+      deletions.length +
+      places.length +
+      locationReminders.length;
 }
 
 /// Un recordatorio como está en la nube. [reminder] es nulo si se borró.
@@ -82,23 +99,48 @@ class RemoteEvent {
   bool get deleted => event == null;
 }
 
+/// Un dato sencillo (lugar o recordatorio por ubicación) como está en la
+/// nube. [value] es nulo si se borró.
+@immutable
+class RemoteItem<T> {
+  const RemoteItem({required this.id, required this.updatedAt, this.value});
+
+  final String id;
+  final T? value;
+  final DateTime updatedAt;
+
+  bool get deleted => value == null;
+}
+
 /// Cambios en la nube desde la última descarga.
 @immutable
 class RemoteChanges {
   const RemoteChanges({
     this.reminders = const [],
     this.events = const [],
+    this.places = const [],
+    this.locationReminders = const [],
     this.cursor,
   });
 
   final List<RemoteReminder> reminders;
   final List<RemoteEvent> events;
+  final List<RemoteItem<Place>> places;
+  final List<RemoteItem<LocationReminder>> locationReminders;
 
   /// Marca de tiempo del servidor del cambio más reciente recibido; la
   /// próxima descarga parte de aquí.
   final DateTime? cursor;
 
-  bool get isEmpty => reminders.isEmpty && events.isEmpty;
+  bool get isEmpty =>
+      reminders.isEmpty &&
+      events.isEmpty &&
+      places.isEmpty &&
+      locationReminders.isEmpty;
+
+  /// Cambiaron lugares o recordatorios por ubicación (hay que rehacer las
+  /// geocercas).
+  bool get touchesPlaces => places.isNotEmpty || locationReminders.isNotEmpty;
 }
 
 /// Resultado de una sincronización.

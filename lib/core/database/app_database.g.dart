@@ -2413,6 +2413,30 @@ class $PlacesTable extends Places with TableInfo<$PlacesTable, PlaceRow> {
     type: DriftSqlType.dateTime,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _dirtyMeta = const VerificationMeta('dirty');
+  @override
+  late final GeneratedColumn<bool> dirty = GeneratedColumn<bool>(
+    'dirty',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("dirty" IN (0, 1))',
+    ),
+    defaultValue: const Constant(true),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -2421,6 +2445,8 @@ class $PlacesTable extends Places with TableInfo<$PlacesTable, PlaceRow> {
     longitude,
     radiusMeters,
     createdAt,
+    updatedAt,
+    dirty,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -2480,6 +2506,18 @@ class $PlacesTable extends Places with TableInfo<$PlacesTable, PlaceRow> {
     } else if (isInserting) {
       context.missing(_createdAtMeta);
     }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    }
+    if (data.containsKey('dirty')) {
+      context.handle(
+        _dirtyMeta,
+        dirty.isAcceptableOrUnknown(data['dirty']!, _dirtyMeta),
+      );
+    }
     return context;
   }
 
@@ -2513,6 +2551,14 @@ class $PlacesTable extends Places with TableInfo<$PlacesTable, PlaceRow> {
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
       )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      ),
+      dirty: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}dirty'],
+      )!,
     );
   }
 
@@ -2529,6 +2575,12 @@ class PlaceRow extends DataClass implements Insertable<PlaceRow> {
   final double longitude;
   final double radiusMeters;
   final DateTime createdAt;
+
+  /// Último cambio (para resolver conflictos entre teléfonos).
+  final DateTime? updatedAt;
+
+  /// Hay cambios que aún no se subieron a la cuenta.
+  final bool dirty;
   const PlaceRow({
     required this.id,
     required this.name,
@@ -2536,6 +2588,8 @@ class PlaceRow extends DataClass implements Insertable<PlaceRow> {
     required this.longitude,
     required this.radiusMeters,
     required this.createdAt,
+    this.updatedAt,
+    required this.dirty,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -2546,6 +2600,10 @@ class PlaceRow extends DataClass implements Insertable<PlaceRow> {
     map['longitude'] = Variable<double>(longitude);
     map['radius_meters'] = Variable<double>(radiusMeters);
     map['created_at'] = Variable<DateTime>(createdAt);
+    if (!nullToAbsent || updatedAt != null) {
+      map['updated_at'] = Variable<DateTime>(updatedAt);
+    }
+    map['dirty'] = Variable<bool>(dirty);
     return map;
   }
 
@@ -2557,6 +2615,10 @@ class PlaceRow extends DataClass implements Insertable<PlaceRow> {
       longitude: Value(longitude),
       radiusMeters: Value(radiusMeters),
       createdAt: Value(createdAt),
+      updatedAt: updatedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(updatedAt),
+      dirty: Value(dirty),
     );
   }
 
@@ -2572,6 +2634,8 @@ class PlaceRow extends DataClass implements Insertable<PlaceRow> {
       longitude: serializer.fromJson<double>(json['longitude']),
       radiusMeters: serializer.fromJson<double>(json['radiusMeters']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime?>(json['updatedAt']),
+      dirty: serializer.fromJson<bool>(json['dirty']),
     );
   }
   @override
@@ -2584,6 +2648,8 @@ class PlaceRow extends DataClass implements Insertable<PlaceRow> {
       'longitude': serializer.toJson<double>(longitude),
       'radiusMeters': serializer.toJson<double>(radiusMeters),
       'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime?>(updatedAt),
+      'dirty': serializer.toJson<bool>(dirty),
     };
   }
 
@@ -2594,6 +2660,8 @@ class PlaceRow extends DataClass implements Insertable<PlaceRow> {
     double? longitude,
     double? radiusMeters,
     DateTime? createdAt,
+    Value<DateTime?> updatedAt = const Value.absent(),
+    bool? dirty,
   }) => PlaceRow(
     id: id ?? this.id,
     name: name ?? this.name,
@@ -2601,6 +2669,8 @@ class PlaceRow extends DataClass implements Insertable<PlaceRow> {
     longitude: longitude ?? this.longitude,
     radiusMeters: radiusMeters ?? this.radiusMeters,
     createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt.present ? updatedAt.value : this.updatedAt,
+    dirty: dirty ?? this.dirty,
   );
   PlaceRow copyWithCompanion(PlacesCompanion data) {
     return PlaceRow(
@@ -2612,6 +2682,8 @@ class PlaceRow extends DataClass implements Insertable<PlaceRow> {
           ? data.radiusMeters.value
           : this.radiusMeters,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      dirty: data.dirty.present ? data.dirty.value : this.dirty,
     );
   }
 
@@ -2623,14 +2695,24 @@ class PlaceRow extends DataClass implements Insertable<PlaceRow> {
           ..write('latitude: $latitude, ')
           ..write('longitude: $longitude, ')
           ..write('radiusMeters: $radiusMeters, ')
-          ..write('createdAt: $createdAt')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('dirty: $dirty')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode =>
-      Object.hash(id, name, latitude, longitude, radiusMeters, createdAt);
+  int get hashCode => Object.hash(
+    id,
+    name,
+    latitude,
+    longitude,
+    radiusMeters,
+    createdAt,
+    updatedAt,
+    dirty,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -2640,7 +2722,9 @@ class PlaceRow extends DataClass implements Insertable<PlaceRow> {
           other.latitude == this.latitude &&
           other.longitude == this.longitude &&
           other.radiusMeters == this.radiusMeters &&
-          other.createdAt == this.createdAt);
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt &&
+          other.dirty == this.dirty);
 }
 
 class PlacesCompanion extends UpdateCompanion<PlaceRow> {
@@ -2650,6 +2734,8 @@ class PlacesCompanion extends UpdateCompanion<PlaceRow> {
   final Value<double> longitude;
   final Value<double> radiusMeters;
   final Value<DateTime> createdAt;
+  final Value<DateTime?> updatedAt;
+  final Value<bool> dirty;
   final Value<int> rowid;
   const PlacesCompanion({
     this.id = const Value.absent(),
@@ -2658,6 +2744,8 @@ class PlacesCompanion extends UpdateCompanion<PlaceRow> {
     this.longitude = const Value.absent(),
     this.radiusMeters = const Value.absent(),
     this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.dirty = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   PlacesCompanion.insert({
@@ -2667,6 +2755,8 @@ class PlacesCompanion extends UpdateCompanion<PlaceRow> {
     required double longitude,
     this.radiusMeters = const Value.absent(),
     required DateTime createdAt,
+    this.updatedAt = const Value.absent(),
+    this.dirty = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        name = Value(name),
@@ -2680,6 +2770,8 @@ class PlacesCompanion extends UpdateCompanion<PlaceRow> {
     Expression<double>? longitude,
     Expression<double>? radiusMeters,
     Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<bool>? dirty,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -2689,6 +2781,8 @@ class PlacesCompanion extends UpdateCompanion<PlaceRow> {
       if (longitude != null) 'longitude': longitude,
       if (radiusMeters != null) 'radius_meters': radiusMeters,
       if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (dirty != null) 'dirty': dirty,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -2700,6 +2794,8 @@ class PlacesCompanion extends UpdateCompanion<PlaceRow> {
     Value<double>? longitude,
     Value<double>? radiusMeters,
     Value<DateTime>? createdAt,
+    Value<DateTime?>? updatedAt,
+    Value<bool>? dirty,
     Value<int>? rowid,
   }) {
     return PlacesCompanion(
@@ -2709,6 +2805,8 @@ class PlacesCompanion extends UpdateCompanion<PlaceRow> {
       longitude: longitude ?? this.longitude,
       radiusMeters: radiusMeters ?? this.radiusMeters,
       createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      dirty: dirty ?? this.dirty,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -2734,6 +2832,12 @@ class PlacesCompanion extends UpdateCompanion<PlaceRow> {
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (dirty.present) {
+      map['dirty'] = Variable<bool>(dirty.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -2749,6 +2853,8 @@ class PlacesCompanion extends UpdateCompanion<PlaceRow> {
           ..write('longitude: $longitude, ')
           ..write('radiusMeters: $radiusMeters, ')
           ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('dirty: $dirty, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -2844,6 +2950,30 @@ class $LocationRemindersTable extends LocationReminders
     type: DriftSqlType.dateTime,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _dirtyMeta = const VerificationMeta('dirty');
+  @override
+  late final GeneratedColumn<bool> dirty = GeneratedColumn<bool>(
+    'dirty',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("dirty" IN (0, 1))',
+    ),
+    defaultValue: const Constant(true),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -2853,6 +2983,8 @@ class $LocationRemindersTable extends LocationReminders
     done,
     createdAt,
     completedAt,
+    updatedAt,
+    dirty,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -2916,6 +3048,18 @@ class $LocationRemindersTable extends LocationReminders
         ),
       );
     }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    }
+    if (data.containsKey('dirty')) {
+      context.handle(
+        _dirtyMeta,
+        dirty.isAcceptableOrUnknown(data['dirty']!, _dirtyMeta),
+      );
+    }
     return context;
   }
 
@@ -2953,6 +3097,14 @@ class $LocationRemindersTable extends LocationReminders
         DriftSqlType.dateTime,
         data['${effectivePrefix}completed_at'],
       ),
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      ),
+      dirty: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}dirty'],
+      )!,
     );
   }
 
@@ -2973,6 +3125,8 @@ class LocationReminderRow extends DataClass
   final bool done;
   final DateTime createdAt;
   final DateTime? completedAt;
+  final DateTime? updatedAt;
+  final bool dirty;
   const LocationReminderRow({
     required this.id,
     required this.title,
@@ -2981,6 +3135,8 @@ class LocationReminderRow extends DataClass
     required this.done,
     required this.createdAt,
     this.completedAt,
+    this.updatedAt,
+    required this.dirty,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -2994,6 +3150,10 @@ class LocationReminderRow extends DataClass
     if (!nullToAbsent || completedAt != null) {
       map['completed_at'] = Variable<DateTime>(completedAt);
     }
+    if (!nullToAbsent || updatedAt != null) {
+      map['updated_at'] = Variable<DateTime>(updatedAt);
+    }
+    map['dirty'] = Variable<bool>(dirty);
     return map;
   }
 
@@ -3008,6 +3168,10 @@ class LocationReminderRow extends DataClass
       completedAt: completedAt == null && nullToAbsent
           ? const Value.absent()
           : Value(completedAt),
+      updatedAt: updatedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(updatedAt),
+      dirty: Value(dirty),
     );
   }
 
@@ -3024,6 +3188,8 @@ class LocationReminderRow extends DataClass
       done: serializer.fromJson<bool>(json['done']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       completedAt: serializer.fromJson<DateTime?>(json['completedAt']),
+      updatedAt: serializer.fromJson<DateTime?>(json['updatedAt']),
+      dirty: serializer.fromJson<bool>(json['dirty']),
     );
   }
   @override
@@ -3037,6 +3203,8 @@ class LocationReminderRow extends DataClass
       'done': serializer.toJson<bool>(done),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'completedAt': serializer.toJson<DateTime?>(completedAt),
+      'updatedAt': serializer.toJson<DateTime?>(updatedAt),
+      'dirty': serializer.toJson<bool>(dirty),
     };
   }
 
@@ -3048,6 +3216,8 @@ class LocationReminderRow extends DataClass
     bool? done,
     DateTime? createdAt,
     Value<DateTime?> completedAt = const Value.absent(),
+    Value<DateTime?> updatedAt = const Value.absent(),
+    bool? dirty,
   }) => LocationReminderRow(
     id: id ?? this.id,
     title: title ?? this.title,
@@ -3056,6 +3226,8 @@ class LocationReminderRow extends DataClass
     done: done ?? this.done,
     createdAt: createdAt ?? this.createdAt,
     completedAt: completedAt.present ? completedAt.value : this.completedAt,
+    updatedAt: updatedAt.present ? updatedAt.value : this.updatedAt,
+    dirty: dirty ?? this.dirty,
   );
   LocationReminderRow copyWithCompanion(LocationRemindersCompanion data) {
     return LocationReminderRow(
@@ -3068,6 +3240,8 @@ class LocationReminderRow extends DataClass
       completedAt: data.completedAt.present
           ? data.completedAt.value
           : this.completedAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      dirty: data.dirty.present ? data.dirty.value : this.dirty,
     );
   }
 
@@ -3080,14 +3254,25 @@ class LocationReminderRow extends DataClass
           ..write('onArrive: $onArrive, ')
           ..write('done: $done, ')
           ..write('createdAt: $createdAt, ')
-          ..write('completedAt: $completedAt')
+          ..write('completedAt: $completedAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('dirty: $dirty')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode =>
-      Object.hash(id, title, placeId, onArrive, done, createdAt, completedAt);
+  int get hashCode => Object.hash(
+    id,
+    title,
+    placeId,
+    onArrive,
+    done,
+    createdAt,
+    completedAt,
+    updatedAt,
+    dirty,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -3098,7 +3283,9 @@ class LocationReminderRow extends DataClass
           other.onArrive == this.onArrive &&
           other.done == this.done &&
           other.createdAt == this.createdAt &&
-          other.completedAt == this.completedAt);
+          other.completedAt == this.completedAt &&
+          other.updatedAt == this.updatedAt &&
+          other.dirty == this.dirty);
 }
 
 class LocationRemindersCompanion extends UpdateCompanion<LocationReminderRow> {
@@ -3109,6 +3296,8 @@ class LocationRemindersCompanion extends UpdateCompanion<LocationReminderRow> {
   final Value<bool> done;
   final Value<DateTime> createdAt;
   final Value<DateTime?> completedAt;
+  final Value<DateTime?> updatedAt;
+  final Value<bool> dirty;
   final Value<int> rowid;
   const LocationRemindersCompanion({
     this.id = const Value.absent(),
@@ -3118,6 +3307,8 @@ class LocationRemindersCompanion extends UpdateCompanion<LocationReminderRow> {
     this.done = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.completedAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.dirty = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   LocationRemindersCompanion.insert({
@@ -3128,6 +3319,8 @@ class LocationRemindersCompanion extends UpdateCompanion<LocationReminderRow> {
     this.done = const Value.absent(),
     required DateTime createdAt,
     this.completedAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.dirty = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        title = Value(title),
@@ -3141,6 +3334,8 @@ class LocationRemindersCompanion extends UpdateCompanion<LocationReminderRow> {
     Expression<bool>? done,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? completedAt,
+    Expression<DateTime>? updatedAt,
+    Expression<bool>? dirty,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -3151,6 +3346,8 @@ class LocationRemindersCompanion extends UpdateCompanion<LocationReminderRow> {
       if (done != null) 'done': done,
       if (createdAt != null) 'created_at': createdAt,
       if (completedAt != null) 'completed_at': completedAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (dirty != null) 'dirty': dirty,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -3163,6 +3360,8 @@ class LocationRemindersCompanion extends UpdateCompanion<LocationReminderRow> {
     Value<bool>? done,
     Value<DateTime>? createdAt,
     Value<DateTime?>? completedAt,
+    Value<DateTime?>? updatedAt,
+    Value<bool>? dirty,
     Value<int>? rowid,
   }) {
     return LocationRemindersCompanion(
@@ -3173,6 +3372,8 @@ class LocationRemindersCompanion extends UpdateCompanion<LocationReminderRow> {
       done: done ?? this.done,
       createdAt: createdAt ?? this.createdAt,
       completedAt: completedAt ?? this.completedAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      dirty: dirty ?? this.dirty,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -3201,6 +3402,12 @@ class LocationRemindersCompanion extends UpdateCompanion<LocationReminderRow> {
     if (completedAt.present) {
       map['completed_at'] = Variable<DateTime>(completedAt.value);
     }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (dirty.present) {
+      map['dirty'] = Variable<bool>(dirty.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -3217,6 +3424,530 @@ class LocationRemindersCompanion extends UpdateCompanion<LocationReminderRow> {
           ..write('done: $done, ')
           ..write('createdAt: $createdAt, ')
           ..write('completedAt: $completedAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('dirty: $dirty, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $AttachmentsTable extends Attachments
+    with TableInfo<$AttachmentsTable, AttachmentRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $AttachmentsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _reminderIdMeta = const VerificationMeta(
+    'reminderId',
+  );
+  @override
+  late final GeneratedColumn<String> reminderId = GeneratedColumn<String>(
+    'reminder_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _kindMeta = const VerificationMeta('kind');
+  @override
+  late final GeneratedColumn<String> kind = GeneratedColumn<String>(
+    'kind',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _localPathMeta = const VerificationMeta(
+    'localPath',
+  );
+  @override
+  late final GeneratedColumn<String> localPath = GeneratedColumn<String>(
+    'local_path',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _remotePathMeta = const VerificationMeta(
+    'remotePath',
+  );
+  @override
+  late final GeneratedColumn<String> remotePath = GeneratedColumn<String>(
+    'remote_path',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _durationMsMeta = const VerificationMeta(
+    'durationMs',
+  );
+  @override
+  late final GeneratedColumn<int> durationMs = GeneratedColumn<int>(
+    'duration_ms',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _dirtyMeta = const VerificationMeta('dirty');
+  @override
+  late final GeneratedColumn<bool> dirty = GeneratedColumn<bool>(
+    'dirty',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("dirty" IN (0, 1))',
+    ),
+    defaultValue: const Constant(true),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    reminderId,
+    kind,
+    localPath,
+    remotePath,
+    durationMs,
+    createdAt,
+    dirty,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'attachments';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<AttachmentRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('reminder_id')) {
+      context.handle(
+        _reminderIdMeta,
+        reminderId.isAcceptableOrUnknown(data['reminder_id']!, _reminderIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_reminderIdMeta);
+    }
+    if (data.containsKey('kind')) {
+      context.handle(
+        _kindMeta,
+        kind.isAcceptableOrUnknown(data['kind']!, _kindMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_kindMeta);
+    }
+    if (data.containsKey('local_path')) {
+      context.handle(
+        _localPathMeta,
+        localPath.isAcceptableOrUnknown(data['local_path']!, _localPathMeta),
+      );
+    }
+    if (data.containsKey('remote_path')) {
+      context.handle(
+        _remotePathMeta,
+        remotePath.isAcceptableOrUnknown(data['remote_path']!, _remotePathMeta),
+      );
+    }
+    if (data.containsKey('duration_ms')) {
+      context.handle(
+        _durationMsMeta,
+        durationMs.isAcceptableOrUnknown(data['duration_ms']!, _durationMsMeta),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('dirty')) {
+      context.handle(
+        _dirtyMeta,
+        dirty.isAcceptableOrUnknown(data['dirty']!, _dirtyMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  AttachmentRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return AttachmentRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      reminderId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}reminder_id'],
+      )!,
+      kind: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}kind'],
+      )!,
+      localPath: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}local_path'],
+      ),
+      remotePath: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}remote_path'],
+      ),
+      durationMs: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}duration_ms'],
+      ),
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      dirty: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}dirty'],
+      )!,
+    );
+  }
+
+  @override
+  $AttachmentsTable createAlias(String alias) {
+    return $AttachmentsTable(attachedDatabase, alias);
+  }
+}
+
+class AttachmentRow extends DataClass implements Insertable<AttachmentRow> {
+  final String id;
+  final String reminderId;
+
+  /// `photo` o `audio`.
+  final String kind;
+  final String? localPath;
+  final String? remotePath;
+
+  /// Duración de la nota de voz.
+  final int? durationMs;
+  final DateTime createdAt;
+  final bool dirty;
+  const AttachmentRow({
+    required this.id,
+    required this.reminderId,
+    required this.kind,
+    this.localPath,
+    this.remotePath,
+    this.durationMs,
+    required this.createdAt,
+    required this.dirty,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['reminder_id'] = Variable<String>(reminderId);
+    map['kind'] = Variable<String>(kind);
+    if (!nullToAbsent || localPath != null) {
+      map['local_path'] = Variable<String>(localPath);
+    }
+    if (!nullToAbsent || remotePath != null) {
+      map['remote_path'] = Variable<String>(remotePath);
+    }
+    if (!nullToAbsent || durationMs != null) {
+      map['duration_ms'] = Variable<int>(durationMs);
+    }
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['dirty'] = Variable<bool>(dirty);
+    return map;
+  }
+
+  AttachmentsCompanion toCompanion(bool nullToAbsent) {
+    return AttachmentsCompanion(
+      id: Value(id),
+      reminderId: Value(reminderId),
+      kind: Value(kind),
+      localPath: localPath == null && nullToAbsent
+          ? const Value.absent()
+          : Value(localPath),
+      remotePath: remotePath == null && nullToAbsent
+          ? const Value.absent()
+          : Value(remotePath),
+      durationMs: durationMs == null && nullToAbsent
+          ? const Value.absent()
+          : Value(durationMs),
+      createdAt: Value(createdAt),
+      dirty: Value(dirty),
+    );
+  }
+
+  factory AttachmentRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return AttachmentRow(
+      id: serializer.fromJson<String>(json['id']),
+      reminderId: serializer.fromJson<String>(json['reminderId']),
+      kind: serializer.fromJson<String>(json['kind']),
+      localPath: serializer.fromJson<String?>(json['localPath']),
+      remotePath: serializer.fromJson<String?>(json['remotePath']),
+      durationMs: serializer.fromJson<int?>(json['durationMs']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      dirty: serializer.fromJson<bool>(json['dirty']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'reminderId': serializer.toJson<String>(reminderId),
+      'kind': serializer.toJson<String>(kind),
+      'localPath': serializer.toJson<String?>(localPath),
+      'remotePath': serializer.toJson<String?>(remotePath),
+      'durationMs': serializer.toJson<int?>(durationMs),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'dirty': serializer.toJson<bool>(dirty),
+    };
+  }
+
+  AttachmentRow copyWith({
+    String? id,
+    String? reminderId,
+    String? kind,
+    Value<String?> localPath = const Value.absent(),
+    Value<String?> remotePath = const Value.absent(),
+    Value<int?> durationMs = const Value.absent(),
+    DateTime? createdAt,
+    bool? dirty,
+  }) => AttachmentRow(
+    id: id ?? this.id,
+    reminderId: reminderId ?? this.reminderId,
+    kind: kind ?? this.kind,
+    localPath: localPath.present ? localPath.value : this.localPath,
+    remotePath: remotePath.present ? remotePath.value : this.remotePath,
+    durationMs: durationMs.present ? durationMs.value : this.durationMs,
+    createdAt: createdAt ?? this.createdAt,
+    dirty: dirty ?? this.dirty,
+  );
+  AttachmentRow copyWithCompanion(AttachmentsCompanion data) {
+    return AttachmentRow(
+      id: data.id.present ? data.id.value : this.id,
+      reminderId: data.reminderId.present
+          ? data.reminderId.value
+          : this.reminderId,
+      kind: data.kind.present ? data.kind.value : this.kind,
+      localPath: data.localPath.present ? data.localPath.value : this.localPath,
+      remotePath: data.remotePath.present
+          ? data.remotePath.value
+          : this.remotePath,
+      durationMs: data.durationMs.present
+          ? data.durationMs.value
+          : this.durationMs,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      dirty: data.dirty.present ? data.dirty.value : this.dirty,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('AttachmentRow(')
+          ..write('id: $id, ')
+          ..write('reminderId: $reminderId, ')
+          ..write('kind: $kind, ')
+          ..write('localPath: $localPath, ')
+          ..write('remotePath: $remotePath, ')
+          ..write('durationMs: $durationMs, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('dirty: $dirty')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    reminderId,
+    kind,
+    localPath,
+    remotePath,
+    durationMs,
+    createdAt,
+    dirty,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is AttachmentRow &&
+          other.id == this.id &&
+          other.reminderId == this.reminderId &&
+          other.kind == this.kind &&
+          other.localPath == this.localPath &&
+          other.remotePath == this.remotePath &&
+          other.durationMs == this.durationMs &&
+          other.createdAt == this.createdAt &&
+          other.dirty == this.dirty);
+}
+
+class AttachmentsCompanion extends UpdateCompanion<AttachmentRow> {
+  final Value<String> id;
+  final Value<String> reminderId;
+  final Value<String> kind;
+  final Value<String?> localPath;
+  final Value<String?> remotePath;
+  final Value<int?> durationMs;
+  final Value<DateTime> createdAt;
+  final Value<bool> dirty;
+  final Value<int> rowid;
+  const AttachmentsCompanion({
+    this.id = const Value.absent(),
+    this.reminderId = const Value.absent(),
+    this.kind = const Value.absent(),
+    this.localPath = const Value.absent(),
+    this.remotePath = const Value.absent(),
+    this.durationMs = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.dirty = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  AttachmentsCompanion.insert({
+    required String id,
+    required String reminderId,
+    required String kind,
+    this.localPath = const Value.absent(),
+    this.remotePath = const Value.absent(),
+    this.durationMs = const Value.absent(),
+    required DateTime createdAt,
+    this.dirty = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       reminderId = Value(reminderId),
+       kind = Value(kind),
+       createdAt = Value(createdAt);
+  static Insertable<AttachmentRow> custom({
+    Expression<String>? id,
+    Expression<String>? reminderId,
+    Expression<String>? kind,
+    Expression<String>? localPath,
+    Expression<String>? remotePath,
+    Expression<int>? durationMs,
+    Expression<DateTime>? createdAt,
+    Expression<bool>? dirty,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (reminderId != null) 'reminder_id': reminderId,
+      if (kind != null) 'kind': kind,
+      if (localPath != null) 'local_path': localPath,
+      if (remotePath != null) 'remote_path': remotePath,
+      if (durationMs != null) 'duration_ms': durationMs,
+      if (createdAt != null) 'created_at': createdAt,
+      if (dirty != null) 'dirty': dirty,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  AttachmentsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? reminderId,
+    Value<String>? kind,
+    Value<String?>? localPath,
+    Value<String?>? remotePath,
+    Value<int?>? durationMs,
+    Value<DateTime>? createdAt,
+    Value<bool>? dirty,
+    Value<int>? rowid,
+  }) {
+    return AttachmentsCompanion(
+      id: id ?? this.id,
+      reminderId: reminderId ?? this.reminderId,
+      kind: kind ?? this.kind,
+      localPath: localPath ?? this.localPath,
+      remotePath: remotePath ?? this.remotePath,
+      durationMs: durationMs ?? this.durationMs,
+      createdAt: createdAt ?? this.createdAt,
+      dirty: dirty ?? this.dirty,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (reminderId.present) {
+      map['reminder_id'] = Variable<String>(reminderId.value);
+    }
+    if (kind.present) {
+      map['kind'] = Variable<String>(kind.value);
+    }
+    if (localPath.present) {
+      map['local_path'] = Variable<String>(localPath.value);
+    }
+    if (remotePath.present) {
+      map['remote_path'] = Variable<String>(remotePath.value);
+    }
+    if (durationMs.present) {
+      map['duration_ms'] = Variable<int>(durationMs.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (dirty.present) {
+      map['dirty'] = Variable<bool>(dirty.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('AttachmentsCompanion(')
+          ..write('id: $id, ')
+          ..write('reminderId: $reminderId, ')
+          ..write('kind: $kind, ')
+          ..write('localPath: $localPath, ')
+          ..write('remotePath: $remotePath, ')
+          ..write('durationMs: $durationMs, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('dirty: $dirty, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -3233,6 +3964,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $PlacesTable places = $PlacesTable(this);
   late final $LocationRemindersTable locationReminders =
       $LocationRemindersTable(this);
+  late final $AttachmentsTable attachments = $AttachmentsTable(this);
   late final Index idxRemindersStatus = Index(
     'idx_reminders_status',
     'CREATE INDEX idx_reminders_status ON reminders (status)',
@@ -3249,6 +3981,10 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     'idx_events_sync_id',
     'CREATE UNIQUE INDEX idx_events_sync_id ON reminder_events (sync_id)',
   );
+  late final Index idxAttachmentsReminder = Index(
+    'idx_attachments_reminder',
+    'CREATE INDEX idx_attachments_reminder ON attachments (reminder_id)',
+  );
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -3260,10 +3996,12 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     syncTombstones,
     places,
     locationReminders,
+    attachments,
     idxRemindersStatus,
     idxRemindersDueAt,
     idxEventsOccurredAt,
     idxEventsSyncId,
+    idxAttachmentsReminder,
   ];
 }
 
@@ -4464,6 +5202,8 @@ typedef $$PlacesTableCreateCompanionBuilder =
       required double longitude,
       Value<double> radiusMeters,
       required DateTime createdAt,
+      Value<DateTime?> updatedAt,
+      Value<bool> dirty,
       Value<int> rowid,
     });
 typedef $$PlacesTableUpdateCompanionBuilder =
@@ -4474,6 +5214,8 @@ typedef $$PlacesTableUpdateCompanionBuilder =
       Value<double> longitude,
       Value<double> radiusMeters,
       Value<DateTime> createdAt,
+      Value<DateTime?> updatedAt,
+      Value<bool> dirty,
       Value<int> rowid,
     });
 
@@ -4513,6 +5255,16 @@ class $$PlacesTableFilterComposer
 
   ColumnFilters<DateTime> get createdAt => $composableBuilder(
     column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get dirty => $composableBuilder(
+    column: $table.dirty,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -4555,6 +5307,16 @@ class $$PlacesTableOrderingComposer
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get dirty => $composableBuilder(
+    column: $table.dirty,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$PlacesTableAnnotationComposer
@@ -4585,6 +5347,12 @@ class $$PlacesTableAnnotationComposer
 
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<bool> get dirty =>
+      $composableBuilder(column: $table.dirty, builder: (column) => column);
 }
 
 class $$PlacesTableTableManager
@@ -4621,6 +5389,8 @@ class $$PlacesTableTableManager
                 Value<double> longitude = const Value.absent(),
                 Value<double> radiusMeters = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime?> updatedAt = const Value.absent(),
+                Value<bool> dirty = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => PlacesCompanion(
                 id: id,
@@ -4629,6 +5399,8 @@ class $$PlacesTableTableManager
                 longitude: longitude,
                 radiusMeters: radiusMeters,
                 createdAt: createdAt,
+                updatedAt: updatedAt,
+                dirty: dirty,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -4639,6 +5411,8 @@ class $$PlacesTableTableManager
                 required double longitude,
                 Value<double> radiusMeters = const Value.absent(),
                 required DateTime createdAt,
+                Value<DateTime?> updatedAt = const Value.absent(),
+                Value<bool> dirty = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => PlacesCompanion.insert(
                 id: id,
@@ -4647,6 +5421,8 @@ class $$PlacesTableTableManager
                 longitude: longitude,
                 radiusMeters: radiusMeters,
                 createdAt: createdAt,
+                updatedAt: updatedAt,
+                dirty: dirty,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
@@ -4689,6 +5465,8 @@ typedef $$LocationRemindersTableCreateCompanionBuilder =
       Value<bool> done,
       required DateTime createdAt,
       Value<DateTime?> completedAt,
+      Value<DateTime?> updatedAt,
+      Value<bool> dirty,
       Value<int> rowid,
     });
 typedef $$LocationRemindersTableUpdateCompanionBuilder =
@@ -4700,6 +5478,8 @@ typedef $$LocationRemindersTableUpdateCompanionBuilder =
       Value<bool> done,
       Value<DateTime> createdAt,
       Value<DateTime?> completedAt,
+      Value<DateTime?> updatedAt,
+      Value<bool> dirty,
       Value<int> rowid,
     });
 
@@ -4744,6 +5524,16 @@ class $$LocationRemindersTableFilterComposer
 
   ColumnFilters<DateTime> get completedAt => $composableBuilder(
     column: $table.completedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get dirty => $composableBuilder(
+    column: $table.dirty,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -4791,6 +5581,16 @@ class $$LocationRemindersTableOrderingComposer
     column: $table.completedAt,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get dirty => $composableBuilder(
+    column: $table.dirty,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$LocationRemindersTableAnnotationComposer
@@ -4824,6 +5624,12 @@ class $$LocationRemindersTableAnnotationComposer
     column: $table.completedAt,
     builder: (column) => column,
   );
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<bool> get dirty =>
+      $composableBuilder(column: $table.dirty, builder: (column) => column);
 }
 
 class $$LocationRemindersTableTableManager
@@ -4873,6 +5679,8 @@ class $$LocationRemindersTableTableManager
                 Value<bool> done = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime?> completedAt = const Value.absent(),
+                Value<DateTime?> updatedAt = const Value.absent(),
+                Value<bool> dirty = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => LocationRemindersCompanion(
                 id: id,
@@ -4882,6 +5690,8 @@ class $$LocationRemindersTableTableManager
                 done: done,
                 createdAt: createdAt,
                 completedAt: completedAt,
+                updatedAt: updatedAt,
+                dirty: dirty,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -4893,6 +5703,8 @@ class $$LocationRemindersTableTableManager
                 Value<bool> done = const Value.absent(),
                 required DateTime createdAt,
                 Value<DateTime?> completedAt = const Value.absent(),
+                Value<DateTime?> updatedAt = const Value.absent(),
+                Value<bool> dirty = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => LocationRemindersCompanion.insert(
                 id: id,
@@ -4902,6 +5714,8 @@ class $$LocationRemindersTableTableManager
                 done: done,
                 createdAt: createdAt,
                 completedAt: completedAt,
+                updatedAt: updatedAt,
+                dirty: dirty,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
@@ -4944,6 +5758,278 @@ typedef $$LocationRemindersTableProcessedTableManager =
       LocationReminderRow,
       PrefetchHooks Function()
     >;
+typedef $$AttachmentsTableCreateCompanionBuilder =
+    AttachmentsCompanion Function({
+      required String id,
+      required String reminderId,
+      required String kind,
+      Value<String?> localPath,
+      Value<String?> remotePath,
+      Value<int?> durationMs,
+      required DateTime createdAt,
+      Value<bool> dirty,
+      Value<int> rowid,
+    });
+typedef $$AttachmentsTableUpdateCompanionBuilder =
+    AttachmentsCompanion Function({
+      Value<String> id,
+      Value<String> reminderId,
+      Value<String> kind,
+      Value<String?> localPath,
+      Value<String?> remotePath,
+      Value<int?> durationMs,
+      Value<DateTime> createdAt,
+      Value<bool> dirty,
+      Value<int> rowid,
+    });
+
+class $$AttachmentsTableFilterComposer
+    extends Composer<_$AppDatabase, $AttachmentsTable> {
+  $$AttachmentsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get reminderId => $composableBuilder(
+    column: $table.reminderId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get kind => $composableBuilder(
+    column: $table.kind,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get localPath => $composableBuilder(
+    column: $table.localPath,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get remotePath => $composableBuilder(
+    column: $table.remotePath,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get durationMs => $composableBuilder(
+    column: $table.durationMs,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get dirty => $composableBuilder(
+    column: $table.dirty,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$AttachmentsTableOrderingComposer
+    extends Composer<_$AppDatabase, $AttachmentsTable> {
+  $$AttachmentsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get reminderId => $composableBuilder(
+    column: $table.reminderId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get kind => $composableBuilder(
+    column: $table.kind,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get localPath => $composableBuilder(
+    column: $table.localPath,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get remotePath => $composableBuilder(
+    column: $table.remotePath,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get durationMs => $composableBuilder(
+    column: $table.durationMs,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get dirty => $composableBuilder(
+    column: $table.dirty,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$AttachmentsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $AttachmentsTable> {
+  $$AttachmentsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get reminderId => $composableBuilder(
+    column: $table.reminderId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get kind =>
+      $composableBuilder(column: $table.kind, builder: (column) => column);
+
+  GeneratedColumn<String> get localPath =>
+      $composableBuilder(column: $table.localPath, builder: (column) => column);
+
+  GeneratedColumn<String> get remotePath => $composableBuilder(
+    column: $table.remotePath,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get durationMs => $composableBuilder(
+    column: $table.durationMs,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<bool> get dirty =>
+      $composableBuilder(column: $table.dirty, builder: (column) => column);
+}
+
+class $$AttachmentsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $AttachmentsTable,
+          AttachmentRow,
+          $$AttachmentsTableFilterComposer,
+          $$AttachmentsTableOrderingComposer,
+          $$AttachmentsTableAnnotationComposer,
+          $$AttachmentsTableCreateCompanionBuilder,
+          $$AttachmentsTableUpdateCompanionBuilder,
+          (
+            AttachmentRow,
+            BaseReferences<_$AppDatabase, $AttachmentsTable, AttachmentRow>,
+          ),
+          AttachmentRow,
+          PrefetchHooks Function()
+        > {
+  $$AttachmentsTableTableManager(_$AppDatabase db, $AttachmentsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$AttachmentsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$AttachmentsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$AttachmentsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> reminderId = const Value.absent(),
+                Value<String> kind = const Value.absent(),
+                Value<String?> localPath = const Value.absent(),
+                Value<String?> remotePath = const Value.absent(),
+                Value<int?> durationMs = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<bool> dirty = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => AttachmentsCompanion(
+                id: id,
+                reminderId: reminderId,
+                kind: kind,
+                localPath: localPath,
+                remotePath: remotePath,
+                durationMs: durationMs,
+                createdAt: createdAt,
+                dirty: dirty,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String reminderId,
+                required String kind,
+                Value<String?> localPath = const Value.absent(),
+                Value<String?> remotePath = const Value.absent(),
+                Value<int?> durationMs = const Value.absent(),
+                required DateTime createdAt,
+                Value<bool> dirty = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => AttachmentsCompanion.insert(
+                id: id,
+                reminderId: reminderId,
+                kind: kind,
+                localPath: localPath,
+                remotePath: remotePath,
+                durationMs: durationMs,
+                createdAt: createdAt,
+                dirty: dirty,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$AttachmentsTable, AttachmentRow>(table),
+                  BaseReferences<
+                    _$AppDatabase,
+                    $AttachmentsTable,
+                    AttachmentRow
+                  >(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$AttachmentsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $AttachmentsTable,
+      AttachmentRow,
+      $$AttachmentsTableFilterComposer,
+      $$AttachmentsTableOrderingComposer,
+      $$AttachmentsTableAnnotationComposer,
+      $$AttachmentsTableCreateCompanionBuilder,
+      $$AttachmentsTableUpdateCompanionBuilder,
+      (
+        AttachmentRow,
+        BaseReferences<_$AppDatabase, $AttachmentsTable, AttachmentRow>,
+      ),
+      AttachmentRow,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -4960,4 +6046,6 @@ class $AppDatabaseManager {
       $$PlacesTableTableManager(_db, _db.places);
   $$LocationRemindersTableTableManager get locationReminders =>
       $$LocationRemindersTableTableManager(_db, _db.locationReminders);
+  $$AttachmentsTableTableManager get attachments =>
+      $$AttachmentsTableTableManager(_db, _db.attachments);
 }

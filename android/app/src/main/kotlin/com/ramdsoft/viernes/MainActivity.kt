@@ -7,9 +7,13 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
+import android.speech.RecognizerIntent
 import android.view.WindowManager
 import androidx.core.content.ContextCompat
+import com.ramdsoft.viernes.device.DeviceDataChannel
 import com.ramdsoft.viernes.location.LocationChannel
+import com.ramdsoft.viernes.shortcuts.AppShortcuts
+import com.ramdsoft.viernes.wakeword.WakeStats
 import com.ramdsoft.viernes.wakeword.OpenWakeWordEngine
 import com.ramdsoft.viernes.wakeword.WakeWordService
 import io.flutter.embedding.android.FlutterActivity
@@ -21,20 +25,50 @@ class MainActivity : FlutterActivity() {
 
     private var wakeChannel: MethodChannel? = null
     private var location: LocationChannel? = null
+    private var device: DeviceDataChannel? = null
 
     /** La app se abrió porque se dijo "Viernes"; Flutter lo consulta al iniciar. */
     private var pendingWake = false
 
+    /** Acceso directo con el que se abrió la app («briefing» o «new»). */
+    private var pendingAction: String? = null
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        if (intent?.action == WakeWordService.ACTION_WAKE) onWakeIntent(notifyFlutter = false)
+        AppShortcuts.publish(this)
+        handleIntent(intent, notifyFlutter = false)
     }
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
         location?.onIntent(intent, fromNewIntent = true)
-        if (intent.action == WakeWordService.ACTION_WAKE) onWakeIntent(notifyFlutter = true)
+        handleIntent(intent, notifyFlutter = true)
+    }
+
+    /**
+     * «Viernes», el widget, el botón de ajustes rápidos o el botón del
+     * asistente de los audífonos abren la conversación; los accesos directos
+     * del ícono, el resumen o un recordatorio nuevo.
+     */
+    private fun handleIntent(intent: Intent?, notifyFlutter: Boolean) {
+        when (intent?.action) {
+            WakeWordService.ACTION_WAKE,
+            Intent.ACTION_VOICE_COMMAND,
+            Intent.ACTION_ASSIST,
+            RecognizerIntent.ACTION_VOICE_SEARCH_HANDS_FREE,
+            -> onWakeIntent(notifyFlutter)
+            AppShortcuts.ACTION_BRIEFING -> onAction("briefing", notifyFlutter)
+            AppShortcuts.ACTION_NEW -> onAction("new", notifyFlutter)
+        }
+    }
+
+    private fun onAction(action: String, notifyFlutter: Boolean) {
+        if (notifyFlutter && wakeChannel != null) {
+            wakeChannel?.invokeMethod("onAction", action)
+        } else {
+            pendingAction = action
+        }
     }
 
     private fun onWakeIntent(notifyFlutter: Boolean) {
@@ -67,6 +101,7 @@ class MainActivity : FlutterActivity() {
             setMethodCallHandler(::onWakeWordCall)
         }
         location = LocationChannel(this, messenger).also { it.onIntent(intent, fromNewIntent = false) }
+        device = DeviceDataChannel(this, messenger)
     }
 
     // --- Activación por voz ------------------------------------------------
@@ -85,6 +120,10 @@ class MainActivity : FlutterActivity() {
                         WakeWordService.EXTRA_SAVE_SAMPLES,
                         call.argument<Boolean>("saveSamples") ?: false,
                     )
+                    .putExtra(
+                        WakeWordService.EXTRA_LOW_BATTERY_PAUSE,
+                        call.argument<Boolean>("lowBatteryPause") ?: true,
+                    )
                 ContextCompat.startForegroundService(this, service)
                 result.success(null)
             }
@@ -96,6 +135,15 @@ class MainActivity : FlutterActivity() {
             "consumeLaunchWake" -> {
                 result.success(pendingWake)
                 pendingWake = false
+            }
+            "consumeLaunchAction" -> {
+                result.success(pendingAction)
+                pendingAction = null
+            }
+            "stats" -> result.success(WakeStats.read(this))
+            "resetStats" -> {
+                WakeStats.reset(this)
+                result.success(null)
             }
             "canDrawOverlays" -> result.success(Settings.canDrawOverlays(this))
             "requestDrawOverlays" -> {
@@ -125,6 +173,7 @@ class MainActivity : FlutterActivity() {
     ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         location?.onPermissionResult(requestCode)
+        device?.onPermissionResult(requestCode)
     }
 
     // --- Pantalla de bloqueo -------------------------------------------------

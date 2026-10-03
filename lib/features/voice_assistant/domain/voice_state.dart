@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:viernes/core/platform/device_data.dart';
 import 'package:viernes/features/reminders/domain/entities/recurrence.dart';
 import 'package:viernes/features/reminders/domain/entities/reminder.dart';
 import 'package:viernes/features/reminders/domain/entities/reminder_enums.dart';
@@ -52,6 +53,8 @@ class VoiceState {
     this.preview,
     this.saved,
     this.agenda,
+    this.events,
+    this.driving = false,
   });
 
   final VoiceStage stage;
@@ -68,6 +71,12 @@ class VoiceState {
   /// Recordatorios de la respuesta a "¿qué tengo hoy?".
   final List<Reminder>? agenda;
 
+  /// Eventos del calendario del teléfono que acompañan la respuesta.
+  final List<CalendarEvent>? events;
+
+  /// Modo conducción: textos y botones grandes, respuestas cortas.
+  final bool driving;
+
   bool get isBusy =>
       stage == VoiceStage.listening ||
       stage == VoiceStage.thinking ||
@@ -82,6 +91,8 @@ class VoiceState {
     bool clearPreview = false,
     Reminder? saved,
     List<Reminder>? agenda,
+    List<CalendarEvent>? events,
+    bool? driving,
   }) => VoiceState(
     stage: stage ?? this.stage,
     message: message ?? this.message,
@@ -90,5 +101,7 @@ class VoiceState {
     preview: clearPreview ? null : preview ?? this.preview,
     saved: saved ?? this.saved,
     agenda: agenda ?? this.agenda,
+    events: events ?? this.events,
+    driving: driving ?? this.driving,
   );
 }

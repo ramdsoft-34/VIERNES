@@ -3,8 +3,13 @@ import 'package:viernes/ai/nlu/es/spanish_text.dart';
 /// «Recuérdale a Sofi recoger el paquete mañana a las 5».
 typedef ShareRequest = ({String afterTo});
 
-/// «Agrega leche y pan a la lista del mercado».
-typedef ListAddRequest = ({List<String> items, String listName});
+/// «Agrega leche y pan a la lista del mercado». `assignee`: «… para Sofi»
+/// (quién debe hacerlo), tal como se dijo.
+typedef ListAddRequest = ({
+  List<String> items,
+  String listName,
+  String? assignee,
+});
 
 /// Frases para compartir con otras personas.
 abstract final class SpanishShareParser {
@@ -24,6 +29,15 @@ abstract final class SpanishShareParser {
     r'^(?:(?:oye\s+)?viernes[,\s]+)?(?:que (?:hay|tengo|falta) en|leeme|lee|'
     r'dime|que dice)\s+(?:la\s+)?lista\s+(?:de\s+(?:la\s+|las\s+|los\s+)?|del\s+)?(.+)$',
   );
+
+  static final _listMine = RegExp(
+    r'^(?:(?:oye\s+)?viernes[,\s]+)?que\s+(?:me\s+toca(?:\s+hacer)?|'
+    r'tengo\s+asignado|me\s+asignaron)\s+(?:en|de)\s+(?:la\s+)?lista\s+'
+    r'(?:de\s+(?:la\s+|las\s+|los\s+)?|del\s+)?(.+)$',
+  );
+
+  /// «… a la lista de la casa para Sofi»: la persona va al final.
+  static final _assignee = RegExp(r'^(.+)\s+para\s+(.+)$');
 
   static String _clean(String text) => SpanishText.fold(
     text,
@@ -50,7 +64,23 @@ abstract final class SpanishShareParser {
         if (part.trim().isNotEmpty) _capitalize(part.trim()),
     ];
     if (items.isEmpty) return null;
-    return (items: items, listName: _clean(m[2]!));
+    var listName = _clean(m[2]!);
+    String? assignee;
+    final who = _assignee.firstMatch(listName);
+    if (who != null) {
+      listName = who[1]!.trim();
+      // El nombre se toma del texto original (con mayúsculas y tildes).
+      final start =
+          original.length - m[2]!.length + m[2]!.lastIndexOf(' para ');
+      assignee = original.substring(start + ' para '.length).trim();
+    }
+    return (items: items, listName: listName, assignee: assignee);
+  }
+
+  /// «¿Qué me toca en la lista de la casa?» → «casa».
+  static String? parseListMine(String text) {
+    final m = _listMine.firstMatch(_clean(text));
+    return m?[1]?.trim();
   }
 
   static String? parseListRead(String text) {

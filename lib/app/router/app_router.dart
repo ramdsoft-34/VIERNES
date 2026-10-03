@@ -5,6 +5,7 @@ import 'package:viernes/app/router/app_shell.dart';
 import 'package:viernes/app/router/routes.dart';
 import 'package:viernes/features/account/presentation/welcome_screen.dart';
 import 'package:viernes/features/alerts/presentation/alert_screen.dart';
+import 'package:viernes/features/birthdays/presentation/birthdays_screen.dart';
 import 'package:viernes/features/calendar/presentation/calendar_screen.dart';
 import 'package:viernes/features/history/presentation/history_screen.dart';
 import 'package:viernes/features/home/presentation/home_screen.dart';
@@ -69,6 +70,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.places,
         parentNavigatorKey: rootNavigatorKey,
         builder: (context, state) => const PlacesScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.birthdays,
+        parentNavigatorKey: rootNavigatorKey,
+        builder: (context, state) => const BirthdaysScreen(),
       ),
       GoRoute(
         path: AppRoutes.locationReminders,

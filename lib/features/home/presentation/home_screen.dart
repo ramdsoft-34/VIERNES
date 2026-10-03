@@ -16,6 +16,7 @@ import 'package:viernes/features/reminders/domain/entities/reminder.dart';
 import 'package:viernes/features/reminders/domain/entities/reminder_enums.dart';
 import 'package:viernes/features/reminders/presentation/providers/reminder_providers.dart';
 import 'package:viernes/features/reminders/presentation/widgets/reminder_tile.dart';
+import 'package:viernes/features/routines/routine_card.dart';
 import 'package:viernes/features/voice_assistant/presentation/voice_button.dart';
 
 class HomeScreen extends ConsumerWidget {
@@ -132,6 +133,8 @@ class _HomeContent extends StatelessWidget {
         _SummaryCard(todayCount: todayCount, overdueCount: overdue.length),
         const SizedBox(height: 12),
         const VoiceButton(),
+        const SizedBox(height: 8),
+        const RoutineSuggestionCard(),
         if (overdue.isNotEmpty) ...[
           SectionHeader(
             l10n.homeSectionOverdue,

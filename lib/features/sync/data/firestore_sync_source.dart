@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:viernes/features/account/domain/app_user.dart';
+import 'package:viernes/features/places/domain/place.dart';
 import 'package:viernes/features/sync/data/cloud_codec.dart';
 import 'package:viernes/features/sync/domain/remote_sync_source.dart';
 import 'package:viernes/features/sync/domain/sync_records.dart';
@@ -10,6 +11,8 @@ import 'package:viernes/features/sync/domain/sync_records.dart';
 /// users/{uid}                    perfil + preferencias
 /// users/{uid}/reminders/{id}     recordatorios
 /// users/{uid}/events/{syncId}    historial
+/// users/{uid}/places/{id}        lugares guardados
+/// users/{uid}/location_reminders/{id}  recordatorios por ubicación
 /// ```
 ///
 /// Los borrados se guardan como `deleted: true` para que los demás teléfonos
@@ -38,6 +41,12 @@ class FirestoreSyncSource implements RemoteSyncSource {
   CollectionReference<Map<String, dynamic>> _events(String uid) =>
       _user(uid).collection('events');
 
+  CollectionReference<Map<String, dynamic>> _places(String uid) =>
+      _user(uid).collection('places');
+
+  CollectionReference<Map<String, dynamic>> _locationReminders(String uid) =>
+      _user(uid).collection('location_reminders');
+
   @override
   Future<void> push(String uid, LocalChanges changes) async {
     final writes = <void Function(WriteBatch)>[
@@ -51,11 +60,25 @@ class FirestoreSyncSource implements RemoteSyncSource {
           ...CloudCodec.encodeEvent(event),
           _serverUpdatedAt: FieldValue.serverTimestamp(),
         }),
+      for (final place in changes.places)
+        (batch) => batch.set(_places(uid).doc(place.id), {
+          ...CloudCodec.encodePlace(place),
+          _serverUpdatedAt: FieldValue.serverTimestamp(),
+        }),
+      for (final reminder in changes.locationReminders)
+        (batch) => batch.set(_locationReminders(uid).doc(reminder.id), {
+          ...CloudCodec.encodeLocationReminder(reminder),
+          _serverUpdatedAt: FieldValue.serverTimestamp(),
+        }),
       for (final deletion in changes.deletions)
         (batch) => batch.set(
           switch (deletion.entity) {
             SyncEntity.reminder => _reminders(uid).doc(deletion.entityId),
             SyncEntity.event => _events(uid).doc(deletion.entityId),
+            SyncEntity.place => _places(uid).doc(deletion.entityId),
+            SyncEntity.locationReminder => _locationReminders(
+              uid,
+            ).doc(deletion.entityId),
           },
           {
             'v': CloudCodec.formatVersion,
@@ -88,6 +111,10 @@ class FirestoreSyncSource implements RemoteSyncSource {
     const server = GetOptions(source: Source.server);
     final reminderDocs = await changedSince(_reminders(uid)).get(server);
     final eventDocs = await changedSince(_events(uid)).get(server);
+    final placeDocs = await changedSince(_places(uid)).get(server);
+    final locationDocs = await changedSince(
+      _locationReminders(uid),
+    ).get(server);
 
     DateTime? cursor;
     void track(Map<String, dynamic> data) {
@@ -121,10 +148,34 @@ class FirestoreSyncSource implements RemoteSyncSource {
         ),
       );
     }
+    final places = <RemoteItem<Place>>[
+      for (final doc in placeDocs.docs)
+        _item(doc, track, CloudCodec.decodePlace),
+    ];
+    final locationReminders = <RemoteItem<LocationReminder>>[
+      for (final doc in locationDocs.docs)
+        _item(doc, track, CloudCodec.decodeLocationReminder),
+    ];
     return RemoteChanges(
       reminders: reminders,
       events: events,
+      places: places,
+      locationReminders: locationReminders,
       cursor: cursor ?? since,
+    );
+  }
+
+  static RemoteItem<T> _item<T>(
+    QueryDocumentSnapshot<Map<String, dynamic>> doc,
+    void Function(Map<String, dynamic>) track,
+    T Function(String id, Map<String, Object?> data) decode,
+  ) {
+    final data = doc.data();
+    track(data);
+    return RemoteItem<T>(
+      id: doc.id,
+      updatedAt: CloudCodec.readDate(data['updatedAt']) ?? DateTime(1970),
+      value: data['deleted'] == true ? null : decode(doc.id, data),
     );
   }
 
@@ -158,7 +209,12 @@ class FirestoreSyncSource implements RemoteSyncSource {
 
   @override
   Future<void> deleteAll(String uid) async {
-    for (final collection in [_reminders(uid), _events(uid)]) {
+    for (final collection in [
+      _reminders(uid),
+      _events(uid),
+      _places(uid),
+      _locationReminders(uid),
+    ]) {
       while (true) {
         final page = await collection.limit(_batchSize).get();
         if (page.docs.isEmpty) break;

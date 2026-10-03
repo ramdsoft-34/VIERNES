@@ -48,6 +48,14 @@ class WakeWordService : Service() {
         const val EXTRA_THRESHOLD = "threshold"
         const val EXTRA_CHIME = "chime"
         const val EXTRA_SAVE_SAMPLES = "saveSamples"
+        const val EXTRA_LOW_BATTERY_PAUSE = "lowBatteryPause"
+
+        /** Pausa por batería baja: 15 % o menos y sin cargar. */
+        private const val LOW_BATTERY = 15f
+
+        /** Retoma al cargar o al pasar de este nivel. */
+        private const val BATTERY_OK = 20f
+        private const val STATS_EVERY_MS = 60_000L
 
         /** Carpeta (en filesDir) con el audio de cada activación. */
         const val SAMPLES_DIR = "wake_samples"
@@ -86,6 +94,12 @@ class WakeWordService : Service() {
     private var threshold = 0.8f
     private var chime = true
     private var saveSamples = false
+    private var lowBatteryPause = true
+
+    /** En pausa porque queda poca batería (se retoma al cargar). */
+    @Volatile
+    private var batteryPaused = false
+    private var batteryReceiver: android.content.BroadcastReceiver? = null
 
     /** Últimos [SAMPLE_SECONDS] s de audio, para guardar cada activación. */
     private val history = ShortArray(WakeWordEngine.SAMPLE_RATE * SAMPLE_SECONDS)
@@ -100,6 +114,7 @@ class WakeWordService : Service() {
                 threshold = intent.getFloatExtra(EXTRA_THRESHOLD, threshold)
                 chime = intent.getBooleanExtra(EXTRA_CHIME, chime)
                 saveSamples = intent.getBooleanExtra(EXTRA_SAVE_SAMPLES, saveSamples)
+                lowBatteryPause = intent.getBooleanExtra(EXTRA_LOW_BATTERY_PAUSE, lowBatteryPause)
                 if (!startInForeground()) return START_NOT_STICKY
                 isRunning = true
                 resumeListening()
@@ -149,6 +164,10 @@ class WakeWordService : Service() {
     private fun resumeListening() {
         mainHandler.removeCallbacks(autoResume)
         if (listening) return
+        if (lowBatteryPause && batteryIsLow()) {
+            pauseForBattery()
+            return
+        }
         listening = true
         isPaused = false
         updateNotification()
@@ -176,10 +195,27 @@ class WakeWordService : Service() {
             mainHandler.post { stopEverything() }
             return
         }
+        val stats = WakeStats.Session(this)
+        var lastFlush = android.os.SystemClock.elapsedRealtime()
+        fun flushStats() {
+            val values = (engine as? OpenWakeWordEngine)?.takeStats()
+                ?: longArrayOf(0, 0, 0, 0)
+            stats.flush(values[0], values[1], values[2], values[3])
+        }
         try {
             record.startRecording()
             val buffer = ShortArray(FRAME_SAMPLES)
             while (listening) {
+                val now = android.os.SystemClock.elapsedRealtime()
+                if (now - lastFlush >= STATS_EVERY_MS) {
+                    lastFlush = now
+                    flushStats()
+                    if (lowBatteryPause && batteryIsLow()) {
+                        listening = false
+                        mainHandler.post { pauseForBattery() }
+                        break
+                    }
+                }
                 val read = record.read(buffer, 0, buffer.size)
                 if (read <= 0) continue
                 remember(buffer, read)
@@ -195,9 +231,47 @@ class WakeWordService : Service() {
         } catch (error: Exception) {
             Log.e(TAG, "Error escuchando", error)
         } finally {
+            runCatching { flushStats() }
             runCatching { record.stop() }
             record.release()
         }
+    }
+
+    // --- Batería -----------------------------------------------------------------
+
+    private fun batteryIsLow(): Boolean {
+        val battery = WakeStats.battery(this) ?: return false
+        return !battery.charging && battery.level <= LOW_BATTERY
+    }
+
+    /** Suelta el micrófono hasta que se conecte el cargador. */
+    private fun pauseForBattery() {
+        if (batteryPaused) return
+        batteryPaused = true
+        listening = false
+        isPaused = true
+        updateNotification()
+        val receiver = object : android.content.BroadcastReceiver() {
+            override fun onReceive(context: Context, intent: Intent) {
+                val battery = WakeStats.battery(context) ?: return
+                if (battery.charging || battery.level >= BATTERY_OK) resumeAfterBattery()
+            }
+        }
+        batteryReceiver = receiver
+        val filter = android.content.IntentFilter().apply {
+            addAction(Intent.ACTION_POWER_CONNECTED)
+            addAction(Intent.ACTION_BATTERY_OKAY)
+            addAction(Intent.ACTION_BATTERY_CHANGED)
+        }
+        ContextCompat.registerReceiver(this, receiver, filter, ContextCompat.RECEIVER_NOT_EXPORTED)
+    }
+
+    private fun resumeAfterBattery() {
+        if (!batteryPaused) return
+        batteryPaused = false
+        batteryReceiver?.let { runCatching { unregisterReceiver(it) } }
+        batteryReceiver = null
+        if (isRunning) resumeListening()
     }
 
     /**
@@ -364,13 +438,17 @@ class WakeWordService : Service() {
         return NotificationCompat.Builder(this, CHANNEL_SERVICE)
             .setSmallIcon(R.drawable.ic_stat_viernes)
             .setContentTitle(
-                if (paused) "Escucha en pausa" else "Viernes está atento",
+                when {
+                    batteryPaused -> "Escucha en pausa por batería baja"
+                    paused -> "Escucha en pausa"
+                    else -> "Viernes está atento"
+                },
             )
             .setContentText(
-                if (paused) {
-                    "Se reanuda al terminar la conversación"
-                } else {
-                    "Di «Viernes» para crear un recordatorio"
+                when {
+                    batteryPaused -> "Se reanuda al conectar el cargador"
+                    paused -> "Se reanuda al terminar la conversación"
+                    else -> "Di «Viernes» para crear un recordatorio"
                 },
             )
             .setOngoing(true)
@@ -390,6 +468,9 @@ class WakeWordService : Service() {
 
     private fun stopEverything() {
         mainHandler.removeCallbacks(autoResume)
+        batteryReceiver?.let { runCatching { unregisterReceiver(it) } }
+        batteryReceiver = null
+        batteryPaused = false
         listening = false
         audioThread?.join(500)
         audioThread = null
@@ -400,6 +481,8 @@ class WakeWordService : Service() {
     }
 
     override fun onDestroy() {
+        batteryReceiver?.let { runCatching { unregisterReceiver(it) } }
+        batteryReceiver = null
         listening = false
         audioThread?.join(500)
         engine?.close()

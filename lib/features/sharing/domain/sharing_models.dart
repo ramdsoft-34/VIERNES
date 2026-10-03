@@ -99,6 +99,18 @@ class SharedList {
     required this.createdAt,
   });
 
+  factory SharedList.fromJson(Map<String, Object?> json) => SharedList(
+    id: json['id']! as String,
+    name: json['name'] as String? ?? '',
+    ownerUid: json['ownerUid'] as String? ?? '',
+    memberEmails: [
+      for (final e in (json['memberEmails'] as List?) ?? const []) '$e',
+    ],
+    createdAt: DateTime.fromMillisecondsSinceEpoch(
+      (json['createdAt'] as num?)?.toInt() ?? 0,
+    ),
+  );
+
   final String id;
   final String name;
   final String ownerUid;
@@ -108,6 +120,14 @@ class SharedList {
   final DateTime createdAt;
 
   String get key => SpanishText.fold(name).trim();
+
+  Map<String, Object?> toJson() => {
+    'id': id,
+    'name': name,
+    'ownerUid': ownerUid,
+    'memberEmails': memberEmails,
+    'createdAt': createdAt.millisecondsSinceEpoch,
+  };
 }
 
 @immutable
@@ -118,7 +138,21 @@ class SharedListItem {
     required this.addedBy,
     required this.addedAt,
     this.done = false,
+    this.assignedTo,
+    this.assignedName,
   });
+
+  factory SharedListItem.fromJson(Map<String, Object?> json) => SharedListItem(
+    id: json['id']! as String,
+    text: json['text'] as String? ?? '',
+    addedBy: json['addedBy'] as String? ?? '',
+    addedAt: DateTime.fromMillisecondsSinceEpoch(
+      (json['addedAt'] as num?)?.toInt() ?? 0,
+    ),
+    done: json['done'] == true,
+    assignedTo: json['assignedTo'] as String?,
+    assignedName: json['assignedName'] as String?,
+  );
 
   final String id;
   final String text;
@@ -127,4 +161,50 @@ class SharedListItem {
   final String addedBy;
   final DateTime addedAt;
   final bool done;
+
+  /// Correo de quien debe hacerlo (en minúsculas), si se asignó.
+  final String? assignedTo;
+
+  /// Nombre con el que se muestra a esa persona.
+  final String? assignedName;
+
+  SharedListItem copyWith({
+    bool? done,
+    String? assignedTo,
+    String? assignedName,
+    bool clearAssignee = false,
+  }) => SharedListItem(
+    id: id,
+    text: text,
+    addedBy: addedBy,
+    addedAt: addedAt,
+    done: done ?? this.done,
+    assignedTo: clearAssignee ? null : assignedTo ?? this.assignedTo,
+    assignedName: clearAssignee ? null : assignedName ?? this.assignedName,
+  );
+
+  Map<String, Object?> toJson() => {
+    'id': id,
+    'text': text,
+    'addedBy': addedBy,
+    'addedAt': addedAt.millisecondsSinceEpoch,
+    'done': done,
+    'assignedTo': assignedTo,
+    'assignedName': assignedName,
+  };
+
+  @override
+  bool operator ==(Object other) =>
+      other is SharedListItem &&
+      other.id == id &&
+      other.text == text &&
+      other.addedBy == addedBy &&
+      other.addedAt == addedAt &&
+      other.done == done &&
+      other.assignedTo == assignedTo &&
+      other.assignedName == assignedName;
+
+  @override
+  int get hashCode =>
+      Object.hash(id, text, addedBy, addedAt, done, assignedTo, assignedName);
 }

@@ -54,6 +54,14 @@ class FirestoreSharingRepository implements SharingRepository {
           'doneAt': Timestamp.fromDate(at),
       });
 
+  /// Un recordatorio compartido por su id (para el mensaje push con la app
+  /// cerrada).
+  Future<SharedReminder?> fetchShared(String id) async {
+    final doc = await _shared.doc(id).get();
+    final data = doc.data();
+    return data == null ? null : _reminder(doc.id, data);
+  }
+
   static SharedReminder _reminder(String id, Map<String, dynamic> d) =>
       SharedReminder(
         id: id,
@@ -127,6 +135,8 @@ class FirestoreSharingRepository implements SharingRepository {
                   addedBy: d.data()['addedBy'] as String? ?? '',
                   addedAt: _date(d.data()['addedAt']),
                   done: d.data()['done'] == true,
+                  assignedTo: d.data()['assignedTo'] as String?,
+                  assignedName: d.data()['assignedName'] as String?,
                 ),
             ]..sort((a, b) {
               if (a.done != b.done) return a.done ? 1 : -1;
@@ -143,6 +153,9 @@ class FirestoreSharingRepository implements SharingRepository {
         'addedBy': item.addedBy,
         'addedAt': Timestamp.fromDate(item.addedAt),
         'done': item.done,
+        if (item.assignedTo != null)
+          'assignedTo': item.assignedTo!.toLowerCase(),
+        if (item.assignedName != null) 'assignedName': item.assignedName,
       });
     }
     await batch.commit();
@@ -160,6 +173,17 @@ class FirestoreSharingRepository implements SharingRepository {
   @override
   Future<void> deleteItem(String listId, String itemId) =>
       _lists.doc(listId).collection('items').doc(itemId).delete();
+
+  @override
+  Future<void> assignItem(
+    String listId,
+    String itemId, {
+    required String? email,
+    required String? name,
+  }) => _lists.doc(listId).collection('items').doc(itemId).update({
+    'assignedTo': email?.toLowerCase() ?? FieldValue.delete(),
+    'assignedName': name ?? FieldValue.delete(),
+  });
 
   static SharedList _list(String id, Map<String, dynamic> d) => SharedList(
     id: id,

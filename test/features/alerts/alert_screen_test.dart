@@ -6,10 +6,13 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:viernes/ai/ai_providers.dart';
+import 'package:viernes/ai/learning/snooze_habits.dart';
 import 'package:viernes/ai/speech/speech_recognizer.dart';
 import 'package:viernes/app/providers.dart';
 import 'package:viernes/core/utils/clock.dart';
 import 'package:viernes/features/alerts/presentation/alert_screen.dart';
+import 'package:viernes/features/attachments/domain/attachment.dart';
+import 'package:viernes/features/attachments/presentation/attachment_providers.dart';
 import 'package:viernes/features/reminders/domain/entities/reminder_enums.dart';
 import 'package:viernes/features/reminders/presentation/providers/reminder_providers.dart';
 import 'package:viernes/l10n/gen/app_localizations.dart';
@@ -23,12 +26,13 @@ void main() {
   late FakeReminderRepository repository;
   late FakeSpeechRecognizer recognizer;
   late FakeSpeaker speaker;
+  late SharedPreferences prefs;
 
   setUpAll(() => initializeDateFormatting('es'));
 
   Future<void> pumpAlert(WidgetTester tester) async {
     SharedPreferences.setMockInitialValues({});
-    final prefs = await SharedPreferences.getInstance();
+    prefs = await SharedPreferences.getInstance();
     repository = FakeReminderRepository();
     await repository.save(
       buildReminder(
@@ -54,6 +58,9 @@ void main() {
           nowProvider.overrideWith((ref) => Stream.value(now)),
           speechRecognizerProvider.overrideWithValue(recognizer),
           speakerProvider.overrideWithValue(speaker),
+          attachmentsProvider.overrideWith(
+            (ref, id) => Stream.value(const <Attachment>[]),
+          ),
         ],
         child: MaterialApp.router(
           routerConfig: router,
@@ -102,10 +109,23 @@ void main() {
     expect(find.text('INICIO'), findsOneWidget);
   });
 
-  testWidgets('"Recordar después" deja elegir cuándo', (tester) async {
+  testWidgets('"Posponer" usa el tiempo de siempre', (tester) async {
     await pumpAlert(tester);
 
-    await tester.tap(find.text('Recordar después'));
+    await tester.tap(find.text('Posponer 10 min'));
+    await tester.pump(const Duration(milliseconds: 400));
+
+    final reminder = repository.reminders['r1']!;
+    expect(reminder.status, ReminderStatus.snoozed);
+    expect(reminder.snoozedUntil, DateTime(2026, 10, 1, 8, 10));
+    await tester.pump(const Duration(seconds: 2));
+    await tester.pump(const Duration(milliseconds: 500));
+  });
+
+  testWidgets('"Otro tiempo" deja elegir cuándo y lo aprende', (tester) async {
+    await pumpAlert(tester);
+
+    await tester.tap(find.byTooltip('Otro tiempo'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 600));
     await tester.ensureVisible(find.text('En 30 min'));
@@ -117,6 +137,7 @@ void main() {
     final reminder = repository.reminders['r1']!;
     expect(reminder.status, ReminderStatus.snoozed);
     expect(reminder.snoozedUntil, DateTime(2026, 10, 1, 8, 30));
+    expect(SnoozeHabits(prefs).choices(), [const Duration(minutes: 30)]);
     await tester.pump(const Duration(seconds: 2));
     await tester.pump(const Duration(milliseconds: 500));
   });

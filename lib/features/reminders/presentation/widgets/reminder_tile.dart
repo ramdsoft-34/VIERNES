@@ -7,6 +7,7 @@ import 'package:viernes/app/providers.dart';
 import 'package:viernes/app/router/routes.dart';
 import 'package:viernes/app/theme/app_theme.dart';
 import 'package:viernes/core/extensions/context_x.dart';
+import 'package:viernes/features/attachments/presentation/attachment_providers.dart';
 import 'package:viernes/features/reminders/domain/entities/reminder.dart';
 import 'package:viernes/features/reminders/domain/entities/reminder_enums.dart';
 import 'package:viernes/features/reminders/presentation/reminder_actions.dart';
@@ -31,6 +32,12 @@ class ReminderTile extends ConsumerWidget {
     final done = reminder.status == ReminderStatus.completed;
     final overdue = occurrenceAt == null && reminder.isOverdue(now);
     final date = occurrenceAt ?? reminder.dueAt;
+    final hasAttachments =
+        ref
+            .watch(remindersWithAttachmentsProvider)
+            .value
+            ?.contains(reminder.id) ??
+        false;
 
     final card = Card(
       clipBehavior: Clip.antiAlias,
@@ -94,6 +101,13 @@ class ReminderTile extends ConsumerWidget {
                           _Badge(
                             label: l10n.priority(reminder.priority),
                             color: reminder.priority.color(colors),
+                          ),
+                        if (hasAttachments)
+                          Icon(
+                            Icons.attach_file,
+                            size: 16,
+                            semanticLabel: l10n.attachTitle,
+                            color: colors.onSurfaceVariant,
                           ),
                       ],
                     ),

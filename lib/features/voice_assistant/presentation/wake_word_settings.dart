@@ -77,6 +77,16 @@ class WakeWordSettingsTiles extends ConsumerWidget {
                 .update((s) => s.copyWith(wakeChime: value)),
           ),
           const Divider(height: 1, indent: 56),
+          SwitchListTile(
+            secondary: const Icon(Icons.battery_saver_outlined),
+            title: Text(l10n.wakeLowBattery),
+            subtitle: Text(l10n.wakeLowBatterySubtitle),
+            value: settings.lowBatteryPause,
+            onChanged: (value) => ref
+                .read(settingsControllerProvider.notifier)
+                .update((s) => s.copyWith(lowBatteryPause: value)),
+          ),
+          const Divider(height: 1, indent: 56),
           ListTile(
             leading: const Icon(Icons.open_in_new),
             title: Text(l10n.wakeOverlay),

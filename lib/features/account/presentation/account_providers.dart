@@ -8,7 +8,11 @@ import 'package:viernes/features/account/data/unavailable_auth_repository.dart';
 import 'package:viernes/features/account/domain/app_user.dart';
 import 'package:viernes/features/account/domain/auth_repository.dart';
 import 'package:viernes/features/alerts/presentation/alert_providers.dart';
+import 'package:viernes/features/attachments/presentation/attachment_providers.dart';
+import 'package:viernes/features/push/push_service.dart';
 import 'package:viernes/features/settings/presentation/settings_controller.dart';
+import 'package:viernes/features/sharing/data/offline_sharing_repository.dart';
+import 'package:viernes/features/sharing/presentation/sharing_providers.dart';
 import 'package:viernes/features/sync/presentation/sync_controller.dart';
 
 /// Inicio de sesión. Sin configuración de Firebase, uno que explica qué
@@ -54,6 +58,12 @@ final accountServiceProvider = Provider<AccountService>(
         'appVersion': '${info.version}+${info.buildNumber}',
         'flavor': ref.read(flavorProvider).name,
       };
+    },
+    beforeSignOut: (uid) => ref.read(pushTokensProvider).unregister(),
+    afterSignOut: () async {
+      final sharing = ref.read(sharingRepositoryProvider);
+      if (sharing is OfflineSharingRepository) await sharing.clear();
+      await ref.read(attachmentFilesProvider).clear();
     },
   ),
 );

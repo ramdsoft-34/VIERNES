@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:ui';
 
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/date_symbol_data_local.dart';
@@ -17,7 +18,11 @@ import 'package:viernes/core/logging/app_logger.dart';
 import 'package:viernes/features/account/presentation/account_providers.dart';
 import 'package:viernes/features/alerts/application/alert_action_handler.dart';
 import 'package:viernes/features/alerts/presentation/alert_providers.dart';
+import 'package:viernes/features/attachments/presentation/attachment_providers.dart';
+import 'package:viernes/features/birthdays/presentation/birthdays_screen.dart';
 import 'package:viernes/features/places/presentation/places_providers.dart';
+import 'package:viernes/features/push/push_service.dart';
+import 'package:viernes/features/settings/presentation/settings_controller.dart';
 import 'package:viernes/features/sharing/presentation/sharing_providers.dart';
 import 'package:viernes/features/sync/presentation/sync_controller.dart';
 import 'package:viernes/features/voice_assistant/presentation/wake_word_controller.dart';
@@ -47,6 +52,10 @@ Future<void> bootstrap(AppFlavor flavor) async {
   await initializeDateFormatting('es');
   final prefs = await SharedPreferences.getInstance();
   final cloudAvailable = await initializeCloud();
+  if (cloudAvailable) {
+    // Recordatorios compartidos y avisos de listas con la app cerrada.
+    FirebaseMessaging.onBackgroundMessage(onBackgroundPush);
+  }
 
   final container = ProviderContainer(
     overrides: [
@@ -68,6 +77,13 @@ Future<void> bootstrap(AppFlavor flavor) async {
         .read(notificationServiceProvider)
         .initialize();
     final reminderId = launch?.payload;
+    // Resumen de la mañana: «Escuchar», o tocarlo con la lectura activada.
+    if (reminderId == AlertActions.morningPayload &&
+        (launch?.actionId == AlertActions.listenSummary ||
+            (launch?.actionId == null &&
+                container.read(settingsControllerProvider).speakBriefing))) {
+      container.read(briefingRequestsProvider).request();
+    }
     // Los resúmenes diarios abren el inicio, que ya es la ruta por defecto.
     if (reminderId != null &&
         launch?.actionId == null &&
@@ -88,6 +104,19 @@ Future<void> bootstrap(AppFlavor flavor) async {
   container.read(syncControllerProvider.notifier).start();
   unawaited(container.read(placesCoordinatorProvider).start());
   container.read(sharingCoordinatorProvider).start();
+  container.read(pushCoordinatorProvider).start();
+  // Cumpleaños nuevos de los contactos (si el usuario lo pidió) y adjuntos
+  // de recordatorios que ya no existen.
+  unawaited(container.read(birthdaysStartupProvider)());
+  unawaited(
+    container
+        .read(attachmentsRepositoryProvider)
+        .removeOrphans()
+        .then(
+          (_) {},
+          onError: (Object e) => AppLogger.info('Adjuntos: $e'),
+        ),
+  );
   // Carga la red neuronal propia en segundo plano.
   unawaited(container.read(neuralTaggerProvider.future));
 

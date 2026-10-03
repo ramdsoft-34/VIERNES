@@ -7,10 +7,12 @@ import 'package:table_calendar/table_calendar.dart';
 import 'package:viernes/app/providers.dart';
 import 'package:viernes/app/router/routes.dart';
 import 'package:viernes/core/extensions/context_x.dart';
+import 'package:viernes/core/platform/device_data.dart';
 import 'package:viernes/core/utils/date_x.dart';
 import 'package:viernes/core/widgets/async_value_view.dart';
 import 'package:viernes/core/widgets/empty_state.dart';
 import 'package:viernes/features/calendar/domain/calendar_occurrences.dart';
+import 'package:viernes/features/device/device_providers.dart';
 import 'package:viernes/features/reminders/presentation/providers/reminder_providers.dart';
 import 'package:viernes/features/reminders/presentation/reminder_formatters.dart';
 import 'package:viernes/features/reminders/presentation/widgets/reminder_tile.dart';
@@ -65,6 +67,9 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
         data: (reminders) {
           final byDay = CalendarOccurrences.expand(reminders, from, to);
           final dayItems = byDay[_selected.startOfDay] ?? const [];
+          final phoneEvents =
+              ref.watch(calendarDayEventsProvider(_selected)).value ??
+              const <CalendarEvent>[];
           // Calendario y lista en un solo desplazamiento: en pantallas bajas el
           // calendario mensual ocupa casi todo el alto.
           return ListView(
@@ -123,7 +128,29 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                   ),
                 ),
               ),
-              if (dayItems.isEmpty)
+              // Eventos del calendario del teléfono (solo lectura).
+              for (final event in phoneEvents)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
+                  child: Card(
+                    color: context.colors.surfaceContainerHighest,
+                    child: ListTile(
+                      leading: const Icon(Icons.event_note_outlined),
+                      title: Text(event.title),
+                      subtitle: Text(
+                        [
+                          if (event.allDay)
+                            l10n.calendarAllDay
+                          else
+                            l10n.time(event.start),
+                          ?event.location,
+                          l10n.calendarFromPhone,
+                        ].join(' · '),
+                      ),
+                    ),
+                  ),
+                ),
+              if (dayItems.isEmpty && phoneEvents.isEmpty)
                 EmptyState(
                   icon: Icons.event_available,
                   title: l10n.calendarEmptyDay,

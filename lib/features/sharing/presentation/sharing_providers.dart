@@ -1,8 +1,10 @@
 import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:viernes/app/providers.dart';
 import 'package:viernes/core/logging/app_logger.dart';
 import 'package:viernes/features/account/domain/app_user.dart';
@@ -13,12 +15,27 @@ import 'package:viernes/features/reminders/presentation/providers/reminder_provi
 import 'package:viernes/features/sharing/application/shared_inbox.dart';
 import 'package:viernes/features/sharing/data/contacts_repository.dart';
 import 'package:viernes/features/sharing/data/firestore_sharing_repository.dart';
+import 'package:viernes/features/sharing/data/offline_sharing_repository.dart';
 import 'package:viernes/features/sharing/domain/sharing_models.dart';
 import 'package:viernes/features/sharing/domain/sharing_repository.dart';
 
-/// Nube compartida. Solo se usa con sesión iniciada; en pruebas, una falsa.
-final sharingRepositoryProvider = Provider<SharingRepository>(
+/// Nube compartida directa (Firestore). En pruebas, una falsa.
+final remoteSharingRepositoryProvider = Provider<SharingRepository>(
   (ref) => FirestoreSharingRepository(FirebaseFirestore.instance),
+);
+
+/// Nube compartida con copia en el teléfono: las listas funcionan sin
+/// internet y los cambios se suben al volver la conexión.
+final offlineSharingRepositoryProvider = Provider<OfflineSharingRepository>(
+  (ref) => OfflineSharingRepository(
+    ref.watch(remoteSharingRepositoryProvider),
+    ref.watch(sharedPreferencesProvider),
+  ),
+);
+
+/// Lo que usa la app. Solo se usa con sesión iniciada.
+final sharingRepositoryProvider = Provider<SharingRepository>(
+  (ref) => ref.watch(offlineSharingRepositoryProvider),
 );
 
 final contactsRepositoryProvider = Provider<ContactsRepository>(
@@ -83,21 +100,97 @@ final sharingCoordinatorProvider = Provider<SharingCoordinator>((ref) {
   return coordinator;
 });
 
+/// Elementos de listas que me asignaron y ya avisé.
+class AssignedSeen {
+  AssignedSeen(this._prefs);
+
+  final SharedPreferences _prefs;
+  static const _key = 'sharing.assignedSeen';
+
+  Set<String> all() => (_prefs.getStringList(_key) ?? []).toSet();
+
+  Future<void> add(Iterable<String> ids) =>
+      _prefs.setStringList(_key, {...all(), ...ids}.toList());
+}
+
 /// Mientras hay sesión: recibe lo que me envían, avisa cuando completo lo
-/// recibido y me avisa cuando completan lo que envié.
-class SharingCoordinator {
+/// recibido y me avisa cuando completan lo que envié o me asignan algo en
+/// una lista. También sube los cambios de listas hechos sin internet.
+class SharingCoordinator with WidgetsBindingObserver {
   SharingCoordinator(this._ref);
 
   final Ref _ref;
   final _subscriptions = <StreamSubscription<Object?>>[];
+  final _listSubscriptions = <String, StreamSubscription<Object?>>{};
+  Timer? _retry;
   String? _uid;
 
   void start() {
+    WidgetsBinding.instance.addObserver(this);
     _ref.listen<AsyncValue<AppUser?>>(
       authStateProvider,
       (previous, next) => _bind(next.value),
       fireImmediately: true,
     );
+    // Reintenta subir lo pendiente de las listas cada minuto.
+    _retry = Timer.periodic(const Duration(minutes: 1), (_) => _flush());
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state != AppLifecycleState.resumed) return;
+    // Otro proceso (aviso con la app cerrada) pudo cambiar las preferencias.
+    unawaited(_ref.read(sharedPreferencesProvider).reload());
+    _flush();
+  }
+
+  void _flush() {
+    if (_uid == null) return;
+    final repository = _ref.read(sharingRepositoryProvider);
+    if (repository is OfflineSharingRepository) {
+      unawaited(_guard(repository.flush));
+    }
+  }
+
+  /// Avisa de lo que me asignaron en [list] (no al abrir la app: la primera
+  /// lectura solo marca lo que ya había).
+  void _watchAssignments(SharedList list, String email) {
+    if (_listSubscriptions.containsKey(list.id)) return;
+    final seen = AssignedSeen(_ref.read(sharedPreferencesProvider));
+    var first = true;
+    _listSubscriptions[list.id] = _ref
+        .read(sharingRepositoryProvider)
+        .watchItems(list.id)
+        .listen((items) {
+          final mine = [
+            for (final i in items)
+              if (!i.done &&
+                  i.assignedTo == email.toLowerCase() &&
+                  !seen.all().contains(i.id))
+                i,
+          ];
+          if (mine.isEmpty) {
+            first = false;
+            return;
+          }
+          final silent = first;
+          first = false;
+          unawaited(
+            _guard(() async {
+              await seen.add([for (final i in mine) i.id]);
+              if (silent) return;
+              for (final item in mine) {
+                await _ref
+                    .read(notificationServiceProvider)
+                    .showInfo(
+                      id: 0x7D000000 + (item.id.hashCode & 0xFFFF),
+                      title: 'En la lista ${list.name} te toca',
+                      body: item.text,
+                    );
+              }
+            }),
+          );
+        }, onError: _log);
   }
 
   void _bind(AppUser? user) {
@@ -109,7 +202,21 @@ class SharingCoordinator {
     final remote = _ref.read(sharingRepositoryProvider);
     final inbox = _ref.read(sharedInboxProvider);
     var firstSent = true;
+    _flush();
     _subscriptions
+      ..add(
+        remote.watchLists(email).listen((lists) {
+          for (final list in lists) {
+            _watchAssignments(list, email);
+          }
+          final ids = {for (final l in lists) l.id};
+          for (final id in _listSubscriptions.keys.toList()) {
+            if (!ids.contains(id)) {
+              unawaited(_listSubscriptions.remove(id)?.cancel());
+            }
+          }
+        }, onError: _log),
+      )
       ..add(
         remote
             .watchInbox(email)
@@ -154,11 +261,16 @@ class SharingCoordinator {
       AppLogger.info('Compartidos: no se pudo sincronizar ($error)');
 
   void _cancel() {
-    for (final s in _subscriptions) {
+    for (final s in [..._subscriptions, ..._listSubscriptions.values]) {
       unawaited(s.cancel());
     }
     _subscriptions.clear();
+    _listSubscriptions.clear();
   }
 
-  void dispose() => _cancel();
+  void dispose() {
+    _retry?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
+    _cancel();
+  }
 }

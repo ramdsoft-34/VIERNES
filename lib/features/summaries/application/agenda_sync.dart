@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:viernes/core/logging/app_logger.dart';
+import 'package:viernes/core/platform/device_data.dart';
 import 'package:viernes/core/utils/clock.dart';
 import 'package:viernes/features/reminders/domain/entities/reminder.dart';
 import 'package:viernes/features/settings/domain/app_settings.dart';
@@ -39,6 +40,7 @@ class AgendaSync {
     required this._settings,
     required this._clock,
     required this._loadActive,
+    this._loadEvents,
   });
 
   final SummaryScheduler _summaries;
@@ -46,6 +48,11 @@ class AgendaSync {
   final AppSettings Function() _settings;
   final Clock _clock;
   final Future<List<Reminder>> Function() _loadActive;
+
+  /// Eventos del calendario del teléfono entre dos fechas (si el usuario lo
+  /// permitió); se mencionan en el resumen de la mañana.
+  final Future<List<CalendarEvent>> Function(DateTime from, DateTime to)?
+  _loadEvents;
 
   /// El widget muestra los próximos; se envían algunos de más para que, al
   /// redibujarse más tarde, aún tenga qué mostrar.
@@ -81,9 +88,28 @@ class AgendaSync {
     }
     final now = _clock.now();
 
+    var events = const <CalendarEvent>[];
+    final loadEvents = _loadEvents;
+    if (loadEvents != null) {
+      try {
+        final today = DateTime(now.year, now.month, now.day);
+        events = await loadEvents(
+          today,
+          today.add(const Duration(days: SummaryPlanner.days)),
+        );
+      } on Object catch (error) {
+        AppLogger.info('Calendario no disponible: $error');
+      }
+    }
+
     try {
       await _summaries.replaceSummaries(
-        SummaryPlanner.plan(active: active, settings: _settings(), now: now),
+        SummaryPlanner.plan(
+          active: active,
+          settings: _settings(),
+          now: now,
+          events: events,
+        ),
       );
     } on Object catch (error) {
       AppLogger.error('No se pudieron programar los resúmenes', error: error);

@@ -147,9 +147,18 @@ class _SharedListScreenState extends ConsumerState<SharedListScreen> {
                                     )
                                   : null,
                             ),
-                            subtitle: item.addedBy.isEmpty
-                                ? null
-                                : Text(l10n.listsAddedBy(item.addedBy)),
+                            subtitle: _subtitle(context, item, user?.email),
+                            secondary: IconButton(
+                              tooltip: l10n.listsAssign,
+                              icon: Icon(
+                                item.assignedTo == null
+                                    ? Icons.person_add_alt_1_outlined
+                                    : Icons.assignment_ind,
+                              ),
+                              onPressed: list == null
+                                  ? null
+                                  : () => unawaited(_assign(list, item)),
+                            ),
                           ),
                         ),
                     ],
@@ -158,6 +167,73 @@ class _SharedListScreenState extends ConsumerState<SharedListScreen> {
         ],
       ),
     );
+  }
+
+  Widget? _subtitle(
+    BuildContext context,
+    SharedListItem item,
+    String? myEmail,
+  ) {
+    final l10n = context.l10n;
+    final parts = [
+      if (item.assignedTo != null)
+        item.assignedTo == myEmail?.toLowerCase()
+            ? l10n.listsForYou
+            : l10n.listsFor(item.assignedName ?? item.assignedTo!),
+      if (item.addedBy.isNotEmpty) l10n.listsAddedBy(item.addedBy),
+    ];
+    return parts.isEmpty ? null : Text(parts.join(' · '));
+  }
+
+  /// Elige a quién le toca entre los miembros de la lista.
+  Future<void> _assign(SharedList list, SharedListItem item) async {
+    final l10n = context.l10n;
+    final contacts = ref.read(contactsProvider);
+    final user = ref.read(authStateProvider).value;
+    final me = user?.email?.toLowerCase();
+    String nameOf(String email) {
+      if (email == me) return user?.firstName ?? email;
+      return contacts.where((c) => c.email == email).firstOrNull?.name ?? email;
+    }
+
+    // Vacío = sin asignar.
+    final picked = await showDialog<String>(
+      context: context,
+      builder: (context) => SimpleDialog(
+        title: Text(l10n.listsAssignTitle(item.text)),
+        children: [
+          for (final email in list.memberEmails)
+            SimpleDialogOption(
+              onPressed: () => Navigator.of(context).pop(email),
+              child: ListTile(
+                leading: Icon(
+                  email == item.assignedTo
+                      ? Icons.radio_button_checked
+                      : Icons.radio_button_unchecked,
+                ),
+                title: Text(email == me ? l10n.listsMe : nameOf(email)),
+                subtitle: Text(email),
+              ),
+            ),
+          SimpleDialogOption(
+            onPressed: () => Navigator.of(context).pop(''),
+            child: ListTile(
+              leading: const Icon(Icons.person_off_outlined),
+              title: Text(l10n.listsNobody),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (picked == null) return;
+    await ref
+        .read(sharingRepositoryProvider)
+        .assignItem(
+          widget.listId,
+          item.id,
+          email: picked.isEmpty ? null : picked,
+          name: picked.isEmpty ? null : nameOf(picked),
+        );
   }
 
   Future<void> _share(SharedList list) async {

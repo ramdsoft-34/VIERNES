@@ -2235,6 +2235,420 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'No se pudo completar. Inténtalo de nuevo.'**
   String get authErrorUnknown;
+
+  /// No description provided for @attachTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Fotos y notas de voz'**
+  String get attachTitle;
+
+  /// No description provided for @attachPhoto.
+  ///
+  /// In es, this message translates to:
+  /// **'Foto'**
+  String get attachPhoto;
+
+  /// No description provided for @attachVoiceNote.
+  ///
+  /// In es, this message translates to:
+  /// **'Nota de voz'**
+  String get attachVoiceNote;
+
+  /// No description provided for @attachCamera.
+  ///
+  /// In es, this message translates to:
+  /// **'Tomar foto'**
+  String get attachCamera;
+
+  /// No description provided for @attachGallery.
+  ///
+  /// In es, this message translates to:
+  /// **'Elegir de la galería'**
+  String get attachGallery;
+
+  /// No description provided for @attachPhotoError.
+  ///
+  /// In es, this message translates to:
+  /// **'No se pudo agregar la foto'**
+  String get attachPhotoError;
+
+  /// No description provided for @attachDeleteConfirm.
+  ///
+  /// In es, this message translates to:
+  /// **'¿Quitar este adjunto?'**
+  String get attachDeleteConfirm;
+
+  /// No description provided for @attachMicDenied.
+  ///
+  /// In es, this message translates to:
+  /// **'Necesito permiso para usar el micrófono'**
+  String get attachMicDenied;
+
+  /// No description provided for @attachRecordError.
+  ///
+  /// In es, this message translates to:
+  /// **'No se pudo grabar'**
+  String get attachRecordError;
+
+  /// No description provided for @attachRecording.
+  ///
+  /// In es, this message translates to:
+  /// **'Nota de voz'**
+  String get attachRecording;
+
+  /// No description provided for @attachRecordingHint.
+  ///
+  /// In es, this message translates to:
+  /// **'Habla ahora. Hasta 2 minutos; toca Listo al terminar.'**
+  String get attachRecordingHint;
+
+  /// No description provided for @attachStop.
+  ///
+  /// In es, this message translates to:
+  /// **'Listo'**
+  String get attachStop;
+
+  /// No description provided for @calendarFromPhone.
+  ///
+  /// In es, this message translates to:
+  /// **'De tu calendario'**
+  String get calendarFromPhone;
+
+  /// No description provided for @calendarAllDay.
+  ///
+  /// In es, this message translates to:
+  /// **'Todo el día'**
+  String get calendarAllDay;
+
+  /// No description provided for @summaryListen.
+  ///
+  /// In es, this message translates to:
+  /// **'Escuchar'**
+  String get summaryListen;
+
+  /// No description provided for @alertSnoozeUsual.
+  ///
+  /// In es, this message translates to:
+  /// **'Lo que sueles elegir'**
+  String get alertSnoozeUsual;
+
+  /// No description provided for @alertSnoozeOther.
+  ///
+  /// In es, this message translates to:
+  /// **'Otro tiempo'**
+  String get alertSnoozeOther;
+
+  /// No description provided for @alertSnoozeFor.
+  ///
+  /// In es, this message translates to:
+  /// **'Posponer {duration}'**
+  String alertSnoozeFor(String duration);
+
+  /// No description provided for @routineTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Viernes notó una costumbre'**
+  String get routineTitle;
+
+  /// No description provided for @routineBody.
+  ///
+  /// In es, this message translates to:
+  /// **'Sueles crear «{title}» {repeat}, a las {time}. ¿Lo dejo como repetitivo?'**
+  String routineBody(String title, String repeat, String time);
+
+  /// No description provided for @routineYes.
+  ///
+  /// In es, this message translates to:
+  /// **'Sí, repetir'**
+  String get routineYes;
+
+  /// No description provided for @routineNo.
+  ///
+  /// In es, this message translates to:
+  /// **'No, gracias'**
+  String get routineNo;
+
+  /// No description provided for @routineDone.
+  ///
+  /// In es, this message translates to:
+  /// **'Listo: ahora se repite solo'**
+  String get routineDone;
+
+  /// No description provided for @birthdaysTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Cumpleaños de tus contactos'**
+  String get birthdaysTitle;
+
+  /// No description provided for @birthdaysIntro.
+  ///
+  /// In es, this message translates to:
+  /// **'Viernes lee los cumpleaños guardados en los contactos del teléfono y crea un recordatorio que se repite cada año.'**
+  String get birthdaysIntro;
+
+  /// No description provided for @birthdaysPermissionTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Permite leer tus contactos'**
+  String get birthdaysPermissionTitle;
+
+  /// No description provided for @birthdaysPermissionBody.
+  ///
+  /// In es, this message translates to:
+  /// **'Solo se leen el nombre y la fecha de cumpleaños. Nada sale del teléfono.'**
+  String get birthdaysPermissionBody;
+
+  /// No description provided for @birthdaysAllow.
+  ///
+  /// In es, this message translates to:
+  /// **'Permitir'**
+  String get birthdaysAllow;
+
+  /// No description provided for @birthdaysTime.
+  ///
+  /// In es, this message translates to:
+  /// **'Hora del aviso'**
+  String get birthdaysTime;
+
+  /// No description provided for @birthdaysBefore.
+  ///
+  /// In es, this message translates to:
+  /// **'Aviso previo'**
+  String get birthdaysBefore;
+
+  /// No description provided for @birthdaysDays.
+  ///
+  /// In es, this message translates to:
+  /// **'{days, plural, =0{Sin aviso previo} =1{1 día antes} other{{days} días antes}}'**
+  String birthdaysDays(int days);
+
+  /// No description provided for @birthdaysAuto.
+  ///
+  /// In es, this message translates to:
+  /// **'Agregar solos los nuevos'**
+  String get birthdaysAuto;
+
+  /// No description provided for @birthdaysAutoSubtitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Al abrir la app, si guardas un cumpleaños nuevo en tus contactos'**
+  String get birthdaysAutoSubtitle;
+
+  /// No description provided for @birthdaysEmpty.
+  ///
+  /// In es, this message translates to:
+  /// **'Tus contactos no tienen cumpleaños guardados'**
+  String get birthdaysEmpty;
+
+  /// No description provided for @birthdaysEmptyBody.
+  ///
+  /// In es, this message translates to:
+  /// **'Agrega la fecha en la app Contactos (campo «Cumpleaños») y vuelve aquí.'**
+  String get birthdaysEmptyBody;
+
+  /// No description provided for @birthdaysAdd.
+  ///
+  /// In es, this message translates to:
+  /// **'{count, plural, =0{Nada nuevo por agregar} =1{Agregar 1 cumpleaños} other{Agregar {count} cumpleaños}}'**
+  String birthdaysAdd(int count);
+
+  /// No description provided for @birthdaysAdded.
+  ///
+  /// In es, this message translates to:
+  /// **'{count, plural, =0{No se agregó ninguno} =1{Se agregó 1 cumpleaños} other{Se agregaron {count} cumpleaños}}'**
+  String birthdaysAdded(int count);
+
+  /// No description provided for @birthdaysAlready.
+  ///
+  /// In es, this message translates to:
+  /// **'ya en tu agenda'**
+  String get birthdaysAlready;
+
+  /// No description provided for @birthdaysTurns.
+  ///
+  /// In es, this message translates to:
+  /// **'cumple {age}'**
+  String birthdaysTurns(int age);
+
+  /// No description provided for @settingsCalendar.
+  ///
+  /// In es, this message translates to:
+  /// **'Incluir mi calendario'**
+  String get settingsCalendar;
+
+  /// No description provided for @settingsCalendarSubtitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Viernes lee tus eventos de Google Calendar para responder «¿tengo algo el viernes?» y para el resumen del día'**
+  String get settingsCalendarSubtitle;
+
+  /// No description provided for @settingsCalendarDenied.
+  ///
+  /// In es, this message translates to:
+  /// **'Sin permiso de calendario no puedo leer tus eventos'**
+  String get settingsCalendarDenied;
+
+  /// No description provided for @settingsBirthdaysSubtitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Agrégalos a tu agenda con aviso previo'**
+  String get settingsBirthdaysSubtitle;
+
+  /// No description provided for @settingsDriving.
+  ///
+  /// In es, this message translates to:
+  /// **'Modo conducción'**
+  String get settingsDriving;
+
+  /// No description provided for @settingsDrivingHelp.
+  ///
+  /// In es, this message translates to:
+  /// **'Respuestas más cortas y botones grandes para usar Viernes sin mirar mucho la pantalla.'**
+  String get settingsDrivingHelp;
+
+  /// No description provided for @drivingMode.
+  ///
+  /// In es, this message translates to:
+  /// **'{mode, select, off{Desactivado} on{Siempre activado} other{Automático: al conectar el carro por Bluetooth o con Android Auto}}'**
+  String drivingMode(String mode);
+
+  /// No description provided for @settingsHeadset.
+  ///
+  /// In es, this message translates to:
+  /// **'Botón de los audífonos'**
+  String get settingsHeadset;
+
+  /// No description provided for @settingsHeadsetSubtitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Mantén presionado el botón del audífono o del asistente y elige Viernes. Toca para abrir los ajustes del asistente del teléfono.'**
+  String get settingsHeadsetSubtitle;
+
+  /// No description provided for @settingsSpeakBriefing.
+  ///
+  /// In es, this message translates to:
+  /// **'Leer el resumen de la mañana'**
+  String get settingsSpeakBriefing;
+
+  /// No description provided for @settingsSpeakBriefingSubtitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Al tocar el resumen de la mañana, Viernes te lo dice en voz alta'**
+  String get settingsSpeakBriefingSubtitle;
+
+  /// No description provided for @wakeLowBattery.
+  ///
+  /// In es, this message translates to:
+  /// **'Pausar con batería baja'**
+  String get wakeLowBattery;
+
+  /// No description provided for @wakeLowBatterySubtitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Con 15 % o menos y sin cargar, deja de escuchar hasta que cargues'**
+  String get wakeLowBatterySubtitle;
+
+  /// No description provided for @learningSnooze.
+  ///
+  /// In es, this message translates to:
+  /// **'Sueles posponer {duration}'**
+  String learningSnooze(String duration);
+
+  /// No description provided for @learningSnoozeSubtitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Es el tiempo del botón «Posponer» y de «recuérdamelo después»'**
+  String get learningSnoozeSubtitle;
+
+  /// No description provided for @learningForget.
+  ///
+  /// In es, this message translates to:
+  /// **'Olvidar'**
+  String get learningForget;
+
+  /// No description provided for @batterySection.
+  ///
+  /// In es, this message translates to:
+  /// **'Consumo de la escucha'**
+  String get batterySection;
+
+  /// No description provided for @batteryNoData.
+  ///
+  /// In es, this message translates to:
+  /// **'Aún no hay datos'**
+  String get batteryNoData;
+
+  /// No description provided for @batteryNoDataSubtitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Activa «Viernes» por voz y vuelve en un rato para ver cuánto gasta.'**
+  String get batteryNoDataSubtitle;
+
+  /// No description provided for @batteryMeasuring.
+  ///
+  /// In es, this message translates to:
+  /// **'Midiendo la batería…'**
+  String get batteryMeasuring;
+
+  /// No description provided for @batteryPerHour.
+  ///
+  /// In es, this message translates to:
+  /// **'≈ {percent} % de batería por hora mientras escucha (todo el teléfono)'**
+  String batteryPerHour(String percent);
+
+  /// No description provided for @batteryListening.
+  ///
+  /// In es, this message translates to:
+  /// **'{hours} h escuchando · {saved} % del tiempo en silencio (ahorro)'**
+  String batteryListening(String hours, int saved);
+
+  /// No description provided for @batteryCpu.
+  ///
+  /// In es, this message translates to:
+  /// **'Procesador: {cpu} % · {ms} ms por análisis'**
+  String batteryCpu(String cpu, String ms);
+
+  /// No description provided for @batteryReset.
+  ///
+  /// In es, this message translates to:
+  /// **'Reiniciar cifras'**
+  String get batteryReset;
+
+  /// No description provided for @listsAssign.
+  ///
+  /// In es, this message translates to:
+  /// **'Asignar'**
+  String get listsAssign;
+
+  /// No description provided for @listsAssignTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'¿A quién le toca «{item}»?'**
+  String listsAssignTitle(String item);
+
+  /// No description provided for @listsMe.
+  ///
+  /// In es, this message translates to:
+  /// **'Yo'**
+  String get listsMe;
+
+  /// No description provided for @listsNobody.
+  ///
+  /// In es, this message translates to:
+  /// **'A nadie'**
+  String get listsNobody;
+
+  /// No description provided for @listsForYou.
+  ///
+  /// In es, this message translates to:
+  /// **'Te toca a ti'**
+  String get listsForYou;
+
+  /// No description provided for @listsFor.
+  ///
+  /// In es, this message translates to:
+  /// **'Le toca a {name}'**
+  String listsFor(String name);
 }
 
 class _AppLocalizationsDelegate

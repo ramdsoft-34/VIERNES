@@ -169,3 +169,16 @@ Cómo funciona:
   editan en tiempo real. Solo el dueño puede borrarla.
 - Las reglas solo dejan ver a quien envía, a quien recibe y a los miembros de
   cada lista.
+
+## Actualización 0.10.0 — Push, adjuntos y lugares
+
+1. **Reglas de Firestore**: vuelve a publicar
+   [`firebase/firestore.rules`](../firebase/firestore.rules) (nuevas
+   colecciones `places`, `location_reminders`, `attachments` y
+   `push_tokens`).
+2. **Avisos push y fotos en la nube**: necesitan el plan **Blaze** y desplegar
+   las funciones y las reglas de Storage. Paso a paso en
+   [PUSH.md](PUSH.md).
+
+Sin el paso 2 todo lo demás funciona: lo compartido llega al abrir la app y
+las fotos y notas de voz quedan solo en el teléfono.

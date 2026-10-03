@@ -10,6 +10,10 @@ import 'package:viernes/core/error/result.dart';
 import 'package:viernes/core/extensions/context_x.dart';
 import 'package:viernes/core/utils/date_x.dart';
 import 'package:viernes/core/widgets/empty_state.dart';
+import 'package:viernes/features/attachments/data/attachments_repository.dart';
+import 'package:viernes/features/attachments/domain/attachment.dart';
+import 'package:viernes/features/attachments/presentation/attachment_providers.dart';
+import 'package:viernes/features/attachments/presentation/attachments_section.dart';
 import 'package:viernes/features/reminders/domain/entities/recurrence.dart';
 import 'package:viernes/features/reminders/domain/entities/reminder.dart';
 import 'package:viernes/features/reminders/domain/entities/reminder_draft.dart';
@@ -67,6 +71,10 @@ class _ReminderEditorScreenState extends ConsumerState<ReminderEditorScreen> {
   /// Si el usuario eligió la categoría, Viernes deja de sugerirla.
   bool _categoryTouched = false;
 
+  /// Fotos y notas de un recordatorio nuevo (se guardan al guardarlo).
+  List<Attachment> _pendingAttachments = const [];
+  bool _savedNew = false;
+
   /// Sugiere la categoría mientras se escribe (reglas + lo aprendido).
   void _suggestCategory(String title) {
     if (!widget.isNew || _categoryTouched || widget.initialDraft != null) {
@@ -80,6 +88,12 @@ class _ReminderEditorScreenState extends ConsumerState<ReminderEditorScreen> {
   void dispose() {
     _title.dispose();
     _notes.dispose();
+    // Se cerró sin guardar: los archivos de los adjuntos sobran.
+    if (!_savedNew) {
+      for (final a in _pendingAttachments) {
+        unawaited(AttachmentsRepository.deleteFile(a.localPath));
+      }
+    }
     super.dispose();
   }
 
@@ -187,6 +201,14 @@ class _ReminderEditorScreenState extends ConsumerState<ReminderEditorScreen> {
           category: _category,
         ),
       );
+    }
+
+    if (result case Ok(:final value) when original == null) {
+      _savedNew = true;
+      final attachments = ref.read(attachmentsRepositoryProvider);
+      for (final a in _pendingAttachments) {
+        await attachments.add(a.copyWith(reminderId: value.id));
+      }
     }
 
     if (!mounted) return;
@@ -431,6 +453,13 @@ class _ReminderEditorScreenState extends ConsumerState<ReminderEditorScreen> {
               maxLines: 5,
               textCapitalization: TextCapitalization.sentences,
               decoration: InputDecoration(labelText: l10n.fieldNotes),
+            ),
+            const SizedBox(height: 20),
+            AttachmentsSection(
+              reminderId: original?.id,
+              pending: _pendingAttachments,
+              onPendingChanged: (items) =>
+                  setState(() => _pendingAttachments = items),
             ),
             if (original != null) ...[
               const SizedBox(height: 24),

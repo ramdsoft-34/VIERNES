@@ -8,6 +8,7 @@ import 'package:viernes/app/providers.dart';
 import 'package:viernes/app/router/routes.dart';
 import 'package:viernes/app/theme/app_theme.dart';
 import 'package:viernes/core/extensions/context_x.dart';
+import 'package:viernes/core/platform/device_data.dart';
 import 'package:viernes/core/platform/system_bridge.dart';
 import 'package:viernes/features/reminders/domain/entities/reminder.dart';
 import 'package:viernes/features/reminders/domain/entities/reminder_enums.dart';
@@ -19,26 +20,31 @@ import 'package:viernes/features/voice_assistant/presentation/wake_word_controll
 /// Abre la conversación con Viernes en una hoja inferior.
 ///
 /// [fromWake] indica que se abrió al decir "Viernes" (quizá con el teléfono
-/// bloqueado).
+/// bloqueado). Con [briefing], en vez de escuchar lee el resumen del día.
 Future<void> showVoiceAssistant(
   BuildContext context, {
   bool fromWake = false,
+  bool briefing = false,
 }) => showModalBottomSheet<void>(
   context: context,
   isScrollControlled: true,
   useSafeArea: true,
   showDragHandle: true,
-  builder: (_) => VoiceAssistantSheet(fromWake: fromWake),
+  builder: (_) => VoiceAssistantSheet(fromWake: fromWake, briefing: briefing),
 );
 
 class VoiceAssistantSheet extends ConsumerStatefulWidget {
   const VoiceAssistantSheet({
     this.fromWake = false,
+    this.briefing = false,
     this.bridge = const SystemBridge(),
     super.key,
   });
 
   final bool fromWake;
+
+  /// Leer el resumen del día en lugar de escuchar.
+  final bool briefing;
   final SystemBridge bridge;
 
   /// Evita abrir dos conversaciones a la vez (p. ej. dos "Viernes" seguidos).
@@ -66,7 +72,9 @@ class _VoiceAssistantSheetState extends ConsumerState<VoiceAssistantSheet> {
     unawaited(_wake.pause());
     // Arranca apenas se abre la hoja.
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) unawaited(ref.read(voiceAssistantProvider.notifier).start());
+      if (!mounted) return;
+      final voice = ref.read(voiceAssistantProvider.notifier);
+      unawaited(widget.briefing ? voice.briefing() : voice.start());
     });
   }
 
@@ -116,9 +124,11 @@ class _VoiceAssistantSheetState extends ConsumerState<VoiceAssistantSheet> {
               state.message.isEmpty ? l10n.voiceStarting : state.message,
               key: ValueKey(state.message),
               textAlign: TextAlign.center,
-              style: context.textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.w600,
-              ),
+              style:
+                  (state.driving
+                          ? context.textTheme.headlineSmall
+                          : context.textTheme.titleLarge)
+                      ?.copyWith(fontWeight: FontWeight.w600),
             ),
           ),
           if (state.transcript.isNotEmpty) ...[
@@ -140,6 +150,10 @@ class _VoiceAssistantSheetState extends ConsumerState<VoiceAssistantSheet> {
           if (state.agenda case final agenda? when agenda.isNotEmpty) ...[
             const SizedBox(height: 16),
             _AgendaList(items: agenda),
+          ],
+          if (state.events case final events? when events.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            _EventsList(events: events),
           ],
           const SizedBox(height: 24),
           _Actions(
@@ -357,6 +371,37 @@ class _AgendaList extends ConsumerWidget {
   }
 }
 
+/// Eventos del calendario del teléfono (solo lectura).
+class _EventsList extends ConsumerWidget {
+  const _EventsList({required this.events});
+
+  final List<CalendarEvent> events;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final now = ref.watch(clockProvider).now();
+    final l10n = context.l10n;
+    return Card(
+      child: Column(
+        children: [
+          for (final event in events.take(6))
+            ListTile(
+              dense: true,
+              leading: const Icon(Icons.event_note_outlined),
+              title: Text(event.title),
+              subtitle: Text(l10n.calendarFromPhone),
+              trailing: Text(
+                event.allDay
+                    ? l10n.calendarAllDay
+                    : l10n.dayAndTime(event.start, now),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
 class _Actions extends StatelessWidget {
   const _Actions({
     required this.state,
@@ -410,12 +455,26 @@ class _Actions extends StatelessWidget {
           OutlinedButton(onPressed: onEdit, child: Text(l10n.actionEdit)),
       ],
     };
-    return Wrap(
+    final wrap = Wrap(
       alignment: WrapAlignment.center,
       crossAxisAlignment: WrapCrossAlignment.center,
       spacing: 8,
       runSpacing: 8,
       children: buttons,
+    );
+    if (!state.driving) return wrap;
+    // Modo conducción: botones grandes, fáciles de tocar sin mirar mucho.
+    final big = ButtonStyle(
+      minimumSize: const WidgetStatePropertyAll(Size(120, 64)),
+      textStyle: WidgetStatePropertyAll(context.textTheme.titleLarge),
+    );
+    return Theme(
+      data: Theme.of(context).copyWith(
+        filledButtonTheme: FilledButtonThemeData(style: big),
+        outlinedButtonTheme: OutlinedButtonThemeData(style: big),
+        textButtonTheme: TextButtonThemeData(style: big),
+      ),
+      child: wrap,
     );
   }
 }

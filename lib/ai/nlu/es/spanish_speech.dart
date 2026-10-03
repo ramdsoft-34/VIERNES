@@ -1,3 +1,4 @@
+import 'package:viernes/core/platform/device_data.dart';
 import 'package:viernes/core/utils/date_x.dart';
 import 'package:viernes/features/reminders/domain/entities/recurrence.dart';
 import 'package:viernes/features/reminders/domain/entities/reminder.dart';
@@ -201,20 +202,30 @@ abstract final class SpanishSpeech {
   /// Antecede la confirmación cuando la frase traía varias tareas.
   static String severalTasks(int count) => 'Son $count recordatorios: ';
 
-  /// Respuesta a "¿qué tengo hoy?".
+  /// Respuesta a "¿qué tengo hoy?". [events]: lo del calendario del teléfono
+  /// en el mismo rango. [short]: modo conducción (menos detalles).
   static String agenda({
     required List<Reminder> reminders,
     required DateTime from,
     required bool isWeek,
     required DateTime now,
+    List<CalendarEvent> events = const [],
+    bool short = false,
   }) {
     final label = isWeek
         ? (from.isBefore(now.startOfWeek.addDays(7))
               ? 'esta semana'
               : 'la próxima semana')
         : day(from, now);
-    if (reminders.isEmpty) return 'No tienes pendientes para $label.';
-    const limit = 5;
+    final calendar = events.isEmpty
+        ? ''
+        : ' ${calendarSummary(events, now, withDay: isWeek, short: short)}';
+    if (reminders.isEmpty) {
+      return events.isEmpty
+          ? 'No tienes pendientes para $label.'
+          : 'No tienes pendientes para $label.$calendar';
+    }
+    final limit = short ? 3 : 5;
     final items = reminders.take(limit).map((r) {
       final at = isWeek ? when(r.dueAt, now) : time(r.dueAt);
       return '${_inSentence(r.title)} $at';
@@ -224,8 +235,131 @@ abstract final class SpanishSpeech {
         ? 'Para $label tienes 1 pendiente'
         : 'Para $label tienes $count pendientes';
     final more = count > limit ? ', entre otros' : '';
-    return '${_capitalize(intro)}: ${_joinList(items)}$more.';
+    return '${_capitalize(intro)}: ${_joinList(items)}$more.$calendar';
   }
+
+  /// "En tu calendario: reunión con Ana a las 3 de la tarde."
+  static String calendarSummary(
+    List<CalendarEvent> events,
+    DateTime now, {
+    bool withDay = false,
+    bool short = false,
+  }) {
+    final limit = short ? 2 : 4;
+    final parts = events.take(limit).map((e) {
+      final at = e.allDay
+          ? (withDay ? day(e.start, now) : 'todo el día')
+          : (withDay ? when(e.start, now) : time(e.start));
+      return '${_inSentence(e.title)} $at';
+    }).toList();
+    final more = events.length > limit ? ', entre otros' : '';
+    return 'En tu calendario: ${_joinList(parts)}$more.';
+  }
+
+  /// "Buenos días", "Buenas tardes" o "Buenas noches".
+  static String greeting(DateTime now) => switch (now.hour) {
+    < 12 => 'Buenos días',
+    < 19 => 'Buenas tardes',
+    _ => 'Buenas noches',
+  };
+
+  /// Resumen hablado del día: lo de hoy, lo vencido, el calendario y lo que
+  /// se acerca.
+  static String briefing({
+    required DateTime now,
+    required List<(String title, DateTime at)> today,
+    required int overdue,
+    required List<CalendarEvent> events,
+    required List<(String title, DateTime at)> soon,
+    bool short = false,
+  }) {
+    final parts = <String>['${greeting(now)}.'];
+    if (today.isEmpty) {
+      parts.add('Hoy no tienes pendientes.');
+    } else {
+      final limit = short ? 3 : 5;
+      final items = today
+          .take(limit)
+          .map((i) => '${_inSentence(i.$1)} ${time(i.$2)}')
+          .toList();
+      final intro = today.length == 1
+          ? 'Hoy tienes 1 pendiente'
+          : 'Hoy tienes ${today.length} pendientes';
+      final more = today.length > limit ? ', entre otros' : '';
+      parts.add('$intro: ${_joinList(items)}$more.');
+    }
+    if (overdue > 0) {
+      parts.add(
+        overdue == 1
+            ? 'Además, quedó 1 pendiente de días anteriores.'
+            : 'Además, quedaron $overdue pendientes de días anteriores.',
+      );
+    }
+    if (events.isNotEmpty) {
+      parts.add(calendarSummary(events, now, short: short));
+    }
+    if (soon.isNotEmpty && !short) {
+      final items = soon
+          .take(3)
+          .map((i) => '${_inSentence(i.$1)} ${day(i.$2, now)}')
+          .toList();
+      parts.add('Se acerca: ${_joinList(items)}.');
+    }
+    if (today.isEmpty && events.isEmpty && overdue == 0) {
+      parts.add('¡Que tengas un buen día!');
+    }
+    return parts.join(' ');
+  }
+
+  /// Frases para pedir el resumen («buenos días, Viernes», «¿cómo está mi
+  /// día?»).
+  static const briefingTitle = 'Tu día';
+
+  // --- Modo conducción (respuestas cortas) -----------------------------------
+
+  static String confirmationShort({
+    required String title,
+    required DateTime due,
+    required DateTime now,
+  }) => '$title, ${when(due, now)}. ¿Sí?';
+
+  static String savedShort(DateTime remindAt, DateTime now) =>
+      'Listo, ${when(remindAt, now)}.';
+
+  // --- Listas: responsables --------------------------------------------------
+
+  static String addedToListFor(
+    List<String> items,
+    String list,
+    String assignee,
+  ) =>
+      'Listo, agregué ${_joinList([for (final i in items) i.toLowerCase()])} '
+      'a la lista $list, para $assignee.';
+
+  /// Lo pendiente de una lista con quién lo tiene asignado.
+  static String listContentsWithOwners(
+    String list,
+    List<(String text, String? owner)> items,
+  ) {
+    if (items.isEmpty) return 'La lista $list está vacía.';
+    final parts = [
+      for (final (text, owner) in items)
+        owner == null ? text.toLowerCase() : '${text.toLowerCase()}, $owner',
+    ];
+    return 'En la lista $list tienes: ${parts.join('; ')}.';
+  }
+
+  static String listMine(String list, List<String> items) => items.isEmpty
+      ? 'En la lista $list no tienes nada asignado.'
+      : 'En la lista $list te toca: '
+            '${_joinList([for (final i in items) i.toLowerCase()])}.';
+
+  // --- Cumpleaños ------------------------------------------------------------
+
+  static String birthdayTitle(String name) => 'Cumpleaños de $name';
+
+  static String birthdaySoonTitle(String name) =>
+      'Se acerca el cumpleaños de $name';
 
   static List<String> _dayNames(Set<int> weekdays) =>
       (weekdays.toList()..sort()).map((d) => _weekdays[d - 1]).toList();
@@ -233,7 +367,15 @@ abstract final class SpanishSpeech {
   static const morningSummaryTitle = 'Buenos días ☀️';
 
   /// "Hoy tienes 3 pendientes: entregar el informe a las 8 de la mañana…"
-  static String morningSummary(List<(String title, DateTime at)> items) {
+  static String morningSummary(
+    List<(String title, DateTime at)> items, {
+    List<CalendarEvent> events = const [],
+    DateTime? now,
+  }) {
+    final calendar = events.isEmpty
+        ? ''
+        : ' ${calendarSummary(events, now ?? events.first.start)}';
+    if (items.isEmpty) return 'Hoy no tienes pendientes.$calendar';
     const limit = 4;
     final parts = items
         .take(limit)
@@ -244,7 +386,7 @@ abstract final class SpanishSpeech {
         ? 'Hoy tienes 1 pendiente'
         : 'Hoy tienes $count pendientes';
     final more = count > limit ? ', entre otros' : '';
-    return '$intro: ${_joinList(parts)}$more.';
+    return '$intro: ${_joinList(parts)}$more.$calendar';
   }
 
   static const nightSummaryTitle = 'Resumen del día';

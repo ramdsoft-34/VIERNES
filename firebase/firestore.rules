@@ -6,6 +6,10 @@ rules_version = '2';
 //   users/{uid}                  perfil y preferencias
 //   users/{uid}/reminders/{id}   recordatorios
 //   users/{uid}/events/{id}      historial
+//   users/{uid}/places/{id}      lugares guardados
+//   users/{uid}/location_reminders/{id}  recordatorios por ubicación
+//   users/{uid}/attachments/{id} datos de fotos y notas de voz
+//   push_tokens/{token}          teléfonos que reciben avisos push
 //   shared_reminders/{id}        de una persona a otra
 //   lists/{id}, lists/{id}/items listas compartidas
 // Copia este archivo en Firebase → Firestore Database → Reglas → Publicar.
@@ -33,6 +37,39 @@ service cloud.firestore {
         allow create, update: if isOwner(uid)
           && request.resource.data.size() < 20;
       }
+
+      // Lugares, recordatorios por ubicación y adjuntos (0.10.0).
+      match /places/{placeId} {
+        allow read, delete: if isOwner(uid);
+        allow create, update: if isOwner(uid)
+          && request.resource.data.size() < 20;
+      }
+
+      match /location_reminders/{reminderId} {
+        allow read, delete: if isOwner(uid);
+        allow create, update: if isOwner(uid)
+          && request.resource.data.size() < 20;
+      }
+
+      match /attachments/{attachmentId} {
+        allow read, delete: if isOwner(uid);
+        allow create, update: if isOwner(uid)
+          && request.resource.data.size() < 20;
+      }
+    }
+
+    // --- Avisos push ---------------------------------------------------------
+
+    // Cada teléfono registra su dirección con su cuenta. Nadie las lee desde
+    // la app: solo las funciones de la nube (functions/index.js).
+    match /push_tokens/{token} {
+      allow create, update: if request.auth != null
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.email == request.auth.token.email.lower()
+        && request.resource.data.keys().hasOnly(
+             ['uid', 'email', 'platform', 'updatedAt']);
+      allow delete: if request.auth != null
+        && resource.data.uid == request.auth.uid;
     }
 
     // --- Compartir ---------------------------------------------------------

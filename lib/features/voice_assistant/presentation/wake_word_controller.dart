@@ -8,7 +8,9 @@ import 'package:viernes/ai/wake_word/wake_model_manager.dart';
 import 'package:viernes/ai/wake_word/wake_sample_store.dart';
 import 'package:viernes/ai/wake_word/wake_word_service.dart';
 import 'package:viernes/app/router/app_router.dart';
+import 'package:viernes/app/router/routes.dart';
 import 'package:viernes/core/logging/app_logger.dart';
+import 'package:viernes/features/alerts/presentation/alert_providers.dart';
 import 'package:viernes/features/settings/domain/app_settings.dart';
 import 'package:viernes/features/settings/presentation/settings_controller.dart';
 import 'package:viernes/features/voice_assistant/presentation/voice_assistant_sheet.dart';
@@ -237,6 +239,7 @@ class WakeWordController extends Notifier<WakeWordState> {
       threshold: own ? settings.ownWakeThreshold : settings.wakeThreshold,
       chime: settings.wakeChime,
       saveSamples: settings.dataCollectionConsent,
+      lowBatteryPause: settings.lowBatteryPause,
     );
   }
 
@@ -271,7 +274,8 @@ final wakeCoordinatorProvider = Provider<WakeCoordinator>((ref) {
     ..listen<AppSettings>(settingsControllerProvider, (previous, next) {
       if (previous == null) return;
       if (previous.wakeChime != next.wakeChime ||
-          previous.dataCollectionConsent != next.dataCollectionConsent) {
+          previous.dataCollectionConsent != next.dataCollectionConsent ||
+          previous.lowBatteryPause != next.lowBatteryPause) {
         unawaited(
           ref.read(wakeWordControllerProvider.notifier).applySettings(),
         );
@@ -287,21 +291,47 @@ class WakeCoordinator with WidgetsBindingObserver {
   WakeCoordinator(this._ref);
 
   final Ref _ref;
-  StreamSubscription<void>? _subscription;
+  final _subscriptions = <StreamSubscription<Object?>>[];
 
   void start() {
     final service = _ref.read(wakeWordServiceProvider);
-    _subscription = service.wakes.listen((_) => _openConversation());
+    final briefings = _ref.read(briefingRequestsProvider);
+    _subscriptions
+      ..add(service.wakes.listen((_) => _openConversation()))
+      ..add(service.actions.listen(_onAction))
+      ..add(
+        briefings.stream.listen((_) {
+          if (briefings.consume()) _openBriefing();
+        }),
+      );
     WidgetsBinding.instance.addObserver(this);
     unawaited(_onStart(service));
   }
 
   Future<void> _onStart(WakeWordService service) async {
     await _ref.read(wakeWordControllerProvider.notifier).ensureRunning();
-    if (await service.consumeLaunchWake()) {
-      WidgetsBinding.instance.addPostFrameCallback(
-        (_) => _openConversation(),
-      );
+    final action = await service.consumeLaunchAction();
+    final wake = await service.consumeLaunchWake();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (action != null) {
+        _onAction(action);
+      } else if (wake) {
+        _openConversation();
+      } else if (_ref.read(briefingRequestsProvider).consume()) {
+        _openBriefing();
+      }
+    });
+  }
+
+  /// Acceso directo del ícono o del botón de ajustes rápidos.
+  void _onAction(String action) {
+    switch (action) {
+      case 'briefing':
+        _openBriefing();
+      case 'new':
+        unawaited(_ref.read(appRouterProvider).push(AppRoutes.newReminder()));
+      default:
+        _openConversation();
     }
   }
 
@@ -309,6 +339,12 @@ class WakeCoordinator with WidgetsBindingObserver {
     final context = rootNavigatorKey.currentContext;
     if (context == null || VoiceAssistantSheet.isOpen) return;
     unawaited(showVoiceAssistant(context, fromWake: true));
+  }
+
+  void _openBriefing() {
+    final context = rootNavigatorKey.currentContext;
+    if (context == null || VoiceAssistantSheet.isOpen) return;
+    unawaited(showVoiceAssistant(context, briefing: true));
   }
 
   @override
@@ -319,7 +355,15 @@ class WakeCoordinator with WidgetsBindingObserver {
   }
 
   void dispose() {
-    unawaited(_subscription?.cancel());
+    for (final s in _subscriptions) {
+      unawaited(s.cancel());
+    }
     WidgetsBinding.instance.removeObserver(this);
   }
 }
+
+/// Consumo de la escucha (se refresca al invalidarlo).
+final FutureProvider<WakeStats?> wakeStatsProvider =
+    FutureProvider.autoDispose<WakeStats?>(
+      (ref) => ref.watch(wakeWordServiceProvider).stats(),
+    );

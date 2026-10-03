@@ -1,5 +1,7 @@
 import 'package:drift/drift.dart';
 import 'package:viernes/core/database/app_database.dart';
+import 'package:viernes/features/places/data/places_repository.dart';
+import 'package:viernes/features/places/domain/place.dart';
 import 'package:viernes/features/reminders/data/reminder_mapper.dart';
 import 'package:viernes/features/sync/domain/sync_records.dart';
 
@@ -21,9 +23,20 @@ class DriftSyncStore {
       _db.reminderEvents,
     )..where((e) => e.dirty.equals(true) & e.syncId.isNotNull())).get();
     final tombstones = await _db.select(_db.syncTombstones).get();
+    final places = await (_db.select(
+      _db.places,
+    )..where((p) => p.dirty.equals(true))).get();
+    final locationReminders = await (_db.select(
+      _db.locationReminders,
+    )..where((r) => r.dirty.equals(true))).get();
     return LocalChanges(
       reminders: [for (final row in reminders) row.toDomain()],
       events: [for (final row in events) row.toDomain()],
+      places: [for (final row in places) PlacesRepository.placeFromRow(row)],
+      locationReminders: [
+        for (final row in locationReminders)
+          PlacesRepository.reminderFromRow(row),
+      ],
       deletions: [
         for (final row in tombstones)
           if (_entity(row.entity) case final entity?)
@@ -52,6 +65,26 @@ class DriftSyncStore {
             ..where((e) => e.syncId.isIn(syncIds)))
           .write(const ReminderEventsCompanion(dirty: Value(false)));
     }
+    for (final place in changes.places) {
+      await (_db.update(_db.places)..where(
+            (p) =>
+                p.id.equals(place.id) &
+                (place.updatedAt == null
+                    ? p.updatedAt.isNull()
+                    : p.updatedAt.equals(place.updatedAt!)),
+          ))
+          .write(const PlacesCompanion(dirty: Value(false)));
+    }
+    for (final reminder in changes.locationReminders) {
+      await (_db.update(_db.locationReminders)..where(
+            (r) =>
+                r.id.equals(reminder.id) &
+                (reminder.updatedAt == null
+                    ? r.updatedAt.isNull()
+                    : r.updatedAt.equals(reminder.updatedAt!)),
+          ))
+          .write(const LocationRemindersCompanion(dirty: Value(false)));
+    }
     for (final deletion in changes.deletions) {
       await (_db.delete(_db.syncTombstones)..where(
             (t) =>
@@ -69,8 +102,17 @@ class DriftSyncStore {
         'SELECT '
         '(SELECT COUNT(*) FROM reminders WHERE dirty = 1) + '
         '(SELECT COUNT(*) FROM reminder_events WHERE dirty = 1) + '
-        '(SELECT COUNT(*) FROM sync_tombstones) AS pending',
-        readsFrom: {_db.reminders, _db.reminderEvents, _db.syncTombstones},
+        '(SELECT COUNT(*) FROM places WHERE dirty = 1) + '
+        '(SELECT COUNT(*) FROM location_reminders WHERE dirty = 1) + '
+        '(SELECT COUNT(*) FROM sync_tombstones '
+        "WHERE entity != 'attachment') AS pending",
+        readsFrom: {
+          _db.reminders,
+          _db.reminderEvents,
+          _db.places,
+          _db.locationReminders,
+          _db.syncTombstones,
+        },
       )
       .watchSingle()
       .map((row) => row.read<int>('pending'));
@@ -87,8 +129,134 @@ class DriftSyncStore {
     for (final remote in changes.events) {
       if (await _applyEvent(remote)) applied++;
     }
+    for (final remote in changes.places) {
+      if (await _applyPlace(remote)) applied++;
+    }
+    for (final remote in changes.locationReminders) {
+      if (await _applyLocationReminder(remote)) applied++;
+    }
     return applied;
   });
+
+  /// Misma regla que los recordatorios: si aquí no hay cambios pendientes,
+  /// manda la nube; si los hay, gana el más reciente.
+  Future<bool> _applyPlace(RemoteItem<Place> remote) async {
+    final local = await (_db.select(
+      _db.places,
+    )..where((p) => p.id.equals(remote.id))).getSingleOrNull();
+    final place = remote.value;
+    final apply = await _resolve(
+      SyncEntity.place,
+      remote.id,
+      remote.updatedAt,
+      deleted: place == null,
+      localDirty: local?.dirty ?? false,
+      localUpdatedAt: local?.updatedAt ?? local?.createdAt,
+      exists: local != null,
+    );
+    if (!apply) return false;
+    if (place == null) {
+      await (_db.delete(_db.places)..where((p) => p.id.equals(remote.id))).go();
+      return true;
+    }
+    if (local != null &&
+        !local.dirty &&
+        PlacesRepository.placeFromRow(local) == place) {
+      return false;
+    }
+    await _db
+        .into(_db.places)
+        .insertOnConflictUpdate(
+          PlacesCompanion.insert(
+            id: place.id,
+            name: place.name,
+            latitude: place.latitude,
+            longitude: place.longitude,
+            radiusMeters: Value(place.radiusMeters),
+            createdAt: place.createdAt,
+            updatedAt: Value(place.updatedAt),
+            dirty: const Value(false),
+          ),
+        );
+    return true;
+  }
+
+  Future<bool> _applyLocationReminder(
+    RemoteItem<LocationReminder> remote,
+  ) async {
+    final local = await (_db.select(
+      _db.locationReminders,
+    )..where((r) => r.id.equals(remote.id))).getSingleOrNull();
+    final reminder = remote.value;
+    final apply = await _resolve(
+      SyncEntity.locationReminder,
+      remote.id,
+      remote.updatedAt,
+      deleted: reminder == null,
+      localDirty: local?.dirty ?? false,
+      localUpdatedAt: local?.updatedAt ?? local?.createdAt,
+      exists: local != null,
+    );
+    if (!apply) return false;
+    if (reminder == null) {
+      await (_db.delete(
+        _db.locationReminders,
+      )..where((r) => r.id.equals(remote.id))).go();
+      return true;
+    }
+    if (local != null &&
+        !local.dirty &&
+        PlacesRepository.reminderFromRow(local) == reminder &&
+        local.completedAt == reminder.completedAt) {
+      return false;
+    }
+    await _db
+        .into(_db.locationReminders)
+        .insertOnConflictUpdate(
+          LocationRemindersCompanion.insert(
+            id: reminder.id,
+            title: reminder.title,
+            placeId: reminder.placeId,
+            onArrive: Value(reminder.onArrive),
+            done: Value(reminder.done),
+            createdAt: reminder.createdAt,
+            completedAt: Value(reminder.completedAt),
+            updatedAt: Value(reminder.updatedAt),
+            dirty: const Value(false),
+          ),
+        );
+    return true;
+  }
+
+  /// Decide si un cambio de la nube se aplica, según los borrados y los
+  /// cambios locales pendientes.
+  Future<bool> _resolve(
+    SyncEntity entity,
+    String id,
+    DateTime remoteUpdatedAt, {
+    required bool deleted,
+    required bool localDirty,
+    required DateTime? localUpdatedAt,
+    required bool exists,
+  }) async {
+    final tombstone = await _tombstone(entity, id);
+    if (deleted) {
+      if (tombstone != null) await _forget(entity, id);
+      if (!exists) return false;
+      // Se editó aquí después de borrarlo allá: se volverá a subir.
+      return !(localDirty &&
+          localUpdatedAt != null &&
+          localUpdatedAt.isAfter(remoteUpdatedAt));
+    }
+    if (tombstone != null) {
+      if (!remoteUpdatedAt.isAfter(tombstone.deletedAt)) return false;
+      await _forget(entity, id);
+    }
+    return !(exists &&
+        localDirty &&
+        localUpdatedAt != null &&
+        !remoteUpdatedAt.isAfter(localUpdatedAt));
+  }
 
   Future<bool> _applyReminder(RemoteReminder remote) async {
     final local = await (_db.select(
@@ -160,13 +328,20 @@ class DriftSyncStore {
     await _db
         .update(_db.reminderEvents)
         .write(const ReminderEventsCompanion(dirty: Value(true)));
+    await _db
+        .update(_db.places)
+        .write(const PlacesCompanion(dirty: Value(true)));
+    await _db
+        .update(_db.locationReminders)
+        .write(const LocationRemindersCompanion(dirty: Value(true)));
   });
 
   Future<bool> hasData() async {
     final count = await _db
         .customSelect(
           'SELECT (SELECT COUNT(*) FROM reminders) + '
-          '(SELECT COUNT(*) FROM reminder_events) AS total',
+          '(SELECT COUNT(*) FROM reminder_events) + '
+          '(SELECT COUNT(*) FROM places) AS total',
         )
         .getSingle();
     return count.read<int>('total') > 0;
@@ -180,6 +355,7 @@ class DriftSyncStore {
     await _db.delete(_db.nluSamples).go();
     await _db.delete(_db.locationReminders).go();
     await _db.delete(_db.places).go();
+    await _db.delete(_db.attachments).go();
   });
 
   Future<SyncTombstoneRow?> _tombstone(SyncEntity entity, String id) =>
@@ -197,11 +373,15 @@ class DriftSyncStore {
   static String _entityName(SyncEntity entity) => switch (entity) {
     SyncEntity.reminder => SyncEntities.reminder,
     SyncEntity.event => SyncEntities.event,
+    SyncEntity.place => SyncEntities.place,
+    SyncEntity.locationReminder => SyncEntities.locationReminder,
   };
 
   static SyncEntity? _entity(String name) => switch (name) {
     SyncEntities.reminder => SyncEntity.reminder,
     SyncEntities.event => SyncEntity.event,
+    SyncEntities.place => SyncEntity.place,
+    SyncEntities.locationReminder => SyncEntity.locationReminder,
     _ => null,
   };
 }

@@ -8,6 +8,7 @@ import 'package:viernes/core/cloud/cloud.dart';
 import 'package:viernes/core/logging/app_logger.dart';
 import 'package:viernes/features/account/domain/app_user.dart';
 import 'package:viernes/features/account/presentation/account_providers.dart';
+import 'package:viernes/features/attachments/presentation/attachment_providers.dart';
 import 'package:viernes/features/settings/domain/app_settings.dart';
 import 'package:viernes/features/settings/presentation/settings_controller.dart';
 import 'package:viernes/features/sync/application/sync_engine.dart';
@@ -166,6 +167,7 @@ class SyncController extends Notifier<SyncState> with WidgetsBindingObserver {
           await ref.read(localDataChangedProvider)();
         }
       }
+      await _syncAttachments(user.uid);
       final now = DateTime.now();
       unawaited(
         ref
@@ -188,6 +190,18 @@ class SyncController extends Notifier<SyncState> with WidgetsBindingObserver {
         phase: offline ? SyncPhase.offline : SyncPhase.error,
       );
       _schedule(_retry);
+    }
+  }
+
+  /// Fotos y notas de voz. Si fallan (p. ej. Storage sin activar), los
+  /// recordatorios ya quedaron sincronizados.
+  Future<void> _syncAttachments(String uid) async {
+    try {
+      await ref.read(attachmentSyncProvider).sync(uid).timeout(_timeout * 2);
+    } on Object catch (error) {
+      if (!isOfflineError(error)) {
+        AppLogger.info('Adjuntos: no se pudieron sincronizar ($error)');
+      }
     }
   }
 

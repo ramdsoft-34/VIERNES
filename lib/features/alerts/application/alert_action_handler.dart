@@ -12,8 +12,14 @@ abstract final class AlertActions {
   /// Resumen de la noche: pasar lo pendiente a mañana.
   static const moveToTomorrow = 'move_tomorrow';
 
+  /// Resumen de la mañana: abrir la app y leerlo en voz alta.
+  static const listenSummary = 'listen_summary';
+
   /// Prefijo del payload de los resúmenes diarios.
   static const summaryPayloadPrefix = 'summary:';
+
+  /// Payload del resumen de la mañana.
+  static const morningPayload = 'summary:morning';
 }
 
 /// Atiende los botones de las notificaciones.

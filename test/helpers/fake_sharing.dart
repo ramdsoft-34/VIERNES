@@ -100,13 +100,21 @@ class FakeSharingRepository implements SharingRepository {
     required bool done,
   }) async {
     final item = items[listId]![itemId]!;
-    items[listId]![itemId] = SharedListItem(
-      id: item.id,
-      text: item.text,
-      addedBy: item.addedBy,
-      addedAt: item.addedAt,
-      done: done,
-    );
+    items[listId]![itemId] = item.copyWith(done: done);
+    _changed();
+  }
+
+  @override
+  Future<void> assignItem(
+    String listId,
+    String itemId, {
+    required String? email,
+    required String? name,
+  }) async {
+    final item = items[listId]![itemId]!;
+    items[listId]![itemId] = email == null
+        ? item.copyWith(clearAssignee: true)
+        : item.copyWith(assignedTo: email, assignedName: name);
     _changed();
   }
 

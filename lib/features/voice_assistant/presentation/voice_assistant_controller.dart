@@ -18,7 +18,10 @@ import 'package:viernes/ai/speech/speech_recognizer.dart';
 import 'package:viernes/app/providers.dart';
 import 'package:viernes/core/error/result.dart';
 import 'package:viernes/core/logging/app_logger.dart';
+import 'package:viernes/core/utils/date_x.dart';
 import 'package:viernes/features/account/presentation/account_providers.dart';
+import 'package:viernes/features/calendar/domain/calendar_occurrences.dart';
+import 'package:viernes/features/device/device_providers.dart';
 import 'package:viernes/features/places/domain/place.dart';
 import 'package:viernes/features/places/presentation/places_providers.dart';
 import 'package:viernes/features/reminders/domain/entities/reminder.dart';
@@ -29,6 +32,7 @@ import 'package:viernes/features/settings/presentation/settings_controller.dart'
 import 'package:viernes/features/sharing/data/contacts_repository.dart';
 import 'package:viernes/features/sharing/domain/sharing_models.dart';
 import 'package:viernes/features/sharing/presentation/sharing_providers.dart';
+import 'package:viernes/features/summaries/domain/daily_briefing.dart';
 import 'package:viernes/features/voice_assistant/domain/voice_draft_builder.dart';
 import 'package:viernes/features/voice_assistant/domain/voice_state.dart';
 
@@ -88,6 +92,10 @@ class VoiceAssistantController extends Notifier<VoiceState> {
   /// «Recuérdale a Sofi…»: se envía a este contacto en vez de guardarse.
   Contact? _shareTo;
 
+  /// Modo conducción: respuestas cortas.
+  bool _driving = false;
+  Future<bool>? _drivingCheck;
+
   /// Si la conversación confirma que de verdad dijeron «Viernes»: hubo una
   /// frase y no fue «me equivoqué» / «nada». Sirve para etiquetar la
   /// grabación de la activación.
@@ -127,6 +135,8 @@ class VoiceAssistantController extends Notifier<VoiceState> {
     _firstWasCancel = false;
     _shareTo = null;
     _queuedDecision = null;
+    _driving = false;
+    _drivingCheck = _detectDriving();
     state = const VoiceState(stage: VoiceStage.listening);
     try {
       await _run(session);
@@ -147,6 +157,43 @@ class VoiceAssistantController extends Notifier<VoiceState> {
       }
     } finally {
       if (session == _session) _running = false;
+    }
+  }
+
+  /// Lee el resumen del día en voz alta (al tocar el resumen de la mañana,
+  /// desde el acceso directo o al pedirlo por voz).
+  Future<void> briefing() async {
+    if (_running) return;
+    _running = true;
+    final session = ++_session;
+    _utterances.clear();
+    _initial = null;
+    _firstWasCancel = false;
+    state = const VoiceState(stage: VoiceStage.thinking);
+    try {
+      _driving = await _detectDriving();
+      _set(state.copyWith(driving: _driving));
+      await _answerBriefing(session);
+    } on Object catch (error, stack) {
+      AppLogger.error('Error en el resumen', error: error, stackTrace: stack);
+      if (_alive(session)) {
+        _set(
+          state.copyWith(
+            stage: VoiceStage.failed,
+            message: SpanishSpeech.didNotUnderstand,
+          ),
+        );
+      }
+    } finally {
+      if (session == _session) _running = false;
+    }
+  }
+
+  Future<bool> _detectDriving() async {
+    try {
+      return await ref.read(drivingDetectorProvider).isActive();
+    } on Object {
+      return false;
     }
   }
 
@@ -217,6 +264,10 @@ class VoiceAssistantController extends Notifier<VoiceState> {
       return;
     }
 
+    _driving = await (_drivingCheck ?? Future.value(false));
+    if (!_alive(session)) return;
+    if (_driving) _set(state.copyWith(driving: true));
+
     final first = await _ask(
       session,
       SpanishSpeech.listening,
@@ -238,6 +289,19 @@ class VoiceAssistantController extends Notifier<VoiceState> {
     }
 
     _set(state.copyWith(stage: VoiceStage.thinking, isListening: false));
+
+    // «Buenos días», «¿cómo está mi día?»: el resumen del día.
+    if (SpanishBriefingRequest.matches(first)) {
+      await _answerBriefing(session);
+      return;
+    }
+
+    // «¿Qué me toca en la lista de la casa?»
+    final mine = SpanishShareParser.parseListMine(first);
+    if (mine != null) {
+      await _readList(session, mine, onlyMine: true);
+      return;
+    }
 
     // Listas compartidas: «agrega leche a la lista del mercado».
     final listAdd = SpanishShareParser.parseListAdd(first);
@@ -354,20 +418,47 @@ class VoiceAssistantController extends Notifier<VoiceState> {
         );
         return;
       }
+      // «… para Sofi»: a quién le toca.
+      String? assignedTo;
+      String? assignedName;
+      final spoken = request.assignee;
+      if (spoken != null) {
+        final who = _resolveAssignee(spoken, email, user.firstName, list);
+        if (who == null) {
+          await _finish(
+            session,
+            SpanishSpeech.unknownContact(spoken.split(' ').first),
+            failed: true,
+          );
+          return;
+        }
+        (assignedTo, assignedName) = who;
+      }
       final ids = ref.read(idGeneratorProvider);
-      await ref.read(sharingRepositoryProvider).addItems(list.id, [
-        for (final item in request.items)
-          SharedListItem(
-            id: ids.next(),
-            text: item,
-            addedBy: user.firstName ?? email,
-            addedAt: _now,
-          ),
-      ]);
+      await ref
+          .read(sharingRepositoryProvider)
+          .addItems(list.id, [
+            for (final item in request.items)
+              SharedListItem(
+                id: ids.next(),
+                text: item,
+                addedBy: user.firstName ?? email,
+                addedAt: _now,
+                assignedTo: assignedTo,
+                assignedName: assignedName,
+              ),
+          ])
+          .timeout(const Duration(seconds: 10));
       if (!_alive(session)) return;
       await _finish(
         session,
-        SpanishSpeech.addedToList(request.items, list.name),
+        assignedName == null
+            ? SpanishSpeech.addedToList(request.items, list.name)
+            : SpanishSpeech.addedToListFor(
+                request.items,
+                list.name,
+                assignedName,
+              ),
       );
     } on Object catch (error) {
       AppLogger.info('Lista compartida: $error');
@@ -377,7 +468,28 @@ class VoiceAssistantController extends Notifier<VoiceState> {
     }
   }
 
-  Future<void> _readList(int session, String listName) async {
+  /// Correo y nombre de la persona a la que se asigna («para Sofi», «para
+  /// mí»). Nulo si no es un contacto ni el propio usuario.
+  (String, String)? _resolveAssignee(
+    String spoken,
+    String myEmail,
+    String? myName,
+    SharedList list,
+  ) {
+    final folded = SpanishText.fold(spoken).trim();
+    if (folded == 'mi' || folded == 'mí' || folded == 'mi mismo') {
+      return (myEmail.toLowerCase(), myName ?? myEmail);
+    }
+    final match = matchContactPrefix(spoken, ref.read(contactsProvider));
+    if (match != null) return (match.contact.email, match.contact.name);
+    return null;
+  }
+
+  Future<void> _readList(
+    int session,
+    String listName, {
+    bool onlyMine = false,
+  }) async {
     final email = ref.read(authRepositoryProvider).currentUser?.email;
     if (email == null) {
       await _finish(session, SpanishSpeech.shareNeedsAccount, failed: true);
@@ -400,12 +512,22 @@ class VoiceAssistantController extends Notifier<VoiceState> {
           .first
           .timeout(const Duration(seconds: 10));
       if (!_alive(session)) return;
+      final pending = [
+        for (final i in items)
+          if (!i.done) i,
+      ];
+      final me = email.toLowerCase();
       await _finish(
         session,
-        SpanishSpeech.listContents(list.name, [
-          for (final i in items)
-            if (!i.done) i.text,
-        ]),
+        onlyMine
+            ? SpanishSpeech.listMine(list.name, [
+                for (final i in pending)
+                  if (i.assignedTo == me) i.text,
+              ])
+            : SpanishSpeech.listContentsWithOwners(list.name, [
+                for (final i in pending)
+                  (i.text, i.assignedTo == me ? 'tú' : i.assignedName),
+              ]),
       );
     } on Object catch (error) {
       AppLogger.info('Lista compartida: $error');
@@ -669,13 +791,19 @@ class VoiceAssistantController extends Notifier<VoiceState> {
       final question =
           (_shareTo == null ? '' : SpanishSpeech.sendTo(_shareTo!.name)) +
           (taskCount > 1 ? SpanishSpeech.severalTasks(taskCount) : '') +
-          SpanishSpeech.confirmation(
-            title: preview.title,
-            due: preview.due!,
-            leadTime: preview.leadTime,
-            recurrence: preview.recurrence,
-            now: _now,
-          );
+          (_driving
+              ? SpanishSpeech.confirmationShort(
+                  title: preview.title,
+                  due: preview.due!,
+                  now: _now,
+                )
+              : SpanishSpeech.confirmation(
+                  title: preview.title,
+                  due: preview.due!,
+                  leadTime: preview.leadTime,
+                  recurrence: preview.recurrence,
+                  now: _now,
+                ));
       _set(
         state.copyWith(
           stage: VoiceStage.confirming,
@@ -841,7 +969,9 @@ class VoiceAssistantController extends Notifier<VoiceState> {
         _set(
           state.copyWith(
             stage: VoiceStage.done,
-            message: SpanishSpeech.saved(value.remindAt, now),
+            message: _driving
+                ? SpanishSpeech.savedShort(value.remindAt, now)
+                : SpanishSpeech.saved(value.remindAt, now),
             saved: value,
             isListening: false,
           ),
@@ -898,21 +1028,62 @@ class VoiceAssistantController extends Notifier<VoiceState> {
             )
             .toList()
           ..sort((a, b) => a.dueAt.compareTo(b.dueAt));
+    final events = await ref
+        .read(calendarReaderProvider)
+        .events(query.from, query.to);
+    if (!_alive(session)) return;
     final answer = SpanishSpeech.agenda(
       reminders: items,
       from: query.from,
       isWeek: query.isWeek,
       now: _now,
+      events: events,
+      short: _driving,
     );
     _set(
       state.copyWith(
         stage: VoiceStage.done,
         message: answer,
         agenda: items,
+        events: events,
         isListening: false,
       ),
     );
     await _speaker.speak(answer);
+  }
+
+  /// «Buenos días. Hoy tienes…»: lo de hoy, lo vencido, el calendario y lo
+  /// que se acerca.
+  Future<void> _answerBriefing(int session) async {
+    final active = await ref.read(reminderRepositoryProvider).watchByStatus({
+      ReminderStatus.pending,
+      ReminderStatus.snoozed,
+    }).first;
+    final now = _now;
+    final today = now.startOfDay;
+    final events = await ref
+        .read(calendarReaderProvider)
+        .events(today, today.addDays(1));
+    if (!_alive(session)) return;
+    final message = DailyBriefing.compose(
+      active: active,
+      now: now,
+      events: events,
+      short: _driving,
+    );
+    final todayItems =
+        CalendarOccurrences.expand(active, today, today.addDays(1))[today] ??
+        const <Occurrence>[];
+    _set(
+      state.copyWith(
+        stage: VoiceStage.done,
+        message: message,
+        agenda: [for (final o in todayItems) o.reminder],
+        events: events,
+        isListening: false,
+      ),
+    );
+    await _speaker.speak(message);
   }
 
   Future<void> _finish(

@@ -8,9 +8,11 @@ import 'package:viernes/ai/nlu/es/spanish_speech.dart';
 import 'package:viernes/ai/speech/speech_recognizer.dart';
 import 'package:viernes/app/providers.dart';
 import 'package:viernes/core/database/app_database.dart';
+import 'package:viernes/core/platform/device_data.dart';
 import 'package:viernes/core/utils/clock.dart';
 import 'package:viernes/features/account/domain/app_user.dart';
 import 'package:viernes/features/account/presentation/account_providers.dart';
+import 'package:viernes/features/device/device_providers.dart';
 import 'package:viernes/features/places/data/places_repository.dart';
 import 'package:viernes/features/places/domain/place.dart';
 import 'package:viernes/features/places/presentation/places_providers.dart';
@@ -23,6 +25,7 @@ import 'package:viernes/features/voice_assistant/presentation/voice_assistant_co
 
 import '../../helpers/builders.dart';
 import '../../helpers/fake_cloud.dart';
+import '../../helpers/fake_device.dart';
 import '../../helpers/fake_location.dart';
 import '../../helpers/fake_reminder_repository.dart';
 import '../../helpers/fake_sharing.dart';
@@ -434,6 +437,63 @@ void main() {
       expect(stateOf(c).message, contains('a la lista Mercado'));
     });
 
+    Future<void> createMercado() => sharing.createList(
+      SharedList(
+        id: 'm',
+        name: 'Mercado',
+        ownerUid: 'ana',
+        memberEmails: const ['ana@gmail.com', 'sofi@gmail.com'],
+        createdAt: now,
+      ),
+    );
+
+    test('asigna a un contacto con «para Sofi»', () async {
+      final c = await sharingContainer([
+        'agrega pagar el internet a la lista del mercado para Sofi',
+      ]);
+      await createMercado();
+
+      await run(c);
+
+      final item = sharing.items['m']!.values.single;
+      expect(item.text, 'Pagar el internet');
+      expect(item.assignedTo, 'sofi@gmail.com');
+      expect(item.assignedName, 'Sofi');
+      expect(stateOf(c).message, endsWith('para Sofi.'));
+    });
+
+    test('«¿qué me toca?» lee solo lo asignado a mí', () async {
+      final c = await sharingContainer([
+        '¿qué me toca en la lista del mercado?',
+      ]);
+      await createMercado();
+      await sharing.addItems('m', [
+        SharedListItem(
+          id: '1',
+          text: 'Comprar pan',
+          addedBy: 'Sofi',
+          addedAt: now,
+          assignedTo: 'ana@gmail.com',
+          assignedName: 'Ana',
+        ),
+        SharedListItem(
+          id: '2',
+          text: 'Lavar el carro',
+          addedBy: 'Ana',
+          addedAt: now,
+          assignedTo: 'sofi@gmail.com',
+          assignedName: 'Sofi',
+        ),
+      ]);
+
+      await run(c);
+
+      expect(
+        stateOf(c).message,
+        'En la lista Mercado te toca: comprar pan.',
+      );
+    });
+
     test('sin el contacto lo explica', () async {
       final c = await sharingContainer(['recuérdale a Juan llamar al banco']);
 
@@ -625,5 +685,91 @@ void main() {
     expect(draft.category, ReminderCategory.health);
     expect(draft.source, ReminderSource.voice);
     expect(repository.reminders, isEmpty);
+  });
+
+  test('«buenos días» lee el resumen del día con el calendario', () async {
+    final c = await buildContainer(
+      FakeSpeechRecognizer(script: const [SpeechHeard('buenos días')]),
+      prefs: {'settings.includeCalendar': true},
+      extra: [
+        deviceDataProvider.overrideWithValue(
+          FakeDeviceData(
+            events: [
+              CalendarEvent(
+                title: 'Reunión con Ana',
+                start: DateTime(2026, 10, 1, 15),
+                end: DateTime(2026, 10, 1, 16),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+    await repository.save(
+      buildReminder(title: 'Pagar la luz', dueAt: DateTime(2026, 10, 1, 18)),
+    );
+
+    await run(c);
+
+    expect(stateOf(c).stage, VoiceStage.done);
+    expect(stateOf(c).message, startsWith('Buenos días.'));
+    expect(stateOf(c).message, contains('pagar la luz a las 6'));
+    expect(stateOf(c).message, contains('reunión con Ana'));
+    expect(stateOf(c).events, hasLength(1));
+  });
+
+  test('el resumen también se puede pedir sin escuchar', () async {
+    final c = await buildContainer(FakeSpeechRecognizer());
+
+    await c.read(voiceAssistantProvider.notifier).briefing();
+
+    expect(speaker.spoken.single, startsWith('Buenos días.'));
+  });
+
+  test('en modo conducción confirma y responde corto', () async {
+    final c = await buildContainer(
+      FakeSpeechRecognizer(
+        script: const [
+          SpeechHeard('mañana a las 8 pagar la luz'),
+          SpeechHeard('sí'),
+        ],
+      ),
+      extra: [
+        deviceDataProvider.overrideWithValue(FakeDeviceData(driving: true)),
+      ],
+    );
+
+    await run(c);
+
+    expect(stateOf(c).driving, isTrue);
+    expect(
+      speaker.spoken[1],
+      'Pagar la luz, mañana a las 8 de la mañana. ¿Sí?',
+    );
+    expect(speaker.spoken.last, startsWith('Listo, mañana'));
+  });
+
+  test('«¿qué tengo hoy?» suma los eventos del calendario', () async {
+    final c = await buildContainer(
+      FakeSpeechRecognizer(script: const [SpeechHeard('qué tengo hoy')]),
+      prefs: {'settings.includeCalendar': true},
+      extra: [
+        deviceDataProvider.overrideWithValue(
+          FakeDeviceData(
+            events: [
+              CalendarEvent(
+                title: 'Dentista',
+                start: DateTime(2026, 10, 1, 16),
+                end: DateTime(2026, 10, 1, 17),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+
+    await run(c);
+
+    expect(stateOf(c).message, contains('En tu calendario: dentista'));
   });
 }

@@ -14,6 +14,7 @@ import 'package:viernes/core/extensions/context_x.dart';
 import 'package:viernes/core/logging/app_logger.dart';
 import 'package:viernes/core/utils/day_time.dart';
 import 'package:viernes/core/widgets/section_header.dart';
+import 'package:viernes/features/alerts/presentation/alert_providers.dart';
 import 'package:viernes/features/reminders/presentation/reminder_formatters.dart';
 import 'package:viernes/features/settings/presentation/settings_controller.dart';
 import 'package:viernes/features/voice_assistant/presentation/wake_word_controller.dart';
@@ -75,6 +76,9 @@ class LearningScreen extends ConsumerWidget {
             SectionHeader(l10n.learningWhatItLearned),
             _ModelCard(model: model),
           ],
+          if (settings.personalLearning) const _SnoozeHabitCard(),
+          SectionHeader(l10n.batterySection),
+          const _BatteryCard(),
           SectionHeader(l10n.wakeSamplesSection),
           const _WakeSamplesCard(),
           SectionHeader(l10n.neuralSection),
@@ -331,6 +335,97 @@ class _NeuralCardState extends ConsumerState<_NeuralCard> {
 }
 
 /// Grabaciones de cada «Viernes» para reentrenar el detector.
+/// Lo aprendido sobre cuánto suele posponer.
+class _SnoozeHabitCard extends ConsumerWidget {
+  const _SnoozeHabitCard();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = context.l10n;
+    final habits = ref.watch(snoozeHabitsProvider);
+    final learned = habits.learned();
+    if (learned == null) return const SizedBox.shrink();
+    return Card(
+      child: ListTile(
+        leading: const Icon(Icons.snooze),
+        title: Text(l10n.learningSnooze(l10n.duration(learned))),
+        subtitle: Text(l10n.learningSnoozeSubtitle),
+        trailing: TextButton(
+          onPressed: () async {
+            await habits.clear();
+            ref.invalidate(snoozeHabitsProvider);
+          },
+          child: Text(l10n.learningForget),
+        ),
+      ),
+    );
+  }
+}
+
+/// Cuánto gasta escuchar «Viernes» en este teléfono.
+class _BatteryCard extends ConsumerWidget {
+  const _BatteryCard();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = context.l10n;
+    final stats = ref.watch(wakeStatsProvider).value;
+    if (stats == null || stats.listening < const Duration(minutes: 1)) {
+      return Card(
+        child: ListTile(
+          leading: const Icon(Icons.battery_std),
+          title: Text(l10n.batteryNoData),
+          subtitle: Text(l10n.batteryNoDataSubtitle),
+        ),
+      );
+    }
+    final hours = stats.listening.inMinutes / 60;
+    final perHour = stats.batteryPercentPerHour;
+    return Card(
+      child: Column(
+        children: [
+          ListTile(
+            leading: const Icon(Icons.battery_charging_full),
+            title: Text(
+              perHour == null
+                  ? l10n.batteryMeasuring
+                  : l10n.batteryPerHour(perHour.toStringAsFixed(1)),
+            ),
+            subtitle: Text(
+              l10n.batteryListening(
+                hours.toStringAsFixed(1),
+                (stats.savedRatio * 100).round(),
+              ),
+            ),
+          ),
+          ListTile(
+            dense: true,
+            leading: const Icon(Icons.memory),
+            title: Text(
+              l10n.batteryCpu(
+                stats.cpuPercent?.toStringAsFixed(1) ?? '–',
+                stats.averageInferenceMs.toStringAsFixed(1),
+              ),
+            ),
+          ),
+          OverflowBar(
+            alignment: MainAxisAlignment.end,
+            children: [
+              TextButton(
+                onPressed: () async {
+                  await ref.read(wakeWordServiceProvider).resetStats();
+                  ref.invalidate(wakeStatsProvider);
+                },
+                child: Text(l10n.batteryReset),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _WakeSamplesCard extends ConsumerWidget {
   const _WakeSamplesCard();
 

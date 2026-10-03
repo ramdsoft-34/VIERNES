@@ -80,6 +80,8 @@ class AccountService {
     required this._onLocalDataChanged,
     required this._clientInfo,
     this._timeout = const Duration(seconds: 20),
+    this._beforeSignOut,
+    this._afterSignOut,
   });
 
   final AuthRepository _auth;
@@ -92,6 +94,13 @@ class AccountService {
   final Future<void> Function() _onLocalDataChanged;
   final Future<Map<String, Object?>> Function() _clientInfo;
   final Duration _timeout;
+
+  /// Antes de cerrar la sesión (aún con permiso en la nube): p. ej. dejar de
+  /// recibir notificaciones en este teléfono.
+  final Future<void> Function(String uid)? _beforeSignOut;
+
+  /// Después de borrar los datos: copias locales de listas y adjuntos.
+  final Future<void> Function()? _afterSignOut;
 
   /// Lanza `AuthException` si no se pudo iniciar sesión.
   Future<SignInResult> signInWithGoogle() async {
@@ -165,6 +174,7 @@ class AccountService {
       }
       final pending = await _local.pendingCount();
       if (pending > 0 && !force) return SignOutBlocked(pending);
+      await _runHook(() => _beforeSignOut?.call(uid));
     }
     await _auth.signOut();
     await _forgetLocal(uid);
@@ -177,6 +187,7 @@ class AccountService {
     final user = _auth.currentUser;
     if (user == null) return;
     await _auth.reauthenticate();
+    await _runHook(() => _beforeSignOut?.call(user.uid));
     await _remote.deleteAll(user.uid);
     await _auth.deleteUser();
     await _forgetLocal(user.uid);
@@ -186,6 +197,16 @@ class AccountService {
     await _local.wipe();
     await _binding.clear();
     if (uid != null) await _engine.reset(uid);
+    await _runHook(() => _afterSignOut?.call());
     await _onLocalDataChanged();
+  }
+
+  /// Los pasos extra nunca deben impedir cerrar sesión.
+  Future<void> _runHook(Future<void>? Function() hook) async {
+    try {
+      await hook()?.timeout(_timeout);
+    } on Object catch (error) {
+      AppLogger.info('Cerrar sesión: paso opcional falló ($error)');
+    }
   }
 }

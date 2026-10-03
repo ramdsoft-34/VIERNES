@@ -5,6 +5,16 @@
     <string name="widget_empty">Todo en orden. Toca el micrófono para crear un recordatorio.</string>
     <string name="widget_description">Tus próximos recordatorios y un botón para hablar con Viernes</string>
     <string name="widget_mic_description">Hablar con Viernes</string>
+    <string name="widget_mic_info">Un botón para hablar con Viernes</string>
+
+    <!-- Accesos directos del ícono y botón de ajustes rápidos. -->
+    <string name="shortcut_talk">Hablar</string>
+    <string name="shortcut_talk_long">Hablar con Viernes</string>
+    <string name="shortcut_briefing">Mi día</string>
+    <string name="shortcut_briefing_long">¿Qué tengo hoy?</string>
+    <string name="shortcut_new">Nuevo</string>
+    <string name="shortcut_new_long">Nuevo recordatorio</string>
+    <string name="tile_label">Viernes</string>
 
     <style name="WidgetRow">
         <item name="android:layout_width">match_parent</item>

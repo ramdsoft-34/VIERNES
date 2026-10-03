@@ -18,6 +18,30 @@ class FakeWakeWordService implements WakeWordService {
   @override
   Stream<void> get wakes => _wakes.stream;
 
+  final _actions = StreamController<String>.broadcast();
+  String? launchAction;
+  WakeStats? fakeStats;
+
+  void simulateAction(String action) => _actions.add(action);
+
+  @override
+  Stream<String> get actions => _actions.stream;
+
+  @override
+  Future<String?> consumeLaunchAction() async {
+    final value = launchAction;
+    launchAction = null;
+    return value;
+  }
+
+  @override
+  Future<WakeStats?> stats() async => fakeStats;
+
+  @override
+  Future<void> resetStats() async => calls.add('resetStats');
+
+  bool? lastLowBatteryPause;
+
   bool? lastChime;
   bool? lastSaveSamples;
 
@@ -27,7 +51,9 @@ class FakeWakeWordService implements WakeWordService {
     required double threshold,
     bool chime = true,
     bool saveSamples = false,
+    bool lowBatteryPause = true,
   }) async {
+    lastLowBatteryPause = lowBatteryPause;
     lastChime = chime;
     lastSaveSamples = saveSamples;
     calls.add('start');

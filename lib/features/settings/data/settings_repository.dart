@@ -49,6 +49,18 @@ class SettingsRepository {
         _prefs.getString('${_prefix}wakeEngine') ?? '',
         d.wakeEngine,
       ),
+      includeCalendar: _bool('includeCalendar') ?? d.includeCalendar,
+      speakBriefing: _bool('speakBriefing') ?? d.speakBriefing,
+      drivingMode: enumByName(
+        DrivingMode.values,
+        _prefs.getString('${_prefix}drivingMode') ?? '',
+        d.drivingMode,
+      ),
+      lowBatteryPause: _bool('lowBatteryPause') ?? d.lowBatteryPause,
+      autoBirthdays: _bool('autoBirthdays') ?? d.autoBirthdays,
+      birthdayTime: _dayTime('birthdayTime') ?? d.birthdayTime,
+      birthdayDaysBefore:
+          _prefs.getInt('${_prefix}birthdayDaysBefore') ?? d.birthdayDaysBefore,
     );
   }
 
@@ -76,12 +88,25 @@ class SettingsRepository {
       _setBool('neuralTitles', s.neuralTitles),
       _setBool('wakeChime', s.wakeChime),
       _prefs.setString('${_prefix}wakeEngine', s.wakeEngine.name),
+      _setBool('includeCalendar', s.includeCalendar),
+      _setBool('speakBriefing', s.speakBriefing),
+      _prefs.setString('${_prefix}drivingMode', s.drivingMode.name),
+      _setBool('lowBatteryPause', s.lowBatteryPause),
+      _setBool('autoBirthdays', s.autoBirthdays),
+      _setDayTime('birthdayTime', s.birthdayTime),
+      _prefs.setInt('${_prefix}birthdayDaysBefore', s.birthdayDaysBefore),
     ]);
   }
 
   /// Ajustes que dependen del teléfono (permisos, modelo descargado) y no
   /// viajan con la cuenta.
-  static const _deviceOnly = {'wakeWordEnabled', 'wakeEngine'};
+  static const _deviceOnly = {
+    'wakeWordEnabled',
+    'wakeEngine',
+    // Dependen de permisos de este teléfono (calendario, contactos).
+    'includeCalendar',
+    'autoBirthdays',
+  };
 
   /// Preferencias para guardar en la cuenta.
   Map<String, Object?> exportForSync() => {

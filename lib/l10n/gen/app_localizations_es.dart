@@ -1307,4 +1307,281 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get authErrorUnknown => 'No se pudo completar. Inténtalo de nuevo.';
+
+  @override
+  String get attachTitle => 'Fotos y notas de voz';
+
+  @override
+  String get attachPhoto => 'Foto';
+
+  @override
+  String get attachVoiceNote => 'Nota de voz';
+
+  @override
+  String get attachCamera => 'Tomar foto';
+
+  @override
+  String get attachGallery => 'Elegir de la galería';
+
+  @override
+  String get attachPhotoError => 'No se pudo agregar la foto';
+
+  @override
+  String get attachDeleteConfirm => '¿Quitar este adjunto?';
+
+  @override
+  String get attachMicDenied => 'Necesito permiso para usar el micrófono';
+
+  @override
+  String get attachRecordError => 'No se pudo grabar';
+
+  @override
+  String get attachRecording => 'Nota de voz';
+
+  @override
+  String get attachRecordingHint =>
+      'Habla ahora. Hasta 2 minutos; toca Listo al terminar.';
+
+  @override
+  String get attachStop => 'Listo';
+
+  @override
+  String get calendarFromPhone => 'De tu calendario';
+
+  @override
+  String get calendarAllDay => 'Todo el día';
+
+  @override
+  String get summaryListen => 'Escuchar';
+
+  @override
+  String get alertSnoozeUsual => 'Lo que sueles elegir';
+
+  @override
+  String get alertSnoozeOther => 'Otro tiempo';
+
+  @override
+  String alertSnoozeFor(String duration) {
+    return 'Posponer $duration';
+  }
+
+  @override
+  String get routineTitle => 'Viernes notó una costumbre';
+
+  @override
+  String routineBody(String title, String repeat, String time) {
+    return 'Sueles crear «$title» $repeat, a las $time. ¿Lo dejo como repetitivo?';
+  }
+
+  @override
+  String get routineYes => 'Sí, repetir';
+
+  @override
+  String get routineNo => 'No, gracias';
+
+  @override
+  String get routineDone => 'Listo: ahora se repite solo';
+
+  @override
+  String get birthdaysTitle => 'Cumpleaños de tus contactos';
+
+  @override
+  String get birthdaysIntro =>
+      'Viernes lee los cumpleaños guardados en los contactos del teléfono y crea un recordatorio que se repite cada año.';
+
+  @override
+  String get birthdaysPermissionTitle => 'Permite leer tus contactos';
+
+  @override
+  String get birthdaysPermissionBody =>
+      'Solo se leen el nombre y la fecha de cumpleaños. Nada sale del teléfono.';
+
+  @override
+  String get birthdaysAllow => 'Permitir';
+
+  @override
+  String get birthdaysTime => 'Hora del aviso';
+
+  @override
+  String get birthdaysBefore => 'Aviso previo';
+
+  @override
+  String birthdaysDays(int days) {
+    String _temp0 = intl.Intl.pluralLogic(
+      days,
+      locale: localeName,
+      other: '$days días antes',
+      one: '1 día antes',
+      zero: 'Sin aviso previo',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get birthdaysAuto => 'Agregar solos los nuevos';
+
+  @override
+  String get birthdaysAutoSubtitle =>
+      'Al abrir la app, si guardas un cumpleaños nuevo en tus contactos';
+
+  @override
+  String get birthdaysEmpty => 'Tus contactos no tienen cumpleaños guardados';
+
+  @override
+  String get birthdaysEmptyBody =>
+      'Agrega la fecha en la app Contactos (campo «Cumpleaños») y vuelve aquí.';
+
+  @override
+  String birthdaysAdd(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Agregar $count cumpleaños',
+      one: 'Agregar 1 cumpleaños',
+      zero: 'Nada nuevo por agregar',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String birthdaysAdded(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Se agregaron $count cumpleaños',
+      one: 'Se agregó 1 cumpleaños',
+      zero: 'No se agregó ninguno',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get birthdaysAlready => 'ya en tu agenda';
+
+  @override
+  String birthdaysTurns(int age) {
+    return 'cumple $age';
+  }
+
+  @override
+  String get settingsCalendar => 'Incluir mi calendario';
+
+  @override
+  String get settingsCalendarSubtitle =>
+      'Viernes lee tus eventos de Google Calendar para responder «¿tengo algo el viernes?» y para el resumen del día';
+
+  @override
+  String get settingsCalendarDenied =>
+      'Sin permiso de calendario no puedo leer tus eventos';
+
+  @override
+  String get settingsBirthdaysSubtitle =>
+      'Agrégalos a tu agenda con aviso previo';
+
+  @override
+  String get settingsDriving => 'Modo conducción';
+
+  @override
+  String get settingsDrivingHelp =>
+      'Respuestas más cortas y botones grandes para usar Viernes sin mirar mucho la pantalla.';
+
+  @override
+  String drivingMode(String mode) {
+    String _temp0 = intl.Intl.selectLogic(
+      mode,
+      {
+        'off': 'Desactivado',
+        'on': 'Siempre activado',
+        'other':
+            'Automático: al conectar el carro por Bluetooth o con Android Auto',
+      },
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get settingsHeadset => 'Botón de los audífonos';
+
+  @override
+  String get settingsHeadsetSubtitle =>
+      'Mantén presionado el botón del audífono o del asistente y elige Viernes. Toca para abrir los ajustes del asistente del teléfono.';
+
+  @override
+  String get settingsSpeakBriefing => 'Leer el resumen de la mañana';
+
+  @override
+  String get settingsSpeakBriefingSubtitle =>
+      'Al tocar el resumen de la mañana, Viernes te lo dice en voz alta';
+
+  @override
+  String get wakeLowBattery => 'Pausar con batería baja';
+
+  @override
+  String get wakeLowBatterySubtitle =>
+      'Con 15 % o menos y sin cargar, deja de escuchar hasta que cargues';
+
+  @override
+  String learningSnooze(String duration) {
+    return 'Sueles posponer $duration';
+  }
+
+  @override
+  String get learningSnoozeSubtitle =>
+      'Es el tiempo del botón «Posponer» y de «recuérdamelo después»';
+
+  @override
+  String get learningForget => 'Olvidar';
+
+  @override
+  String get batterySection => 'Consumo de la escucha';
+
+  @override
+  String get batteryNoData => 'Aún no hay datos';
+
+  @override
+  String get batteryNoDataSubtitle =>
+      'Activa «Viernes» por voz y vuelve en un rato para ver cuánto gasta.';
+
+  @override
+  String get batteryMeasuring => 'Midiendo la batería…';
+
+  @override
+  String batteryPerHour(String percent) {
+    return '≈ $percent % de batería por hora mientras escucha (todo el teléfono)';
+  }
+
+  @override
+  String batteryListening(String hours, int saved) {
+    return '$hours h escuchando · $saved % del tiempo en silencio (ahorro)';
+  }
+
+  @override
+  String batteryCpu(String cpu, String ms) {
+    return 'Procesador: $cpu % · $ms ms por análisis';
+  }
+
+  @override
+  String get batteryReset => 'Reiniciar cifras';
+
+  @override
+  String get listsAssign => 'Asignar';
+
+  @override
+  String listsAssignTitle(String item) {
+    return '¿A quién le toca «$item»?';
+  }
+
+  @override
+  String get listsMe => 'Yo';
+
+  @override
+  String get listsNobody => 'A nadie';
+
+  @override
+  String get listsForYou => 'Te toca a ti';
+
+  @override
+  String listsFor(String name) {
+    return 'Le toca a $name';
+  }
 }

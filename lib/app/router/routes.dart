@@ -23,6 +23,7 @@ abstract final class AppRoutes {
   static String sharedList(String id) => '/lista/$id';
 
   static const places = '/lugares';
+  static const birthdays = '/cumpleanos';
   static const locationReminders = '/por-ubicacion';
 
   /// Primera apertura: invitación a iniciar sesión.
