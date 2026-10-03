@@ -26,6 +26,7 @@ Salidas en --out:
 from __future__ import annotations
 
 import argparse
+import gc
 import json
 import os
 import random
@@ -405,7 +406,7 @@ def main():
     parser.add_argument("--general-negatives", type=int, default=800_000)
     parser.add_argument("--epochs", type=int, default=20)
     parser.add_argument("--pos-repeat", type=int, default=8)
-    parser.add_argument("--mine-rounds", type=int, default=3)
+    parser.add_argument("--mine-rounds", type=int, default=1)
     parser.add_argument("--mine-pool", type=int, default=1_500_000)
     parser.add_argument("--mine-max", type=int, default=60_000)
     args = parser.parse_args()
@@ -464,8 +465,10 @@ def main():
         epochs = args.epochs if round_ == 0 else max(4, args.epochs // 3)
         print(f"Ronda {round_}: {len(pos)} positivos, {len(x) - len(pos)} negativos "
               f"({len(mined)} encontrados por minería)", flush=True)
-        model.fit(_Batches(x, y, 1024), epochs=epochs, verbose=2)
-        del x, y
+        batches = _Batches(x, y, 1024)
+        model.fit(batches, epochs=epochs, verbose=2)
+        del x, y, batches
+        gc.collect()
         val_now = scores_on_stream(model, val_features)
         print(f"  activaciones falsas/hora: {false_activations_per_hour(val_now, 0.5):.2f} "
               f"(umbral 0,5), {false_activations_per_hour(val_now, 0.8):.2f} (0,8)",
