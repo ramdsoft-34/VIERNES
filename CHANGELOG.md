@@ -3,6 +3,23 @@
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/);
 versionado [semántico](https://semver.org/lang/es/).
 
+## [0.8.0] — IA propia: detector «Viernes» e intérprete neuronal
+
+### Agregado
+- **Detector propio de «Viernes»** (openWakeWord + clasificador entrenado en
+  Colab): viene dentro de la app (~3 MB), no descarga nada y gasta menos que
+  Vosk. En Ajustes → Activación por voz → **Detector** se elige «Propio» o
+  «Vosk» (respaldo). Medido en habla real que no vio: ~65 % de detección con
+  una voz nueva y menos de una activación falsa por hora (sensibilidad media).
+- **Red neuronal propia para entender frases** (en Dart, sin bibliotecas
+  nativas): etiqueta tarea, fecha, hora, repetición, prioridad y anticipación,
+  y clasifica la intención. Acierta el título en el 99 % de frases con tareas
+  que nunca vio. Llena lo que las reglas no entienden.
+- «Cómo aprende Viernes» → **Red neuronal propia**: versión, acierto, modo
+  experimental «Títulos con la red neuronal» y un campo para probarla.
+- Cuaderno de Colab (`training/colab/viernes_ia.ipynb`) que entrena los dos
+  modelos; métricas en `training/results/`.
+
 ## [0.7.1] — Cancelar por voz
 
 ### Agregado

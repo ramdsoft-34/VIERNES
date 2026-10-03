@@ -1,0 +1,52 @@
+{
+  "suggested_threshold": 0.8,
+  "table": [
+    {
+      "threshold": 0.3,
+      "recall_new_voice": 0.7333333333333333,
+      "false_per_hour": 0.9349532263677587,
+      "similar_words_triggered": 0.008314436885865457
+    },
+    {
+      "threshold": 0.4,
+      "recall_new_voice": 0.7083333333333334,
+      "false_per_hour": 0.9349532263677587,
+      "similar_words_triggered": 0.006991685563114134
+    },
+    {
+      "threshold": 0.5,
+      "recall_new_voice": 0.6666666666666666,
+      "false_per_hour": 0.7012149197758191,
+      "similar_words_triggered": 0.006235827664399093
+    },
+    {
+      "threshold": 0.6,
+      "recall_new_voice": 0.65,
+      "false_per_hour": 0.7012149197758191,
+      "similar_words_triggered": 0.005479969765684051
+    },
+    {
+      "threshold": 0.7,
+      "recall_new_voice": 0.6166666666666667,
+      "false_per_hour": 0.7012149197758191,
+      "similar_words_triggered": 0.00472411186696901
+    },
+    {
+      "threshold": 0.8,
+      "recall_new_voice": 0.6,
+      "false_per_hour": 0.46747661318387934,
+      "similar_words_triggered": 0.0041572184429327285
+    },
+    {
+      "threshold": 0.9,
+      "recall_new_voice": 0.55,
+      "false_per_hour": 0.23373830659193967,
+      "similar_words_triggered": 0.0035903250188964475
+    }
+  ],
+  "positives_train": 1920,
+  "positives_new_voice": 120,
+  "hard_negatives": 5292,
+  "general_negatives": 800000,
+  "holdout_voice": "es_AR-daniela-high"
+}

@@ -6,6 +6,7 @@ import 'package:viernes/ai/ai_providers.dart';
 import 'package:viernes/ai/dataset/training_exporter.dart';
 import 'package:viernes/ai/learning/personal_model.dart';
 import 'package:viernes/ai/nlu/interpretation.dart';
+import 'package:viernes/ai/nlu/ml/neural_tagger.dart';
 import 'package:viernes/app/providers.dart';
 import 'package:viernes/app/theme/app_theme.dart';
 import 'package:viernes/core/extensions/context_x.dart';
@@ -72,6 +73,8 @@ class LearningScreen extends ConsumerWidget {
             SectionHeader(l10n.learningWhatItLearned),
             _ModelCard(model: model),
           ],
+          SectionHeader(l10n.neuralSection),
+          const _NeuralCard(),
           SectionHeader(l10n.learningConversations),
           const _ConversationsCard(),
         ],
@@ -208,6 +211,103 @@ class _ConversationsCard extends ConsumerWidget {
             ),
           ],
         ],
+      ),
+    );
+  }
+}
+
+/// Red neuronal propia: qué tan bien entiende, modo experimental y un campo
+/// para probarla.
+class _NeuralCard extends ConsumerStatefulWidget {
+  const _NeuralCard();
+
+  @override
+  ConsumerState<_NeuralCard> createState() => _NeuralCardState();
+}
+
+class _NeuralCardState extends ConsumerState<_NeuralCard> {
+  final _text = TextEditingController();
+  TaggerResult? _result;
+
+  @override
+  void dispose() {
+    _text.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    final tagger = ref.watch(neuralTaggerProvider).value;
+    final settings = ref.watch(settingsControllerProvider);
+    if (tagger == null) {
+      return Card(child: ListTile(title: Text(l10n.neuralUnavailable)));
+    }
+    final unseen = tagger.metrics['unseen_tasks'];
+    final accuracy = unseen is Map
+        ? ((unseen['title_exact'] as num? ?? 0) * 100).round()
+        : null;
+    final result = _result;
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.hub_outlined),
+              title: Text(l10n.neuralVersion(tagger.version)),
+              subtitle: accuracy == null
+                  ? null
+                  : Text(l10n.neuralAccuracy(accuracy)),
+            ),
+            SwitchListTile(
+              secondary: const Icon(Icons.science_outlined),
+              title: Text(l10n.neuralTitles),
+              subtitle: Text(l10n.neuralTitlesSubtitle),
+              value: settings.neuralTitles,
+              onChanged: (value) => ref
+                  .read(settingsControllerProvider.notifier)
+                  .update((s) => s.copyWith(neuralTitles: value)),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+              child: TextField(
+                controller: _text,
+                decoration: InputDecoration(
+                  labelText: l10n.neuralTry,
+                  hintText: l10n.neuralTryHint,
+                  border: const OutlineInputBorder(),
+                ),
+                onChanged: (value) => setState(
+                  () =>
+                      _result = value.trim().isEmpty ? null : tagger.tag(value),
+                ),
+              ),
+            ),
+            if (result != null)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                child: Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: [
+                    Chip(
+                      label: Text(
+                        '${result.intent} · '
+                        '${(result.intentConfidence * 100).round()} %',
+                      ),
+                    ),
+                    for (final span in result.spans)
+                      Chip(
+                        avatar: Text(span.label.substring(0, 1)),
+                        label: Text('${span.label}: ${span.text}'),
+                      ),
+                  ],
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }

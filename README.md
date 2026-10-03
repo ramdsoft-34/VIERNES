@@ -15,7 +15,8 @@ qué necesitas recordar y te hará seguimiento hasta que confirmes que lo hicist
 | 4 | Palabra de activación "Viernes" en segundo plano | ✅ |
 | 5 | Resúmenes, widget, categorías automáticas | ✅ |
 | 6 | Recolección de datos e IA propia v1 (aprendizaje en el teléfono) | ✅ |
-| 6.5 | Cuentas con Google y respaldo en la nube | ✅ (falta google-services.json) |
+| 6.5 | Cuentas con Google y respaldo en la nube | ✅ |
+| 6.6 | IA propia: detector «Viernes» y red neuronal (Colab) | ✅ |
 | 7 | Publicación en Google Play | ⏳ |
 
 ## Requisitos

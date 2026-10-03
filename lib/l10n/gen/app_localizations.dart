@@ -1492,6 +1492,54 @@ abstract class AppLocalizations {
   /// **'Para entrenar la próxima versión de la IA. Tú eliges a dónde enviarlas.'**
   String get learningExportSubtitle;
 
+  /// No description provided for @neuralSection.
+  ///
+  /// In es, this message translates to:
+  /// **'Red neuronal propia'**
+  String get neuralSection;
+
+  /// No description provided for @neuralUnavailable.
+  ///
+  /// In es, this message translates to:
+  /// **'Esta versión no trae la red neuronal.'**
+  String get neuralUnavailable;
+
+  /// No description provided for @neuralVersion.
+  ///
+  /// In es, this message translates to:
+  /// **'Modelo {version}'**
+  String neuralVersion(String version);
+
+  /// No description provided for @neuralAccuracy.
+  ///
+  /// In es, this message translates to:
+  /// **'Acierta el título en el {percent} % de frases con tareas que nunca vio'**
+  String neuralAccuracy(int percent);
+
+  /// No description provided for @neuralTitles.
+  ///
+  /// In es, this message translates to:
+  /// **'Títulos con la red neuronal (experimental)'**
+  String get neuralTitles;
+
+  /// No description provided for @neuralTitlesSubtitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Si está muy segura, la red decide qué tarea guardar. Si no, mandan las reglas.'**
+  String get neuralTitlesSubtitle;
+
+  /// No description provided for @neuralTry.
+  ///
+  /// In es, this message translates to:
+  /// **'Prueba la red'**
+  String get neuralTry;
+
+  /// No description provided for @neuralTryHint.
+  ///
+  /// In es, this message translates to:
+  /// **'Mañana a las 8 llamar a Juan'**
+  String get neuralTryHint;
+
   /// No description provided for @settingsSectionAbout.
   ///
   /// In es, this message translates to:

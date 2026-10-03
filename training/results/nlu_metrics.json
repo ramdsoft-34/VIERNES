@@ -1,0 +1,14 @@
+{
+  "valid": {
+    "intent_accuracy": 1.0,
+    "span_f1": 0.9779603444189904,
+    "title_exact": 1.0,
+    "n": 3000
+  },
+  "unseen_tasks": {
+    "intent_accuracy": 0.9996666666666667,
+    "span_f1": 0.9754535752401282,
+    "title_exact": 0.9933554817275747,
+    "n": 3000
+  }
+}

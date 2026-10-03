@@ -25,7 +25,7 @@ audio 16 kHz (bloques de 80 ms)
 Replica `openwakeword.utils.AudioFeatures` en modo streaming para que el
 teléfono calcule lo mismo que el entrenamiento. Corre con LiteRT
 (TensorFlow Lite). El umbral sale de la sensibilidad:
-`0,75 − 0,5 × sensibilidad`, que da 0,5 en sensibilidad media.
+`0,85 − 0,5 × sensibilidad`, que da 0,6 en sensibilidad media.
 
 ## Entrenar (Google Colab, gratis)
 

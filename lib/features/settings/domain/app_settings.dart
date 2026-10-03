@@ -108,8 +108,9 @@ class AppSettings {
   double get wakeThreshold => 0.95 - 0.3 * wakeSensitivity.clamp(0, 1);
 
   /// Umbral del detector propio: su salida es una probabilidad calibrada en
-  /// el entrenamiento (0,5 en sensibilidad media).
-  double get ownWakeThreshold => 0.75 - 0.5 * wakeSensitivity.clamp(0, 1);
+  /// el entrenamiento: 0,6 en sensibilidad media (~65 % de detección y menos
+  /// de una activación falsa por hora, ver training/results).
+  double get ownWakeThreshold => 0.85 - 0.5 * wakeSensitivity.clamp(0, 1);
 
   /// Si [moment] cae dentro del horario de silencio (admite cruzar medianoche).
   bool isQuietAt(DateTime moment) {

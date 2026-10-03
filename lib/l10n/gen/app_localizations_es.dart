@@ -856,6 +856,35 @@ class AppLocalizationsEs extends AppLocalizations {
       'Para entrenar la próxima versión de la IA. Tú eliges a dónde enviarlas.';
 
   @override
+  String get neuralSection => 'Red neuronal propia';
+
+  @override
+  String get neuralUnavailable => 'Esta versión no trae la red neuronal.';
+
+  @override
+  String neuralVersion(String version) {
+    return 'Modelo $version';
+  }
+
+  @override
+  String neuralAccuracy(int percent) {
+    return 'Acierta el título en el $percent % de frases con tareas que nunca vio';
+  }
+
+  @override
+  String get neuralTitles => 'Títulos con la red neuronal (experimental)';
+
+  @override
+  String get neuralTitlesSubtitle =>
+      'Si está muy segura, la red decide qué tarea guardar. Si no, mandan las reglas.';
+
+  @override
+  String get neuralTry => 'Prueba la red';
+
+  @override
+  String get neuralTryHint => 'Mañana a las 8 llamar a Juan';
+
+  @override
   String get settingsSectionAbout => 'Acerca de';
 
   @override
