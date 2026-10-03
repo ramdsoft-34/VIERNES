@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:viernes/app/providers.dart';
 import 'package:viernes/core/extensions/context_x.dart';
 import 'package:viernes/core/widgets/empty_state.dart';
+import 'package:viernes/core/widgets/liquid.dart';
 import 'package:viernes/features/places/domain/place.dart';
 import 'package:viernes/features/places/presentation/places_providers.dart';
 
@@ -16,7 +17,7 @@ class PlacesScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = context.l10n;
     final places = ref.watch(placesProvider).value ?? const <Place>[];
-    return Scaffold(
+    return LiquidScaffold(
       appBar: AppBar(title: Text(l10n.placesTitle)),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => unawaited(showAddPlaceDialog(context, ref)),

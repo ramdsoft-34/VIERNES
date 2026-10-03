@@ -10,6 +10,7 @@ import 'package:viernes/app/theme/app_theme.dart';
 import 'package:viernes/core/extensions/context_x.dart';
 import 'package:viernes/core/platform/device_data.dart';
 import 'package:viernes/core/platform/system_bridge.dart';
+import 'package:viernes/core/widgets/liquid.dart';
 import 'package:viernes/features/reminders/domain/entities/reminder.dart';
 import 'package:viernes/features/reminders/domain/entities/reminder_enums.dart';
 import 'package:viernes/features/reminders/presentation/reminder_formatters.dart';
@@ -17,7 +18,8 @@ import 'package:viernes/features/voice_assistant/domain/voice_state.dart';
 import 'package:viernes/features/voice_assistant/presentation/voice_assistant_controller.dart';
 import 'package:viernes/features/voice_assistant/presentation/wake_word_controller.dart';
 
-/// Abre la conversación con Viernes en una hoja inferior.
+/// Abre la conversación con Viernes: una capa de vidrio a pantalla casi
+/// completa sobre lo que había.
 ///
 /// [fromWake] indica que se abrió al decir "Viernes" (quizá con el teléfono
 /// bloqueado). Con [briefing], en vez de escuchar lee el resumen del día.
@@ -29,7 +31,8 @@ Future<void> showVoiceAssistant(
   context: context,
   isScrollControlled: true,
   useSafeArea: true,
-  showDragHandle: true,
+  backgroundColor: Colors.transparent,
+  barrierColor: LiquidPalette.of(context).shadow,
   builder: (_) => VoiceAssistantSheet(fromWake: fromWake, briefing: briefing),
 );
 
@@ -105,219 +108,228 @@ class _VoiceAssistantSheetState extends ConsumerState<VoiceAssistantSheet> {
     final state = ref.watch(voiceAssistantProvider);
     final controller = ref.read(voiceAssistantProvider.notifier);
     final l10n = context.l10n;
+    final p = LiquidPalette.of(context);
+    final text = context.textTheme;
+    final height = MediaQuery.sizeOf(context).height;
+
+    final status = switch (state.stage) {
+      _ when state.isListening => l10n.voiceListening,
+      VoiceStage.thinking => l10n.voiceThinking,
+      VoiceStage.confirming => l10n.voiceConfirming,
+      VoiceStage.done => l10n.voiceDone,
+      VoiceStage.failed => l10n.voiceProblem,
+      _ => l10n.voiceStarting,
+    };
 
     return Padding(
-      padding: EdgeInsets.fromLTRB(
-        24,
-        0,
-        24,
-        24 + MediaQuery.viewInsetsOf(context).bottom,
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.viewInsetsOf(context).bottom,
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          _MicOrb(listening: state.isListening, stage: state.stage),
-          const SizedBox(height: 20),
-          AnimatedSwitcher(
-            duration: const Duration(milliseconds: 200),
-            child: Text(
-              state.message.isEmpty ? l10n.voiceStarting : state.message,
-              key: ValueKey(state.message),
-              textAlign: TextAlign.center,
-              style:
-                  (state.driving
-                          ? context.textTheme.headlineSmall
-                          : context.textTheme.titleLarge)
-                      ?.copyWith(fontWeight: FontWeight.w600),
-            ),
-          ),
-          if (state.transcript.isNotEmpty) ...[
-            const SizedBox(height: 12),
-            Text(
-              '“${state.transcript}”',
-              textAlign: TextAlign.center,
-              style: context.textTheme.bodyLarge?.copyWith(
-                fontStyle: FontStyle.italic,
-                color: context.colors.onSurfaceVariant,
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxHeight: height * 0.9),
+        child: ClipRRect(
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(36)),
+          child: AmbientBackground(
+            mood: AmbientMood.voice,
+            child: SafeArea(
+              top: false,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Barra superior: cerrar y estado.
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(12, 12, 20, 0),
+                    child: Row(
+                      children: [
+                        IconButton(
+                          tooltip: l10n.voiceClose,
+                          onPressed: () {
+                            unawaited(controller.cancel());
+                            Navigator.of(context).pop();
+                          },
+                          icon: const Icon(Icons.close_rounded),
+                        ),
+                        const Spacer(),
+                        AnimatedSwitcher(
+                          duration: LiquidMotion.of(
+                            context,
+                            LiquidMotion.fast,
+                          ),
+                          child: Text(
+                            status,
+                            key: ValueKey(status),
+                            style: AppTheme.monoStyle(text.labelMedium)
+                                .copyWith(
+                                  color: state.isListening
+                                      ? p.voltText
+                                      : p.textSecondary,
+                                ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Flexible(
+                    child: ListView(
+                      shrinkWrap: true,
+                      padding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
+                      children: [
+                        _Heard(state: state),
+                        if (state.preview case final preview?
+                            when state.stage != VoiceStage.done) ...[
+                          const SizedBox(height: 18),
+                          _Tokens(preview: preview, onTap: _openEditor),
+                        ],
+                        const SizedBox(height: 20),
+                        _Reply(state: state),
+                        if (state.agenda case final agenda?
+                            when agenda.isNotEmpty) ...[
+                          const SizedBox(height: 14),
+                          _AgendaList(items: agenda),
+                        ],
+                        if (state.events case final events?
+                            when events.isNotEmpty) ...[
+                          const SizedBox(height: 10),
+                          _EventsList(events: events),
+                        ],
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  VoiceOrb(
+                    size: state.driving ? 148 : 120,
+                    listening: state.isListening,
+                    thinking: state.stage == VoiceStage.thinking,
+                    color: state.stage == VoiceStage.failed ? p.ember : null,
+                  ),
+                  const SizedBox(height: 18),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+                    child: _Actions(
+                      state: state,
+                      onCancel: () {
+                        unawaited(controller.cancel());
+                        Navigator.of(context).pop();
+                      },
+                      onSave: controller.confirmSave,
+                      onListen: controller.listenAgain,
+                      onEdit: () => unawaited(_openEditor()),
+                      onRetry: () => unawaited(controller.start()),
+                      onClose: () => Navigator.of(context).pop(),
+                    ),
+                  ),
+                ],
               ),
             ),
-          ],
-          if (state.preview case final preview?
-              when state.stage != VoiceStage.done) ...[
-            const SizedBox(height: 20),
-            _PreviewCard(preview: preview),
-          ],
-          if (state.agenda case final agenda? when agenda.isNotEmpty) ...[
-            const SizedBox(height: 16),
-            _AgendaList(items: agenda),
-          ],
-          if (state.events case final events? when events.isNotEmpty) ...[
-            const SizedBox(height: 8),
-            _EventsList(events: events),
-          ],
-          const SizedBox(height: 24),
-          _Actions(
-            state: state,
-            onCancel: () {
-              unawaited(controller.cancel());
-              Navigator.of(context).pop();
-            },
-            onSave: controller.confirmSave,
-            onListen: controller.listenAgain,
-            onEdit: () => unawaited(_openEditor()),
-            onRetry: () => unawaited(controller.start()),
-            onClose: () => Navigator.of(context).pop(),
           ),
-        ],
+        ),
       ),
     );
   }
 }
 
-class _MicOrb extends StatefulWidget {
-  const _MicOrb({required this.listening, required this.stage});
+/// Lo que dijiste, en grande, con un cursor mientras escuchas.
+class _Heard extends StatelessWidget {
+  const _Heard({required this.state});
 
-  final bool listening;
-  final VoiceStage stage;
-
-  @override
-  State<_MicOrb> createState() => _MicOrbState();
-}
-
-class _MicOrbState extends State<_MicOrb> with SingleTickerProviderStateMixin {
-  late final AnimationController _pulse = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 1100),
-  );
-
-  @override
-  void didUpdateWidget(covariant _MicOrb oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    _sync();
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    _sync();
-  }
-
-  void _sync() {
-    if (widget.listening) {
-      if (!_pulse.isAnimating) unawaited(_pulse.repeat(reverse: true));
-    } else {
-      _pulse
-        ..stop()
-        ..value = 0;
-    }
-  }
-
-  @override
-  void dispose() {
-    _pulse.dispose();
-    super.dispose();
-  }
+  final VoiceState state;
 
   @override
   Widget build(BuildContext context) {
-    final colors = context.colors;
-    final (icon, color) = switch (widget.stage) {
-      VoiceStage.done => (Icons.check, Colors.green.shade600),
-      VoiceStage.failed => (Icons.mic_off, colors.error),
-      VoiceStage.thinking => (Icons.auto_awesome, colors.tertiary),
-      _ => (Icons.mic, colors.primary),
-    };
-    return Semantics(
-      label: widget.listening ? context.l10n.voiceListening : null,
-      child: AnimatedBuilder(
-        animation: _pulse,
-        builder: (context, child) => Container(
-          width: 96,
-          height: 96,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: color.withValues(alpha: 0.15),
-            boxShadow: [
-              BoxShadow(
-                color: color.withValues(alpha: 0.35 * _pulse.value),
-                blurRadius: 12 + 28 * _pulse.value,
-                spreadRadius: 4 + 10 * _pulse.value,
+    final p = LiquidPalette.of(context);
+    final style = (state.driving
+        ? context.textTheme.headlineLarge
+        : context.textTheme.headlineMedium)!;
+    final heard = state.transcript;
+    if (heard.isEmpty) {
+      return Text(
+        state.isListening ? context.l10n.voiceSayIt : '',
+        style: style.copyWith(color: p.textMuted),
+      );
+    }
+    return Text.rich(
+      TextSpan(
+        children: [
+          TextSpan(text: heard),
+          if (state.isListening)
+            WidgetSpan(
+              alignment: PlaceholderAlignment.middle,
+              child: Container(
+                width: 2.5,
+                height: style.fontSize! * 0.9,
+                margin: const EdgeInsets.only(left: 4),
+                color: p.volt,
               ),
-            ],
-          ),
-          child: child,
-        ),
-        child: Center(
-          child: widget.stage == VoiceStage.thinking
-              ? SizedBox(
-                  width: 40,
-                  height: 40,
-                  child: CircularProgressIndicator(color: color),
-                )
-              : Icon(icon, size: 44, color: color),
-        ),
+            ),
+        ],
       ),
+      style: style,
     );
   }
 }
 
-class _PreviewCard extends ConsumerWidget {
-  const _PreviewCard({required this.preview});
+/// Lo que entendió Viernes, como cápsulas de vidrio con su etiqueta. Tocar
+/// una abre el editor para corregirla.
+class _Tokens extends ConsumerWidget {
+  const _Tokens({required this.preview, required this.onTap});
 
   final VoicePreview preview;
+  final Future<void> Function() onTap;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = context.l10n;
-    final colors = context.colors;
     final now = ref.watch(clockProvider).now();
     final due = preview.due;
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
+    final tokens = <(String, String)>[
+      (l10n.voiceTokenWhat, preview.title.isEmpty ? '…' : preview.title),
+      (
+        l10n.voiceTokenWhen,
+        due == null ? l10n.voiceWhenMissing : l10n.dayAndTime(due, now),
+      ),
+      if (due != null) (l10n.voiceTokenNotice, l10n.leadTime(preview.leadTime)),
+      if (preview.recurrence.repeats)
+        (l10n.voiceTokenRepeat, l10n.recurrence(preview.recurrence)),
+    ];
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        for (final (label, value) in tokens)
+          _Token(label: label, value: value, onTap: () => unawaited(onTap())),
+      ],
+    );
+  }
+}
+
+class _Token extends StatelessWidget {
+  const _Token({required this.label, required this.value, required this.onTap});
+
+  final String label;
+  final String value;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = LiquidPalette.of(context);
+    return PressScale(
+      onTap: onTap,
+      semanticLabel: '$label: $value',
+      child: LiquidGlass(
+        radius: LiquidRadius.sm + 2,
+        padding: const EdgeInsets.fromLTRB(14, 8, 14, 10),
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                Icon(preview.category.icon, color: colors.primary),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    preview.title.isEmpty ? '…' : preview.title,
-                    style: context.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-                if (preview.priority.isAtLeastHigh)
-                  Chip(
-                    label: Text(l10n.priority(preview.priority)),
-                    labelStyle: TextStyle(
-                      color: preview.priority.color(colors),
-                      fontWeight: FontWeight.w700,
-                    ),
-                    visualDensity: VisualDensity.compact,
-                  ),
-              ],
+            Text(
+              label,
+              style: AppTheme.monoStyle(
+                context.textTheme.labelSmall,
+              ).copyWith(color: p.voltText),
             ),
-            const SizedBox(height: 10),
-            _Line(
-              icon: Icons.event,
-              text: due == null
-                  ? l10n.voiceWhenMissing
-                  : l10n.dayAndTime(due, now),
-            ),
-            if (due != null)
-              _Line(
-                icon: Icons.notifications_active_outlined,
-                text: l10n.leadTime(preview.leadTime),
-              ),
-            if (preview.recurrence.repeats)
-              _Line(
-                icon: Icons.repeat,
-                text: l10n.recurrence(preview.recurrence),
-              ),
+            const SizedBox(height: 2),
+            Text(value, style: context.textTheme.titleMedium),
           ],
         ),
       ),
@@ -325,23 +337,35 @@ class _PreviewCard extends ConsumerWidget {
   }
 }
 
-class _Line extends StatelessWidget {
-  const _Line({required this.icon, required this.text});
+/// La respuesta de Viernes en una tarjeta de vidrio.
+class _Reply extends StatelessWidget {
+  const _Reply({required this.state});
 
-  final IconData icon;
-  final String text;
+  final VoiceState state;
 
   @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.only(top: 4),
-    child: Row(
-      children: [
-        Icon(icon, size: 18, color: context.colors.onSurfaceVariant),
-        const SizedBox(width: 8),
-        Expanded(child: Text(text)),
-      ],
-    ),
-  );
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    final message = state.message.isEmpty ? l10n.voiceStarting : state.message;
+    return AnimatedSwitcher(
+      duration: LiquidMotion.of(context, LiquidMotion.medium),
+      switchInCurve: LiquidMotion.settle,
+      child: LiquidGlass(
+        key: ValueKey(message),
+        radius: LiquidRadius.lg,
+        padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
+        child: SizedBox(
+          width: double.infinity,
+          child: Text(
+            message,
+            style: state.driving
+                ? context.textTheme.headlineSmall
+                : context.textTheme.bodyLarge,
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class _AgendaList extends ConsumerWidget {
@@ -352,21 +376,22 @@ class _AgendaList extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final now = ref.watch(clockProvider).now();
-    return Card(
-      child: Column(
-        children: [
-          for (final reminder in items.take(8))
-            ListTile(
-              dense: true,
-              leading: Icon(reminder.category.icon),
-              title: Text(reminder.title),
-              trailing: Text(context.l10n.dayAndTime(reminder.dueAt, now)),
-              textColor: reminder.status == ReminderStatus.snoozed
-                  ? context.colors.tertiary
-                  : null,
+    return GlassGroup(
+      children: [
+        for (final reminder in items.take(8))
+          ListTile(
+            dense: true,
+            leading: Icon(reminder.category.icon),
+            title: Text(reminder.title),
+            trailing: Text(
+              context.l10n.dayAndTime(reminder.dueAt, now),
+              style: AppTheme.monoStyle(context.textTheme.labelSmall),
             ),
-        ],
-      ),
+            textColor: reminder.status == ReminderStatus.snoozed
+                ? context.colors.tertiary
+                : null,
+          ),
+      ],
     );
   }
 }
@@ -381,23 +406,22 @@ class _EventsList extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final now = ref.watch(clockProvider).now();
     final l10n = context.l10n;
-    return Card(
-      child: Column(
-        children: [
-          for (final event in events.take(6))
-            ListTile(
-              dense: true,
-              leading: const Icon(Icons.event_note_outlined),
-              title: Text(event.title),
-              subtitle: Text(l10n.calendarFromPhone),
-              trailing: Text(
-                event.allDay
-                    ? l10n.calendarAllDay
-                    : l10n.dayAndTime(event.start, now),
-              ),
+    return GlassGroup(
+      children: [
+        for (final event in events.take(6))
+          ListTile(
+            dense: true,
+            leading: const Icon(Icons.event_note_outlined),
+            title: Text(event.title),
+            subtitle: Text(l10n.calendarFromPhone),
+            trailing: Text(
+              event.allDay
+                  ? l10n.calendarAllDay
+                  : l10n.dayAndTime(event.start, now),
+              style: AppTheme.monoStyle(context.textTheme.labelSmall),
             ),
-        ],
-      ),
+          ),
+      ],
     );
   }
 }
@@ -424,57 +448,71 @@ class _Actions extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
+    Widget expand(Widget w) => Expanded(child: w);
     final buttons = switch (state.stage) {
       VoiceStage.confirming => [
-        TextButton(onPressed: onCancel, child: Text(l10n.actionCancel)),
-        OutlinedButton(onPressed: onEdit, child: Text(l10n.actionEdit)),
+        expand(OutlinedButton(onPressed: onEdit, child: Text(l10n.actionEdit))),
         if (!state.isListening)
           IconButton.outlined(
             tooltip: l10n.voiceSpeak,
             onPressed: onListen,
-            icon: const Icon(Icons.mic),
+            icon: const Icon(Icons.mic_none_rounded),
           ),
-        FilledButton(onPressed: onSave, child: Text(l10n.actionSave)),
+        expand(FilledButton(onPressed: onSave, child: Text(l10n.actionSave))),
       ],
       VoiceStage.done => [
-        FilledButton(onPressed: onClose, child: Text(l10n.voiceDone)),
+        expand(FilledButton(onPressed: onClose, child: Text(l10n.voiceDone))),
       ],
       VoiceStage.failed => [
-        TextButton(onPressed: onClose, child: Text(l10n.voiceClose)),
+        expand(
+          OutlinedButton(onPressed: onClose, child: Text(l10n.voiceClose)),
+        ),
         if (state.preview != null)
-          OutlinedButton(onPressed: onEdit, child: Text(l10n.actionEdit)),
-        FilledButton.icon(
-          onPressed: onRetry,
-          icon: const Icon(Icons.mic),
-          label: Text(l10n.voiceTryAgain),
+          expand(
+            OutlinedButton(onPressed: onEdit, child: Text(l10n.actionEdit)),
+          ),
+        expand(
+          FilledButton.icon(
+            onPressed: onRetry,
+            icon: const Icon(Icons.mic_rounded),
+            label: Text(l10n.voiceTryAgain),
+          ),
         ),
       ],
       VoiceStage.idle || VoiceStage.listening || VoiceStage.thinking => [
-        TextButton(onPressed: onCancel, child: Text(l10n.actionCancel)),
+        expand(
+          OutlinedButton(onPressed: onCancel, child: Text(l10n.actionCancel)),
+        ),
         if (state.preview != null)
-          OutlinedButton(onPressed: onEdit, child: Text(l10n.actionEdit)),
+          expand(
+            OutlinedButton(onPressed: onEdit, child: Text(l10n.actionEdit)),
+          ),
       ],
     };
-    final wrap = Wrap(
-      alignment: WrapAlignment.center,
-      crossAxisAlignment: WrapCrossAlignment.center,
-      spacing: 8,
-      runSpacing: 8,
-      children: buttons,
+    final row = Row(
+      children: [
+        for (final (index, button) in buttons.indexed) ...[
+          if (index > 0) const SizedBox(width: 10),
+          button,
+        ],
+      ],
     );
-    if (!state.driving) return wrap;
-    // Modo conducción: botones grandes, fáciles de tocar sin mirar mucho.
+    if (!state.driving) return row;
+    // Modo conducción: botones más altos, fáciles de tocar sin mirar.
     final big = ButtonStyle(
-      minimumSize: const WidgetStatePropertyAll(Size(120, 64)),
+      minimumSize: const WidgetStatePropertyAll(Size(64, 68)),
       textStyle: WidgetStatePropertyAll(context.textTheme.titleLarge),
     );
     return Theme(
       data: Theme.of(context).copyWith(
-        filledButtonTheme: FilledButtonThemeData(style: big),
-        outlinedButtonTheme: OutlinedButtonThemeData(style: big),
-        textButtonTheme: TextButtonThemeData(style: big),
+        filledButtonTheme: FilledButtonThemeData(
+          style: big.merge(Theme.of(context).filledButtonTheme.style),
+        ),
+        outlinedButtonTheme: OutlinedButtonThemeData(
+          style: big.merge(Theme.of(context).outlinedButtonTheme.style),
+        ),
       ),
-      child: wrap,
+      child: row,
     );
   }
 }

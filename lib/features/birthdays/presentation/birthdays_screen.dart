@@ -7,6 +7,7 @@ import 'package:viernes/core/extensions/context_x.dart';
 import 'package:viernes/core/logging/app_logger.dart';
 import 'package:viernes/core/platform/device_data.dart';
 import 'package:viernes/core/widgets/empty_state.dart';
+import 'package:viernes/core/widgets/liquid.dart';
 import 'package:viernes/features/birthdays/application/birthday_importer.dart';
 import 'package:viernes/features/device/device_providers.dart';
 import 'package:viernes/features/reminders/presentation/providers/reminder_providers.dart';
@@ -111,7 +112,7 @@ class _BirthdaysScreenState extends ConsumerState<BirthdaysScreen> {
     final importer = ref.read(birthdayImporterProvider);
     final now = ref.read(clockProvider).now();
 
-    return Scaffold(
+    return LiquidScaffold(
       appBar: AppBar(title: Text(l10n.birthdaysTitle)),
       body: switch (state) {
         AsyncData(:final value) when !value.permission => EmptyState(

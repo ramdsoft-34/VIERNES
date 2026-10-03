@@ -92,7 +92,10 @@ class WakeWordSettingsTiles extends ConsumerWidget {
             title: Text(l10n.wakeOverlay),
             subtitle: Text(l10n.wakeOverlaySubtitle),
             trailing: state.canOpenOverOtherApps
-                ? Icon(Icons.check_circle, color: Colors.green.shade600)
+                ? Icon(
+                    Icons.check_circle,
+                    color: context.colors.onPrimaryContainer,
+                  )
                 : TextButton(
                     onPressed: () =>
                         unawaited(controller.requestOpenOverOtherApps()),

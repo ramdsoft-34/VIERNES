@@ -281,9 +281,9 @@ class _PhotoViewer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    backgroundColor: Colors.black,
+    backgroundColor: const Color(0xFF0B0D11),
     appBar: AppBar(
-      backgroundColor: Colors.black,
+      backgroundColor: const Color(0xFF0B0D11),
       foregroundColor: Colors.white,
     ),
     body: Center(

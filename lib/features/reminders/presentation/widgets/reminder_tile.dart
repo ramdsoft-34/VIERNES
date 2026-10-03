@@ -7,6 +7,7 @@ import 'package:viernes/app/providers.dart';
 import 'package:viernes/app/router/routes.dart';
 import 'package:viernes/app/theme/app_theme.dart';
 import 'package:viernes/core/extensions/context_x.dart';
+import 'package:viernes/core/widgets/liquid.dart';
 import 'package:viernes/features/attachments/presentation/attachment_providers.dart';
 import 'package:viernes/features/reminders/domain/entities/reminder.dart';
 import 'package:viernes/features/reminders/domain/entities/reminder_enums.dart';
@@ -39,12 +40,15 @@ class ReminderTile extends ConsumerWidget {
             ?.contains(reminder.id) ??
         false;
 
-    final card = Card(
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: () => context.push(AppRoutes.editReminder(reminder.id)),
+    // Gota de vidrio «quieto»: sin desenfoque real para que las listas
+    // largas sigan fluidas; el fondo de luz se ve a través.
+    final card = PressScale(
+      scale: 0.97,
+      onTap: () => context.push(AppRoutes.editReminder(reminder.id)),
+      child: LiquidGlass(
+        blur: false,
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(4, 8, 4, 8),
+          padding: const EdgeInsets.fromLTRB(4, 10, 2, 10),
           child: Row(
             children: [
               _CompleteButton(reminder: reminder),
@@ -58,7 +62,6 @@ class ReminderTile extends ConsumerWidget {
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: context.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
                         decoration: done ? TextDecoration.lineThrough : null,
                         color: done ? colors.onSurfaceVariant : null,
                       ),
@@ -93,10 +96,11 @@ class ReminderTile extends ConsumerWidget {
                             icon: Icons.repeat,
                             label: l10n.recurrence(reminder.recurrence),
                           ),
-                        _Meta(
-                          icon: reminder.category.icon,
-                          label: l10n.category(reminder.category),
-                        ),
+                        if (reminder.category != ReminderCategory.other)
+                          _Meta(
+                            icon: reminder.category.icon,
+                            label: l10n.category(reminder.category),
+                          ),
                         if (reminder.priority.isAtLeastHigh)
                           _Badge(
                             label: l10n.priority(reminder.priority),
@@ -127,7 +131,7 @@ class ReminderTile extends ConsumerWidget {
       key: ValueKey('dismiss-${reminder.id}-${occurrenceAt ?? ''}'),
       background: _SwipeBackground(
         alignment: Alignment.centerLeft,
-        color: Colors.green.shade600,
+        color: LiquidPalette.of(context).volt,
         icon: Icons.check,
         label: l10n.actionComplete,
       ),
@@ -160,18 +164,46 @@ class _CompleteButton extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final done = reminder.status == ReminderStatus.completed;
-    final color = reminder.priority.color(context.colors);
-    return IconButton(
-      tooltip: done ? context.l10n.actionReopen : context.l10n.actionComplete,
-      onPressed: () => unawaited(
-        done
-            ? ReminderActions.reopen(context, ref, reminder)
-            : ReminderActions.complete(context, ref, reminder),
-      ),
-      icon: Icon(
-        done ? Icons.check_circle : Icons.radio_button_unchecked,
-        color: done ? Colors.green.shade600 : color,
-        size: 28,
+    final p = LiquidPalette.of(context);
+    final ring = reminder.priority.isAtLeastHigh
+        ? reminder.priority.color(context.colors)
+        : p.textMuted;
+    final label = done
+        ? context.l10n.actionReopen
+        : context.l10n.actionComplete;
+    return Tooltip(
+      message: label,
+      child: PressScale(
+        scale: 0.85,
+        haptic: !done,
+        semanticLabel: label,
+        onTap: () => unawaited(
+          done
+              ? ReminderActions.reopen(context, ref, reminder)
+              : ReminderActions.complete(context, ref, reminder),
+        ),
+        child: SizedBox.square(
+          dimension: 48,
+          child: Center(
+            child: AnimatedContainer(
+              duration: LiquidMotion.of(context, LiquidMotion.medium),
+              curve: LiquidMotion.spring,
+              width: 26,
+              height: 26,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: done ? p.volt : Colors.transparent,
+                border: Border.all(
+                  color: done ? p.volt : ring,
+                  width: 1.6,
+                ),
+              ),
+              child: done
+                  ? Icon(Icons.check_rounded, size: 16, color: p.onVolt)
+                  : null,
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -264,22 +296,7 @@ class _Badge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(6),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-        child: Text(
-          label,
-          style: context.textTheme.labelSmall?.copyWith(
-            color: color,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-      ),
-    );
+    return LiquidTag(label, color: color);
   }
 }
 
@@ -298,10 +315,13 @@ class _SwipeBackground extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final foreground = color.computeLuminance() > 0.5
+        ? const Color(0xFF1B2205)
+        : Colors.white;
     return DecoratedBox(
       decoration: BoxDecoration(
         color: color,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(LiquidRadius.md),
       ),
       child: Align(
         alignment: alignment,
@@ -310,12 +330,12 @@ class _SwipeBackground extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(icon, color: Colors.white),
+              Icon(icon, color: foreground),
               const SizedBox(width: 8),
               Text(
                 label,
-                style: const TextStyle(
-                  color: Colors.white,
+                style: TextStyle(
+                  color: foreground,
                   fontWeight: FontWeight.w600,
                 ),
               ),

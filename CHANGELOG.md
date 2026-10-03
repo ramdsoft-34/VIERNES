@@ -3,6 +3,30 @@
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/);
 versionado [semántico](https://semver.org/lang/es/).
 
+## [0.11.0] — Rediseño Liquid
+
+### Cambiado
+- **Diseño completamente nuevo «Liquid»**, unificando los skills de diseño
+  instalados (taste, apple-design, ui-ux-pro-max): grafito con luz
+  ambiental en movimiento, vidrio líquido (desenfoque, borde y brillo) y un
+  único acento voltio.
+- Letras **Geist y Geist Mono** (incluidas en la app, licencia OFL).
+- **Ahora**: cuenta regresiva gigante hasta lo próximo y el día como un río
+  de vidrio con la línea de «ahora».
+- **Dock flotante** de vidrio con la pestaña activa que se ensancha y un orbe
+  aparte para hablar. Pestañas: Ahora, Pendientes, Calendario y Progreso;
+  Ajustes desde el botón de arriba en Ahora.
+- **Hablar**: tus palabras en grande y lo entendido como cápsulas de vidrio
+  (qué, cuándo, aviso, repite); el orbe respira y emite ondas al escuchar.
+- **Alerta**: título enorme, posponer con gotas en arco y completar
+  deslizando una perilla con resistencia y resorte.
+- **Progreso** con composición asimétrica; Pendientes, Calendario y Ajustes
+  con títulos grandes y grupos de vidrio.
+- Respuesta física al tocar (resortes), modo oscuro por defecto y modo claro
+  «niebla»; sin animación si el teléfono la tiene desactivada.
+- Ícono nuevo (orbe en una gota de vidrio), pantalla de arranque, widgets y
+  accesos directos con el mismo estilo.
+
 ## [0.10.0] — Asistente más completo
 
 ### Agregado

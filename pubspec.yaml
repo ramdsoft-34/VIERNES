@@ -2,7 +2,7 @@ name: viernes
 description: "Viernes — asistente personal de recordatorios por voz que hace seguimiento hasta que confirmas cada tarea."
 publish_to: 'none'
 
-version: 0.10.0+11
+version: 0.11.0+12
 
 environment:
   sdk: ^3.12.2
@@ -56,3 +56,22 @@ flutter:
   assets:
     # Intérprete neuronal propio (entrenado con training/nlu).
     - assets/ai/nlu_model.json
+
+  # Geist y Geist Mono (Vercel, licencia OFL: assets/fonts/OFL.txt).
+  fonts:
+    - family: Geist
+      fonts:
+        - asset: assets/fonts/Geist-Light.ttf
+          weight: 300
+        - asset: assets/fonts/Geist-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/Geist-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Geist-SemiBold.ttf
+          weight: 600
+    - family: GeistMono
+      fonts:
+        - asset: assets/fonts/GeistMono-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/GeistMono-Medium.ttf
+          weight: 500

@@ -12,6 +12,7 @@ import 'package:viernes/app/theme/app_theme.dart';
 import 'package:viernes/core/error/result.dart';
 import 'package:viernes/core/extensions/context_x.dart';
 import 'package:viernes/core/platform/system_bridge.dart';
+import 'package:viernes/core/widgets/liquid.dart';
 import 'package:viernes/features/alerts/presentation/alert_providers.dart';
 import 'package:viernes/features/attachments/presentation/attachments_section.dart';
 import 'package:viernes/features/reminders/domain/entities/reminder.dart';
@@ -221,27 +222,28 @@ class _AlertScreenState extends ConsumerState<AlertScreen> {
   Widget build(BuildContext context) {
     final reminderAsync = ref.watch(reminderByIdProvider(widget.reminderId));
     final now = ref.watch(nowProvider).value ?? DateTime.now();
-    final scheme = ColorScheme.fromSeed(
-      seedColor: AppTheme.seed,
-      brightness: Brightness.dark,
-    );
 
+    // La alerta siempre es oscura: se lee bien con el teléfono bloqueado.
     return Theme(
-      data: Theme.of(context).copyWith(colorScheme: scheme),
-      child: Scaffold(
-        backgroundColor: scheme.surface,
-        body: SafeArea(
-          child: switch (reminderAsync) {
-            AsyncData(value: final reminder?) => _content(
-              context,
-              reminder,
-              now,
-              scheme,
+      data: AppTheme.dark(),
+      child: Builder(
+        builder: (context) => Scaffold(
+          backgroundColor: Colors.transparent,
+          body: AmbientBackground(
+            mood: AmbientMood.alert,
+            child: SafeArea(
+              child: switch (reminderAsync) {
+                AsyncData(value: final reminder?) => _content(
+                  context,
+                  reminder,
+                  now,
+                ),
+                AsyncData() => _missing(context),
+                AsyncError() => _missing(context),
+                _ => const Center(child: CircularProgressIndicator()),
+              },
             ),
-            AsyncData() => _missing(context),
-            AsyncError() => _missing(context),
-            _ => const Center(child: CircularProgressIndicator()),
-          },
+          ),
         ),
       ),
     );
@@ -258,13 +260,10 @@ class _AlertScreenState extends ConsumerState<AlertScreen> {
     ),
   );
 
-  Widget _content(
-    BuildContext context,
-    Reminder reminder,
-    DateTime now,
-    ColorScheme scheme,
-  ) {
+  Widget _content(BuildContext context, Reminder reminder, DateTime now) {
     final l10n = context.l10n;
+    final p = LiquidPalette.of(context);
+    final text = context.textTheme;
     final done = reminder.status == ReminderStatus.completed;
     if (!done) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -272,69 +271,59 @@ class _AlertScreenState extends ConsumerState<AlertScreen> {
       });
     }
     final overdue = reminder.isOverdue(now);
+    final preferred = ref.read(preferredSnoozeProvider)();
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
+      padding: const EdgeInsets.fromLTRB(24, 8, 20, 24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Row(
             children: [
-              Icon(Icons.notifications_active, color: scheme.primary),
-              const SizedBox(width: 8),
-              Text(
-                l10n.appName.toUpperCase(),
-                style: context.textTheme.labelLarge?.copyWith(
-                  color: scheme.primary,
-                  letterSpacing: 3,
-                  fontWeight: FontWeight.w800,
+              Expanded(
+                child: Text(
+                  l10n.dayAndTime(reminder.dueAt, now),
+                  style: AppTheme.monoStyle(text.labelMedium).copyWith(
+                    color: overdue ? p.ember : p.textSecondary,
+                  ),
                 ),
               ),
-              const Spacer(),
               IconButton(
                 tooltip: l10n.voiceClose,
                 onPressed: _close,
-                icon: const Icon(Icons.close),
-                color: scheme.onSurfaceVariant,
+                icon: const Icon(Icons.close_rounded),
               ),
             ],
           ),
-          const Spacer(),
-          _Bell(color: reminder.priority.color(scheme), animate: !done),
-          const SizedBox(height: 32),
-          Text(
-            reminder.title,
-            textAlign: TextAlign.center,
-            style: context.textTheme.headlineMedium?.copyWith(
-              color: scheme.onSurface,
-              fontWeight: FontWeight.w800,
+          const SizedBox(height: 8),
+          Expanded(
+            child: ListView(
+              padding: EdgeInsets.zero,
+              children: [
+                Text(
+                  reminder.title,
+                  style: reminder.title.length > 28
+                      ? text.displaySmall
+                      : text.displayMedium,
+                ),
+                if (reminder.notes case final notes?) ...[
+                  const SizedBox(height: 16),
+                  Text(
+                    notes,
+                    style: text.bodyLarge?.copyWith(
+                      color: p.textSecondary,
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 18),
+                AttachmentsSection(
+                  reminderId: reminder.id,
+                  readOnly: true,
+                  dark: true,
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 12),
-          Text(
-            l10n.dayAndTime(reminder.dueAt, now),
-            textAlign: TextAlign.center,
-            style: context.textTheme.titleMedium?.copyWith(
-              color: overdue ? scheme.error : scheme.onSurfaceVariant,
-            ),
-          ),
-          if (reminder.notes case final notes?) ...[
-            const SizedBox(height: 12),
-            Text(
-              notes,
-              textAlign: TextAlign.center,
-              style: TextStyle(color: scheme.onSurfaceVariant),
-            ),
-          ],
-          const SizedBox(height: 12),
-          Center(
-            child: AttachmentsSection(
-              reminderId: reminder.id,
-              readOnly: true,
-              dark: true,
-            ),
-          ),
-          const Spacer(),
           if (_resultMessage != null || _listening || _heard.isNotEmpty)
             Padding(
               padding: const EdgeInsets.only(bottom: 16),
@@ -342,72 +331,92 @@ class _AlertScreenState extends ConsumerState<AlertScreen> {
                 _resultMessage ??
                     (_heard.isEmpty ? l10n.alertListeningHint : '“$_heard”'),
                 textAlign: TextAlign.center,
-                style: context.textTheme.titleMedium?.copyWith(
-                  color: scheme.onSurface,
-                ),
+                style: text.titleMedium,
               ),
             ),
           if (done)
             FilledButton(onPressed: _close, child: Text(l10n.voiceClose))
           else ...[
-            FilledButton.icon(
-              style: FilledButton.styleFrom(
-                minimumSize: const Size.fromHeight(64),
-                backgroundColor: Colors.green.shade600,
-                foregroundColor: Colors.white,
-                textStyle: context.textTheme.titleLarge,
+            // Posponer: gotas en arco, al alcance del pulgar.
+            SizedBox(
+              height: 112,
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  Align(
+                    alignment: const Alignment(-0.92, 0.7),
+                    child: _SnoozeDrop(
+                      value: l10n.duration(preferred),
+                      tooltip: l10n.alertSnoozeFor(l10n.duration(preferred)),
+                      onTap: _busy
+                          ? null
+                          : () => unawaited(_snooze(reminder, preferred)),
+                    ),
+                  ),
+                  Align(
+                    alignment: const Alignment(-0.3, -0.8),
+                    child: _SnoozeDrop(
+                      value: l10n.duration(const Duration(hours: 1)),
+                      tooltip: l10n.alertSnoozeFor(
+                        l10n.duration(const Duration(hours: 1)),
+                      ),
+                      onTap: _busy
+                          ? null
+                          : () => unawaited(
+                              _snooze(
+                                reminder,
+                                const Duration(hours: 1),
+                                chosen: true,
+                              ),
+                            ),
+                    ),
+                  ),
+                  Align(
+                    alignment: const Alignment(0.35, -0.8),
+                    child: _SnoozeDrop(
+                      value: l10n.alertTomorrowShort,
+                      tooltip: l10n.alertSnoozeTomorrow,
+                      onTap: _busy
+                          ? null
+                          : () => unawaited(
+                              _snooze(reminder, const Duration(days: 1)),
+                            ),
+                    ),
+                  ),
+                  Align(
+                    alignment: const Alignment(0.95, 0.7),
+                    child: _SnoozeDrop(
+                      icon: Icons.more_horiz_rounded,
+                      tooltip: l10n.alertSnoozeOther,
+                      onTap: _busy
+                          ? null
+                          : () => unawaited(_chooseSnooze(reminder)),
+                    ),
+                  ),
+                ],
               ),
-              onPressed: _busy ? null : () => unawaited(_complete(reminder)),
-              icon: const Icon(Icons.check, size: 28),
-              label: Text(l10n.actionComplete),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
             Row(
               children: [
                 Expanded(
-                  child: OutlinedButton.icon(
-                    style: OutlinedButton.styleFrom(
-                      minimumSize: const Size.fromHeight(56),
-                      foregroundColor: scheme.onSurface,
-                      textStyle: context.textTheme.titleMedium,
-                    ),
-                    onPressed: _busy
-                        ? null
-                        : () => unawaited(
-                            _snooze(
-                              reminder,
-                              ref.read(preferredSnoozeProvider)(),
-                            ),
-                          ),
-                    icon: const Icon(Icons.snooze),
-                    label: Text(
-                      l10n.alertSnoozeFor(
-                        l10n.duration(ref.read(preferredSnoozeProvider)()),
-                      ),
-                    ),
+                  child: SwipeToConfirm(
+                    label: l10n.alertSwipeDone,
+                    confirmedLabel: l10n.actionComplete,
+                    enabled: !_busy,
+                    onConfirmed: () => _complete(reminder),
                   ),
                 ),
-                const SizedBox(width: 8),
-                IconButton.outlined(
-                  tooltip: l10n.alertSnoozeOther,
-                  style: IconButton.styleFrom(
-                    minimumSize: const Size(56, 56),
-                    foregroundColor: scheme.onSurface,
-                  ),
-                  onPressed: _busy
+                const SizedBox(width: 10),
+                GlassIconButton(
+                  size: 76,
+                  icon: _listening ? Icons.graphic_eq : Icons.mic_none_rounded,
+                  tooltip: l10n.alertReplyByVoice,
+                  onPressed: _busy || _listening
                       ? null
-                      : () => unawaited(_chooseSnooze(reminder)),
-                  icon: const Icon(Icons.more_time),
+                      : () => unawaited(_replyByVoice(reminder)),
                 ),
               ],
-            ),
-            const SizedBox(height: 12),
-            TextButton.icon(
-              onPressed: _busy || _listening
-                  ? null
-                  : () => unawaited(_replyByVoice(reminder)),
-              icon: Icon(_listening ? Icons.graphic_eq : Icons.mic),
-              label: Text(l10n.alertReplyByVoice),
             ),
           ],
         ],
@@ -416,54 +425,55 @@ class _AlertScreenState extends ConsumerState<AlertScreen> {
   }
 }
 
-class _Bell extends StatefulWidget {
-  const _Bell({required this.color, required this.animate});
+/// Gota de vidrio para posponer.
+class _SnoozeDrop extends StatelessWidget {
+  const _SnoozeDrop({
+    required this.tooltip,
+    required this.onTap,
+    this.value,
+    this.icon,
+  });
 
-  final Color color;
-  final bool animate;
-
-  @override
-  State<_Bell> createState() => _BellState();
-}
-
-class _BellState extends State<_Bell> with SingleTickerProviderStateMixin {
-  late final AnimationController _controller = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 900),
-  );
-
-  @override
-  void initState() {
-    super.initState();
-    if (widget.animate) unawaited(_controller.repeat(reverse: true));
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
+  final String? value;
+  final IconData? icon;
+  final String tooltip;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: AnimatedBuilder(
-        animation: _controller,
-        builder: (context, child) => Transform.rotate(
-          angle: widget.animate ? (_controller.value - 0.5) * 0.35 : 0,
-          child: child,
-        ),
-        child: Container(
-          width: 128,
-          height: 128,
-          decoration: BoxDecoration(
+    final parts = (value ?? '').split(' ');
+    return Tooltip(
+      message: tooltip,
+      child: PressScale(
+        onTap: onTap,
+        semanticLabel: tooltip,
+        scale: 0.9,
+        child: SizedBox.square(
+          dimension: 74,
+          child: LiquidGlass(
             shape: BoxShape.circle,
-            color: widget.color.withValues(alpha: 0.18),
-          ),
-          child: Icon(
-            Icons.notifications_active,
-            size: 72,
-            color: widget.color,
+            child: Center(
+              child: icon != null
+                  ? Icon(icon)
+                  : Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          parts.first,
+                          style: int.tryParse(parts.first) == null
+                              ? context.textTheme.labelLarge
+                              : AppTheme.monoStyle(
+                                  context.textTheme.titleLarge,
+                                ),
+                        ),
+                        if (parts.length > 1)
+                          Text(
+                            parts.sublist(1).join(' '),
+                            style: context.textTheme.labelSmall,
+                          ),
+                      ],
+                    ),
+            ),
           ),
         ),
       ),

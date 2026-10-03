@@ -8,6 +8,7 @@ import 'package:viernes/app/theme/app_theme.dart';
 import 'package:viernes/core/extensions/context_x.dart';
 import 'package:viernes/core/widgets/async_value_view.dart';
 import 'package:viernes/core/widgets/empty_state.dart';
+import 'package:viernes/core/widgets/liquid.dart';
 import 'package:viernes/features/reminders/domain/entities/reminder.dart';
 import 'package:viernes/features/reminders/domain/entities/reminder_enums.dart';
 import 'package:viernes/features/reminders/presentation/providers/reminder_providers.dart';
@@ -22,63 +23,81 @@ class RemindersScreen extends StatelessWidget {
     final l10n = context.l10n;
     return DefaultTabController(
       length: 3,
-      child: Scaffold(
-        appBar: AppBar(
-          title: Text(l10n.navReminders),
-          actions: [
-            IconButton(
-              tooltip: l10n.sharingTitle,
-              icon: const Icon(Icons.group_outlined),
-              onPressed: () => unawaited(context.push(AppRoutes.sharing)),
-            ),
-            IconButton(
-              tooltip: l10n.locationRemindersTitle,
-              icon: const Icon(Icons.location_on_outlined),
-              onPressed: () =>
-                  unawaited(context.push(AppRoutes.locationReminders)),
-            ),
-          ],
-          bottom: TabBar(
-            tabs: [
-              Tab(text: l10n.remindersTabPending),
-              Tab(text: l10n.remindersTabSnoozed),
-              Tab(text: l10n.remindersTabCompleted),
+      child: LiquidScaffold(
+        body: SafeArea(
+          bottom: false,
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                child: LiquidHeader(
+                  title: l10n.remindersHeader,
+                  actions: [
+                    GlassIconButton(
+                      icon: Icons.group_outlined,
+                      tooltip: l10n.sharingTitle,
+                      onPressed: () =>
+                          unawaited(context.push(AppRoutes.sharing)),
+                    ),
+                    GlassIconButton(
+                      icon: Icons.location_on_outlined,
+                      tooltip: l10n.locationRemindersTitle,
+                      onPressed: () =>
+                          unawaited(context.push(AppRoutes.locationReminders)),
+                    ),
+                    GlassIconButton(
+                      icon: Icons.add_rounded,
+                      tooltip: l10n.newReminder,
+                      onPressed: () =>
+                          unawaited(context.push(AppRoutes.newReminder())),
+                    ),
+                  ],
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: LiquidGlass(
+                  radius: LiquidRadius.pill,
+                  padding: const EdgeInsets.all(4),
+                  child: SizedBox(
+                    height: 40,
+                    child: TabBar(
+                      tabs: [
+                        Tab(text: l10n.remindersTabPending),
+                        Tab(text: l10n.remindersTabSnoozed),
+                        Tab(text: l10n.remindersTabCompleted),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              const _CategoryFilter(),
+              Expanded(
+                child: TabBarView(
+                  children: [
+                    _StatusList(
+                      status: ReminderStatus.pending,
+                      emptyIcon: Icons.checklist,
+                      emptyTitle: l10n.remindersEmptyPendingTitle,
+                      emptyBody: l10n.remindersEmptyPendingBody,
+                    ),
+                    _StatusList(
+                      status: ReminderStatus.snoozed,
+                      emptyIcon: Icons.snooze,
+                      emptyTitle: l10n.remindersEmptySnoozedTitle,
+                      emptyBody: l10n.remindersEmptySnoozedBody,
+                    ),
+                    _StatusList(
+                      status: ReminderStatus.completed,
+                      emptyIcon: Icons.task_alt,
+                      emptyTitle: l10n.remindersEmptyCompletedTitle,
+                      emptyBody: l10n.remindersEmptyCompletedBody,
+                    ),
+                  ],
+                ),
+              ),
             ],
           ),
-        ),
-        floatingActionButton: FloatingActionButton(
-          tooltip: l10n.newReminder,
-          onPressed: () => unawaited(context.push(AppRoutes.newReminder())),
-          child: const Icon(Icons.add),
-        ),
-        body: Column(
-          children: [
-            const _CategoryFilter(),
-            Expanded(
-              child: TabBarView(
-                children: [
-                  _StatusList(
-                    status: ReminderStatus.pending,
-                    emptyIcon: Icons.checklist,
-                    emptyTitle: l10n.remindersEmptyPendingTitle,
-                    emptyBody: l10n.remindersEmptyPendingBody,
-                  ),
-                  _StatusList(
-                    status: ReminderStatus.snoozed,
-                    emptyIcon: Icons.snooze,
-                    emptyTitle: l10n.remindersEmptySnoozedTitle,
-                    emptyBody: l10n.remindersEmptySnoozedBody,
-                  ),
-                  _StatusList(
-                    status: ReminderStatus.completed,
-                    emptyIcon: Icons.task_alt,
-                    emptyTitle: l10n.remindersEmptyCompletedTitle,
-                    emptyBody: l10n.remindersEmptyCompletedBody,
-                  ),
-                ],
-              ),
-            ),
-          ],
         ),
       ),
     );
@@ -112,7 +131,7 @@ class _CategoryFilter extends ConsumerWidget {
       height: 52,
       child: ListView(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        padding: const EdgeInsets.fromLTRB(16, 10, 16, 6),
         children: [
           Padding(
             padding: const EdgeInsets.only(right: 6),
@@ -172,9 +191,14 @@ class _StatusList extends ConsumerWidget {
             ? _byCompletionDesc(items)
             : items;
         return ListView.separated(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 96),
+          padding: EdgeInsets.fromLTRB(
+            16,
+            4,
+            16,
+            24 + MediaQuery.paddingOf(context).bottom,
+          ),
           itemCount: sorted.length,
-          separatorBuilder: (_, _) => const SizedBox(height: 8),
+          separatorBuilder: (_, _) => const SizedBox(height: 10),
           itemBuilder: (context, index) =>
               ReminderTile(reminder: sorted[index]),
         );

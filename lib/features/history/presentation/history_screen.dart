@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:viernes/app/providers.dart';
+import 'package:viernes/app/theme/app_theme.dart';
 import 'package:viernes/core/extensions/context_x.dart';
 import 'package:viernes/core/utils/date_x.dart';
 import 'package:viernes/core/widgets/async_value_view.dart';
 import 'package:viernes/core/widgets/empty_state.dart';
+import 'package:viernes/core/widgets/liquid.dart';
 import 'package:viernes/core/widgets/section_header.dart';
 import 'package:viernes/features/history/domain/history_stats.dart';
 import 'package:viernes/features/history/presentation/history_providers.dart';
@@ -22,31 +24,39 @@ class HistoryScreen extends ConsumerWidget {
     final l10n = context.l10n;
     final now = ref.watch(nowProvider).value ?? DateTime.now();
 
-    return Scaffold(
-      appBar: AppBar(title: Text(l10n.navHistory)),
-      body: AsyncValueView(
-        value: ref.watch(historyEventsProvider),
-        data: (events) {
-          if (events.isEmpty) {
-            return EmptyState(
-              icon: Icons.insights,
-              title: l10n.historyEmptyTitle,
-              message: l10n.historyEmptyBody,
-            );
-          }
-          final stats = HistoryStats.from(events, now);
-          final recent = events.take(_recentLimit).toList();
-          return ListView(
-            padding: const EdgeInsets.fromLTRB(16, 4, 16, 32),
-            children: [
-              SectionHeader(l10n.historyProgress),
-              _StatsGrid(stats: stats),
-              SectionHeader(l10n.historyLast7Days),
-              _WeekChart(values: stats.dailyCompletions, today: now),
-              if (stats.mostSnoozed.isNotEmpty) ...[
-                SectionHeader(l10n.historyMostSnoozed),
-                Card(
-                  child: Column(
+    final header = LiquidHeader(title: l10n.navHistory);
+    final bottom = 24 + MediaQuery.paddingOf(context).bottom;
+    return LiquidScaffold(
+      body: SafeArea(
+        bottom: false,
+        child: AsyncValueView(
+          value: ref.watch(historyEventsProvider),
+          data: (events) {
+            if (events.isEmpty) {
+              return ListView(
+                padding: EdgeInsets.fromLTRB(16, 8, 16, bottom),
+                children: [
+                  header,
+                  EmptyState(
+                    icon: Icons.insights,
+                    title: l10n.historyEmptyTitle,
+                    message: l10n.historyEmptyBody,
+                  ),
+                ],
+              );
+            }
+            final stats = HistoryStats.from(events, now);
+            final recent = events.take(_recentLimit).toList();
+            return ListView(
+              padding: EdgeInsets.fromLTRB(16, 8, 16, bottom),
+              children: [
+                header,
+                _StatsGrid(stats: stats),
+                SectionHeader(l10n.historyLast7Days),
+                _WeekChart(values: stats.dailyCompletions, today: now),
+                if (stats.mostSnoozed.isNotEmpty) ...[
+                  SectionHeader(l10n.historyMostSnoozed),
+                  GlassGroup(
                     children: [
                       for (final (title, count) in stats.mostSnoozed)
                         ListTile(
@@ -59,22 +69,18 @@ class HistoryScreen extends ConsumerWidget {
                         ),
                     ],
                   ),
-                ),
-              ],
-              SectionHeader(l10n.historyRecent),
-              Card(
-                child: Column(
+                ],
+                SectionHeader(l10n.historyRecent),
+                GlassGroup(
                   children: [
-                    for (final (index, event) in recent.indexed) ...[
-                      if (index > 0) const Divider(height: 1, indent: 56),
+                    for (final event in recent)
                       _EventTile(event: event, now: now),
-                    ],
                   ],
                 ),
-              ),
-            ],
-          );
-        },
+              ],
+            );
+          },
+        ),
       ),
     );
   }
@@ -104,7 +110,8 @@ class _WeekChart extends StatelessWidget {
         '${l10n.weekdayShort(days[i].weekday)}: ${values[i]}',
     ].join(', ');
 
-    return Card(
+    return LiquidGlass(
+      blur: false,
       child: Padding(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
         child: Semantics(
@@ -139,7 +146,7 @@ class _WeekChart extends StatelessWidget {
                                 ),
                               const SizedBox(height: 4),
                               Container(
-                                width: 18,
+                                width: 14,
                                 height: maxValue == 0
                                     ? 2
                                     : (values[i] / maxValue * _chartHeight)
@@ -148,9 +155,7 @@ class _WeekChart extends StatelessWidget {
                                   color: values[i] == 0
                                       ? colors.outlineVariant
                                       : colors.primary,
-                                  borderRadius: const BorderRadius.vertical(
-                                    top: Radius.circular(4),
-                                  ),
+                                  borderRadius: BorderRadius.circular(7),
                                 ),
                               ),
                             ],
@@ -197,48 +202,81 @@ class _StatsGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
+    final p = LiquidPalette.of(context);
     final onTime = stats.onTimeRate;
-    final cards = [
-      _StatCard(
-        icon: Icons.task_alt,
-        label: l10n.statCompletedWeek,
-        value: '${stats.completedThisWeek}',
-      ),
-      _StatCard(
-        icon: Icons.local_fire_department_outlined,
-        label: l10n.statStreak,
-        value: l10n.statDays(stats.currentStreak),
-      ),
-      _StatCard(
-        icon: Icons.emoji_events_outlined,
-        label: l10n.statBestStreak,
-        value: l10n.statDays(stats.bestStreak),
-      ),
-      _StatCard(
-        icon: Icons.timer_outlined,
-        label: l10n.statOnTime,
-        value: onTime == null ? '—' : '${(onTime * 100).round()} %',
-      ),
-      _StatCard(
-        icon: Icons.snooze,
-        label: l10n.statSnoozed,
-        value: '${stats.snoozedLast30Days}',
-      ),
-    ];
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        const spacing = 8.0;
-        final columns = constraints.maxWidth > 560 ? 3 : 2;
-        final width =
-            (constraints.maxWidth - spacing * (columns - 1)) / columns;
-        return Wrap(
-          spacing: spacing,
-          runSpacing: spacing,
+    // Composición asimétrica: un número protagonista y el resto alrededor.
+    return Column(
+      children: [
+        IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(
+                flex: 3,
+                child: LiquidGlass(
+                  radius: LiquidRadius.lg,
+                  padding: const EdgeInsets.fromLTRB(18, 16, 18, 18),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        l10n.statCompletedWeek,
+                        style: context.textTheme.bodyMedium,
+                      ),
+                      const Spacer(),
+                      Text(
+                        '${stats.completedThisWeek}',
+                        style: AppTheme.monoStyle(
+                          context.textTheme.displayLarge,
+                        ).copyWith(color: p.voltText),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                flex: 2,
+                child: Column(
+                  children: [
+                    _StatCard(
+                      icon: Icons.local_fire_department_outlined,
+                      label: l10n.statStreak,
+                      value: l10n.statDays(stats.currentStreak),
+                    ),
+                    const SizedBox(height: 10),
+                    _StatCard(
+                      icon: Icons.emoji_events_outlined,
+                      label: l10n.statBestStreak,
+                      value: l10n.statDays(stats.bestStreak),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 10),
+        Row(
           children: [
-            for (final card in cards) SizedBox(width: width, child: card),
+            Expanded(
+              child: _StatCard(
+                icon: Icons.timer_outlined,
+                label: l10n.statOnTime,
+                value: onTime == null ? '-' : '${(onTime * 100).round()} %',
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: _StatCard(
+                icon: Icons.snooze,
+                label: l10n.statSnoozed,
+                value: '${stats.snoozedLast30Days}',
+              ),
+            ),
           ],
-        );
-      },
+        ),
+      ],
     );
   }
 }
@@ -256,19 +294,18 @@ class _StatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
+    return LiquidGlass(
+      blur: false,
       child: Padding(
         padding: const EdgeInsets.all(14),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(icon, color: context.colors.primary),
+            Icon(icon, size: 20, color: context.colors.onSurfaceVariant),
             const SizedBox(height: 8),
             Text(
               value,
-              style: context.textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.w800,
-              ),
+              style: AppTheme.monoStyle(context.textTheme.headlineSmall),
             ),
             Text(
               label,
@@ -296,7 +333,7 @@ class _EventTile extends StatelessWidget {
     final (icon, color) = switch (event.type) {
       ReminderEventType.completed when event.onTime ?? true => (
         Icons.check_circle,
-        Colors.green.shade600,
+        colors.primary,
       ),
       ReminderEventType.completed => (
         Icons.check_circle_outline,

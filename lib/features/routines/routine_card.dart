@@ -8,6 +8,7 @@ import 'package:viernes/ai/nlu/es/spanish_speech.dart';
 import 'package:viernes/app/providers.dart';
 import 'package:viernes/core/error/result.dart';
 import 'package:viernes/core/extensions/context_x.dart';
+import 'package:viernes/core/widgets/liquid.dart';
 import 'package:viernes/features/reminders/domain/entities/reminder.dart';
 import 'package:viernes/features/reminders/domain/entities/reminder_draft.dart';
 import 'package:viernes/features/reminders/presentation/providers/reminder_providers.dart';
@@ -70,57 +71,62 @@ class RoutineSuggestionCard extends ConsumerWidget {
     if (suggestion == null) return const SizedBox.shrink();
     final l10n = context.l10n;
     final colors = context.colors;
-    return Card(
-      color: colors.tertiaryContainer,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 12, 8, 4),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.auto_awesome, color: colors.onTertiaryContainer),
-                const SizedBox(width: 8),
-                Text(
-                  l10n.routineTitle,
-                  style: context.textTheme.titleSmall?.copyWith(
-                    color: colors.onTertiaryContainer,
-                    fontWeight: FontWeight.w700,
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: LiquidGlass(
+        tint: colors.primary.withValues(alpha: 0.12),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 8, 4),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.auto_awesome, color: colors.onPrimaryContainer),
+                  const SizedBox(width: 8),
+                  Text(
+                    l10n.routineTitle,
+                    style: context.textTheme.titleSmall?.copyWith(
+                      color: colors.onPrimaryContainer,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              Text(
+                l10n.routineBody(
+                  suggestion.title,
+                  SpanishSpeech.recurrence(suggestion.recurrence),
+                  l10n.time(
+                    DateTime(
+                      2000,
+                      1,
+                      1,
+                      suggestion.time.hour,
+                      suggestion.time.minute,
+                    ),
                   ),
                 ),
-              ],
-            ),
-            const SizedBox(height: 6),
-            Text(
-              l10n.routineBody(
-                suggestion.title,
-                SpanishSpeech.recurrence(suggestion.recurrence),
-                l10n.time(
-                  DateTime(
-                    2000,
-                    1,
-                    1,
-                    suggestion.time.hour,
-                    suggestion.time.minute,
-                  ),
+                style: context.textTheme.bodyMedium?.copyWith(
+                  color: colors.onSurface,
                 ),
               ),
-              style: TextStyle(color: colors.onTertiaryContainer),
-            ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                TextButton(
-                  onPressed: () => unawaited(_dismiss(ref, suggestion)),
-                  child: Text(l10n.routineNo),
-                ),
-                FilledButton.tonal(
-                  onPressed: () => unawaited(_accept(context, ref, suggestion)),
-                  child: Text(l10n.routineYes),
-                ),
-              ],
-            ),
-          ],
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: () => unawaited(_dismiss(ref, suggestion)),
+                    child: Text(l10n.routineNo),
+                  ),
+                  FilledButton.tonal(
+                    onPressed: () =>
+                        unawaited(_accept(context, ref, suggestion)),
+                    child: Text(l10n.routineYes),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );

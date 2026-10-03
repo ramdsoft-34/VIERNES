@@ -7,6 +7,7 @@ import 'package:viernes/app/providers.dart';
 import 'package:viernes/app/router/routes.dart';
 import 'package:viernes/core/extensions/context_x.dart';
 import 'package:viernes/core/widgets/empty_state.dart';
+import 'package:viernes/core/widgets/liquid.dart';
 import 'package:viernes/features/places/domain/place.dart';
 import 'package:viernes/features/places/presentation/places_providers.dart';
 import 'package:viernes/features/places/presentation/places_screen.dart';
@@ -26,7 +27,7 @@ class LocationRemindersScreen extends ConsumerWidget {
         p.id: p,
     };
     final repository = ref.read(placesRepositoryProvider);
-    return Scaffold(
+    return LiquidScaffold(
       appBar: AppBar(
         title: Text(l10n.locationRemindersTitle),
         actions: [

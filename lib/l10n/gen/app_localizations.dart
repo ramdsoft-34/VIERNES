@@ -103,13 +103,13 @@ abstract class AppLocalizations {
   /// No description provided for @navHome.
   ///
   /// In es, this message translates to:
-  /// **'Inicio'**
+  /// **'Ahora'**
   String get navHome;
 
   /// No description provided for @navReminders.
   ///
   /// In es, this message translates to:
-  /// **'Recordatorios'**
+  /// **'Pendientes'**
   String get navReminders;
 
   /// No description provided for @navCalendar.
@@ -121,7 +121,7 @@ abstract class AppLocalizations {
   /// No description provided for @navHistory.
   ///
   /// In es, this message translates to:
-  /// **'Historial'**
+  /// **'Progreso'**
   String get navHistory;
 
   /// No description provided for @navSettings.
@@ -2649,6 +2649,114 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'Le toca a {name}'**
   String listsFor(String name);
+
+  /// No description provided for @homeYourDay.
+  ///
+  /// In es, this message translates to:
+  /// **'Tu día'**
+  String get homeYourDay;
+
+  /// No description provided for @homeNew.
+  ///
+  /// In es, this message translates to:
+  /// **'Nuevo'**
+  String get homeNew;
+
+  /// No description provided for @homeFree.
+  ///
+  /// In es, this message translates to:
+  /// **'Libre.'**
+  String get homeFree;
+
+  /// No description provided for @homeNow.
+  ///
+  /// In es, this message translates to:
+  /// **'Ahora'**
+  String get homeNow;
+
+  /// No description provided for @homeDay.
+  ///
+  /// In es, this message translates to:
+  /// **'día'**
+  String get homeDay;
+
+  /// No description provided for @homeDays.
+  ///
+  /// In es, this message translates to:
+  /// **'días'**
+  String get homeDays;
+
+  /// No description provided for @homeUntilNext.
+  ///
+  /// In es, this message translates to:
+  /// **'Falta para lo próximo'**
+  String get homeUntilNext;
+
+  /// No description provided for @voiceThinking.
+  ///
+  /// In es, this message translates to:
+  /// **'Pensando…'**
+  String get voiceThinking;
+
+  /// No description provided for @voiceConfirming.
+  ///
+  /// In es, this message translates to:
+  /// **'¿Lo guardo?'**
+  String get voiceConfirming;
+
+  /// No description provided for @voiceProblem.
+  ///
+  /// In es, this message translates to:
+  /// **'No salió'**
+  String get voiceProblem;
+
+  /// No description provided for @voiceSayIt.
+  ///
+  /// In es, this message translates to:
+  /// **'Dime qué necesitas…'**
+  String get voiceSayIt;
+
+  /// No description provided for @voiceTokenWhat.
+  ///
+  /// In es, this message translates to:
+  /// **'qué'**
+  String get voiceTokenWhat;
+
+  /// No description provided for @voiceTokenWhen.
+  ///
+  /// In es, this message translates to:
+  /// **'cuándo'**
+  String get voiceTokenWhen;
+
+  /// No description provided for @voiceTokenNotice.
+  ///
+  /// In es, this message translates to:
+  /// **'aviso'**
+  String get voiceTokenNotice;
+
+  /// No description provided for @voiceTokenRepeat.
+  ///
+  /// In es, this message translates to:
+  /// **'repite'**
+  String get voiceTokenRepeat;
+
+  /// No description provided for @alertSwipeDone.
+  ///
+  /// In es, this message translates to:
+  /// **'Desliza si ya lo hiciste'**
+  String get alertSwipeDone;
+
+  /// No description provided for @alertTomorrowShort.
+  ///
+  /// In es, this message translates to:
+  /// **'mañana'**
+  String get alertTomorrowShort;
+
+  /// No description provided for @remindersHeader.
+  ///
+  /// In es, this message translates to:
+  /// **'Recordatorios'**
+  String get remindersHeader;
 }
 
 class _AppLocalizationsDelegate

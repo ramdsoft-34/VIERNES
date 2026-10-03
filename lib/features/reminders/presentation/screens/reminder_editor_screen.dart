@@ -10,6 +10,7 @@ import 'package:viernes/core/error/result.dart';
 import 'package:viernes/core/extensions/context_x.dart';
 import 'package:viernes/core/utils/date_x.dart';
 import 'package:viernes/core/widgets/empty_state.dart';
+import 'package:viernes/core/widgets/liquid.dart';
 import 'package:viernes/features/attachments/data/attachments_repository.dart';
 import 'package:viernes/features/attachments/domain/attachment.dart';
 import 'package:viernes/features/attachments/presentation/attachment_providers.dart';
@@ -260,7 +261,7 @@ class _ReminderEditorScreenState extends ConsumerState<ReminderEditorScreen> {
         if (reminder != null) {
           _initFrom(reminder);
         } else {
-          return Scaffold(
+          return LiquidScaffold(
             appBar: AppBar(),
             body: async.isLoading
                 ? const Center(child: CircularProgressIndicator())
@@ -274,7 +275,7 @@ class _ReminderEditorScreenState extends ConsumerState<ReminderEditorScreen> {
     }
 
     final original = _original;
-    return Scaffold(
+    return LiquidScaffold(
       appBar: AppBar(
         leading: const CloseButton(),
         title: Text(widget.isNew ? l10n.newReminder : l10n.editReminder),
@@ -319,9 +320,19 @@ class _ReminderEditorScreenState extends ConsumerState<ReminderEditorScreen> {
                     required isFocused,
                     maxLength,
                   }) => null,
+              style: context.textTheme.headlineSmall,
               decoration: InputDecoration(
-                labelText: l10n.fieldTitle,
                 hintText: l10n.fieldTitleHint,
+                filled: false,
+                border: InputBorder.none,
+                enabledBorder: InputBorder.none,
+                focusedBorder: InputBorder.none,
+                errorBorder: InputBorder.none,
+                focusedErrorBorder: InputBorder.none,
+                contentPadding: const EdgeInsets.symmetric(vertical: 8),
+                hintStyle: context.textTheme.headlineSmall?.copyWith(
+                  color: context.colors.outline,
+                ),
               ),
               validator: (value) => (value?.trim().isEmpty ?? true)
                   ? l10n.fieldTitleRequired
@@ -504,15 +515,16 @@ class _PickerTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onTap,
+    return PressScale(
+      onTap: onTap,
+      semanticLabel: '$label: $value',
+      child: LiquidGlass(
+        blur: false,
         child: Padding(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(14),
           child: Row(
             children: [
-              Icon(icon, color: context.colors.primary),
+              Icon(icon, color: context.colors.onPrimaryContainer),
               const SizedBox(width: 10),
               Expanded(
                 child: Column(
@@ -521,9 +533,7 @@ class _PickerTile extends StatelessWidget {
                     Text(label, style: context.textTheme.labelSmall),
                     Text(
                       value,
-                      style: context.textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
+                      style: AppTheme.monoStyle(context.textTheme.titleSmall),
                       overflow: TextOverflow.ellipsis,
                     ),
                   ],

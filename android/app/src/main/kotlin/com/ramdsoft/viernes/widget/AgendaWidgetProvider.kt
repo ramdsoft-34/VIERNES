@@ -78,7 +78,7 @@ class AgendaWidgetProvider : HomeWidgetProvider() {
                 views.setTextViewText(rowId, "${whenLabel(item.at, now)} · ${item.title}")
                 views.setTextColor(
                     rowId,
-                    if (item.at < now) Color.parseColor("#FFB4AB") else Color.WHITE,
+                    if (item.at < now) Color.parseColor("#FF7A45") else Color.parseColor("#F2F4F1"),
                 )
             }
         }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:viernes/core/extensions/context_x.dart';
+import 'package:viernes/core/widgets/liquid.dart';
 
 class EmptyState extends StatelessWidget {
   const EmptyState({
@@ -23,21 +24,23 @@ class EmptyState extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            CircleAvatar(
-              radius: 32,
-              backgroundColor: context.colors.primaryContainer,
-              child: Icon(
-                icon,
-                size: 32,
-                color: context.colors.onPrimaryContainer,
+            SizedBox.square(
+              dimension: 72,
+              child: LiquidGlass(
+                shape: BoxShape.circle,
+                child: Center(
+                  child: Icon(
+                    icon,
+                    size: 30,
+                    color: context.colors.onPrimaryContainer,
+                  ),
+                ),
               ),
             ),
             const SizedBox(height: 16),
             Text(
               title,
-              style: context.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w600,
-              ),
+              style: context.textTheme.titleLarge,
               textAlign: TextAlign.center,
             ),
             if (message case final message?) ...[

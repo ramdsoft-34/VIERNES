@@ -42,7 +42,7 @@ class AppSettings {
     this.nightSummaryTime = const DayTime(21, 0),
     this.voiceConfirmation = true,
     this.dataCollectionConsent = false,
-    this.themeMode = AppThemeMode.system,
+    this.themeMode = AppThemeMode.dark,
     this.wakeWordEnabled = false,
     this.wakeSensitivity = 0.5,
     this.wakeEngine = WakeEngine.own,

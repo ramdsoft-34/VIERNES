@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:viernes/app/providers.dart';
 import 'package:viernes/core/extensions/context_x.dart';
 import 'package:viernes/core/widgets/empty_state.dart';
+import 'package:viernes/core/widgets/liquid.dart';
 import 'package:viernes/features/account/presentation/account_providers.dart';
 import 'package:viernes/features/sharing/domain/sharing_models.dart';
 import 'package:viernes/features/sharing/presentation/sharing_providers.dart';
@@ -58,7 +59,7 @@ class _SharedListScreenState extends ConsumerState<SharedListScreen> {
     final items = ref.watch(listItemsProvider(widget.listId)).value ?? const [];
     final repository = ref.read(sharingRepositoryProvider);
     final user = ref.watch(authStateProvider).value;
-    return Scaffold(
+    return LiquidScaffold(
       appBar: AppBar(
         title: Text(list?.name ?? ''),
         actions: [

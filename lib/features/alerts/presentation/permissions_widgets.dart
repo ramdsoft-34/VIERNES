@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:viernes/core/extensions/context_x.dart';
+import 'package:viernes/core/widgets/liquid.dart';
 import 'package:viernes/features/alerts/presentation/alert_providers.dart';
 
 /// Pide, en orden, los permisos que faltan para que los avisos lleguen.
@@ -30,10 +31,10 @@ class AlertPermissionsBanner extends ConsumerWidget {
     final colors = context.colors;
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
-      child: Card(
-        color: colors.errorContainer,
+      child: LiquidGlass(
+        tint: colors.tertiary.withValues(alpha: 0.22),
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(18),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -41,16 +42,13 @@ class AlertPermissionsBanner extends ConsumerWidget {
                 children: [
                   Icon(
                     Icons.notifications_off_outlined,
-                    color: colors.onErrorContainer,
+                    color: colors.onSurface,
                   ),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
                       l10n.permissionsBannerTitle,
-                      style: context.textTheme.titleMedium?.copyWith(
-                        color: colors.onErrorContainer,
-                        fontWeight: FontWeight.w700,
-                      ),
+                      style: context.textTheme.titleMedium,
                     ),
                   ),
                 ],
@@ -58,7 +56,7 @@ class AlertPermissionsBanner extends ConsumerWidget {
               const SizedBox(height: 6),
               Text(
                 l10n.permissionsBannerBody,
-                style: TextStyle(color: colors.onErrorContainer),
+                style: context.textTheme.bodyMedium,
               ),
               const SizedBox(height: 12),
               FilledButton(
@@ -138,7 +136,7 @@ class _PermissionTile extends StatelessWidget {
       title: Text(title),
       subtitle: Text(ok ? l10n.permissionGranted : l10n.permissionMissing),
       trailing: ok
-          ? Icon(Icons.check_circle, color: Colors.green.shade600)
+          ? Icon(Icons.check_circle, color: context.colors.onPrimaryContainer)
           : TextButton(
               onPressed: () => unawaited(onRequest()),
               child: Text(l10n.permissionsGrant),

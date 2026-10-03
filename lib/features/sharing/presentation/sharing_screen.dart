@@ -7,6 +7,7 @@ import 'package:viernes/app/providers.dart';
 import 'package:viernes/app/router/routes.dart';
 import 'package:viernes/core/extensions/context_x.dart';
 import 'package:viernes/core/widgets/empty_state.dart';
+import 'package:viernes/core/widgets/liquid.dart';
 import 'package:viernes/features/account/presentation/account_actions.dart';
 import 'package:viernes/features/account/presentation/account_providers.dart';
 import 'package:viernes/features/reminders/presentation/reminder_formatters.dart';
@@ -22,7 +23,7 @@ class SharingScreen extends ConsumerWidget {
     final l10n = context.l10n;
     final user = ref.watch(authStateProvider).value;
     if (user == null) {
-      return Scaffold(
+      return LiquidScaffold(
         appBar: AppBar(title: Text(l10n.sharingTitle)),
         body: EmptyState(
           icon: Icons.group_outlined,
@@ -37,7 +38,7 @@ class SharingScreen extends ConsumerWidget {
     }
     return DefaultTabController(
       length: 3,
-      child: Scaffold(
+      child: LiquidScaffold(
         appBar: AppBar(
           title: Text(l10n.sharingTitle),
           bottom: TabBar(
@@ -63,7 +64,7 @@ class _ListsTab extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = context.l10n;
     final lists = ref.watch(sharedListsProvider);
-    return Scaffold(
+    return LiquidScaffold(
       floatingActionButton: FloatingActionButton.extended(
         heroTag: 'new-list',
         onPressed: () => unawaited(_create(context, ref)),
@@ -146,12 +147,17 @@ class _SentTab extends ConsumerWidget {
         for (final r in sent)
           Card(
             child: ListTile(
-              leading: Icon(switch (r.status) {
-                SharedStatus.done => Icons.check_circle,
-                SharedStatus.accepted => Icons.mark_email_read_outlined,
-                SharedStatus.cancelled => Icons.block,
-                SharedStatus.sent => Icons.schedule_send_outlined,
-              }, color: r.status == SharedStatus.done ? Colors.green : null),
+              leading: Icon(
+                switch (r.status) {
+                  SharedStatus.done => Icons.check_circle,
+                  SharedStatus.accepted => Icons.mark_email_read_outlined,
+                  SharedStatus.cancelled => Icons.block,
+                  SharedStatus.sent => Icons.schedule_send_outlined,
+                },
+                color: r.status == SharedStatus.done
+                    ? context.colors.onPrimaryContainer
+                    : null,
+              ),
               title: Text(r.title),
               subtitle: Text(
                 [
@@ -194,7 +200,7 @@ class _ContactsTab extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = context.l10n;
     final contacts = ref.watch(contactsProvider);
-    return Scaffold(
+    return LiquidScaffold(
       floatingActionButton: FloatingActionButton.extended(
         heroTag: 'new-contact',
         onPressed: () => unawaited(_add(context, ref)),

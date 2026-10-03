@@ -41,7 +41,6 @@ void main() {
       quietHoursEnabled: true,
       quietHoursStart: DayTime(23, 30),
       dataCollectionConsent: true,
-      themeMode: AppThemeMode.dark,
     );
     await repository.save(custom);
     final loaded = repository.load();

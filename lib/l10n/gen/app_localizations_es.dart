@@ -12,16 +12,16 @@ class AppLocalizationsEs extends AppLocalizations {
   String get appName => 'Viernes';
 
   @override
-  String get navHome => 'Inicio';
+  String get navHome => 'Ahora';
 
   @override
-  String get navReminders => 'Recordatorios';
+  String get navReminders => 'Pendientes';
 
   @override
   String get navCalendar => 'Calendario';
 
   @override
-  String get navHistory => 'Historial';
+  String get navHistory => 'Progreso';
 
   @override
   String get navSettings => 'Ajustes';
@@ -1584,4 +1584,58 @@ class AppLocalizationsEs extends AppLocalizations {
   String listsFor(String name) {
     return 'Le toca a $name';
   }
+
+  @override
+  String get homeYourDay => 'Tu día';
+
+  @override
+  String get homeNew => 'Nuevo';
+
+  @override
+  String get homeFree => 'Libre.';
+
+  @override
+  String get homeNow => 'Ahora';
+
+  @override
+  String get homeDay => 'día';
+
+  @override
+  String get homeDays => 'días';
+
+  @override
+  String get homeUntilNext => 'Falta para lo próximo';
+
+  @override
+  String get voiceThinking => 'Pensando…';
+
+  @override
+  String get voiceConfirming => '¿Lo guardo?';
+
+  @override
+  String get voiceProblem => 'No salió';
+
+  @override
+  String get voiceSayIt => 'Dime qué necesitas…';
+
+  @override
+  String get voiceTokenWhat => 'qué';
+
+  @override
+  String get voiceTokenWhen => 'cuándo';
+
+  @override
+  String get voiceTokenNotice => 'aviso';
+
+  @override
+  String get voiceTokenRepeat => 'repite';
+
+  @override
+  String get alertSwipeDone => 'Desliza si ya lo hiciste';
+
+  @override
+  String get alertTomorrowShort => 'mañana';
+
+  @override
+  String get remindersHeader => 'Recordatorios';
 }

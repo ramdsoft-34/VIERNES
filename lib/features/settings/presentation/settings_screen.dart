@@ -8,6 +8,7 @@ import 'package:viernes/ai/ai_providers.dart';
 import 'package:viernes/app/providers.dart';
 import 'package:viernes/app/router/routes.dart';
 import 'package:viernes/core/extensions/context_x.dart';
+import 'package:viernes/core/widgets/liquid.dart';
 import 'package:viernes/core/widgets/section_header.dart';
 import 'package:viernes/features/account/presentation/account_tiles.dart';
 import 'package:viernes/features/alerts/presentation/permissions_widgets.dart';
@@ -34,236 +35,247 @@ class SettingsScreen extends ConsumerWidget {
     void update(AppSettings Function(AppSettings s) change) =>
         controller.update(change);
 
-    return Scaffold(
-      appBar: AppBar(title: Text(l10n.navSettings)),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
-        children: [
-          SectionHeader(l10n.accountSection),
-          const _Group(children: [AccountTiles()]),
-          SectionHeader(l10n.settingsSectionReminders),
-          _Group(
-            children: [
-              _DurationTile(
-                icon: Icons.notifications_active_outlined,
-                title: l10n.settingsDefaultLeadTime,
-                value: settings.defaultLeadTime,
-                options: AppSettings.leadTimeOptions,
-                label: l10n.leadTime,
-                onChanged: (v) => update((s) => s.copyWith(defaultLeadTime: v)),
-              ),
-              _DurationTile(
-                icon: Icons.snooze,
-                title: l10n.settingsSnoozeDuration,
-                value: settings.snoozeDuration,
-                options: AppSettings.snoozeOptions,
-                label: l10n.duration,
-                onChanged: (v) => update((s) => s.copyWith(snoozeDuration: v)),
-              ),
-            ],
+    return LiquidScaffold(
+      body: SafeArea(
+        bottom: false,
+        child: ListView(
+          padding: EdgeInsets.fromLTRB(
+            16,
+            8,
+            16,
+            24 + MediaQuery.paddingOf(context).bottom,
           ),
-          SectionHeader(l10n.settingsSectionPermissions),
-          const _Group(children: [AlertPermissionsTiles()]),
-          SectionHeader(l10n.settingsSectionAlerts),
-          _Group(
-            children: [
-              _SwitchTile(
-                icon: Icons.fullscreen,
-                title: l10n.settingsFullScreen,
-                subtitle: l10n.settingsFullScreenSubtitle,
-                value: settings.fullScreenAlerts,
-                onChanged: (v) =>
-                    update((s) => s.copyWith(fullScreenAlerts: v)),
-              ),
-              _SwitchTile(
-                icon: Icons.volume_up_outlined,
-                title: l10n.settingsSound,
-                value: settings.soundEnabled,
-                onChanged: (v) => update((s) => s.copyWith(soundEnabled: v)),
-              ),
-              _SwitchTile(
-                icon: Icons.vibration,
-                title: l10n.settingsVibration,
-                value: settings.vibrationEnabled,
-                onChanged: (v) =>
-                    update((s) => s.copyWith(vibrationEnabled: v)),
-              ),
-              _SwitchTile(
-                icon: Icons.campaign_outlined,
-                title: l10n.settingsEscalation,
-                subtitle: l10n.settingsEscalationSubtitle,
-                value: settings.escalationEnabled,
-                onChanged: (v) =>
-                    update((s) => s.copyWith(escalationEnabled: v)),
-              ),
-            ],
-          ),
-          SectionHeader(l10n.settingsSectionQuietHours),
-          _Group(
-            children: [
-              _SwitchTile(
-                icon: Icons.bedtime_outlined,
-                title: l10n.settingsQuietHours,
-                subtitle: l10n.settingsQuietHoursSubtitle,
-                value: settings.quietHoursEnabled,
-                onChanged: (v) =>
-                    update((s) => s.copyWith(quietHoursEnabled: v)),
-              ),
-              if (settings.quietHoursEnabled) ...[
-                _TimeTile(
-                  title: l10n.settingsFrom,
-                  value: settings.quietHoursStart,
+          children: [
+            LiquidHeader(title: l10n.navSettings),
+            SectionHeader.compact(l10n.accountSection),
+            const _Group(children: [AccountTiles()]),
+            SectionHeader.compact(l10n.settingsSectionReminders),
+            _Group(
+              children: [
+                _DurationTile(
+                  icon: Icons.notifications_active_outlined,
+                  title: l10n.settingsDefaultLeadTime,
+                  value: settings.defaultLeadTime,
+                  options: AppSettings.leadTimeOptions,
+                  label: l10n.leadTime,
                   onChanged: (v) =>
-                      update((s) => s.copyWith(quietHoursStart: v)),
+                      update((s) => s.copyWith(defaultLeadTime: v)),
                 ),
-                _TimeTile(
-                  title: l10n.settingsTo,
-                  value: settings.quietHoursEnd,
-                  onChanged: (v) => update((s) => s.copyWith(quietHoursEnd: v)),
+                _DurationTile(
+                  icon: Icons.snooze,
+                  title: l10n.settingsSnoozeDuration,
+                  value: settings.snoozeDuration,
+                  options: AppSettings.snoozeOptions,
+                  label: l10n.duration,
+                  onChanged: (v) =>
+                      update((s) => s.copyWith(snoozeDuration: v)),
                 ),
               ],
-            ],
-          ),
-          SectionHeader(l10n.settingsSectionSummaries),
-          _Group(
-            children: [
-              _SwitchTile(
-                icon: Icons.wb_sunny_outlined,
-                title: l10n.settingsMorningSummary,
-                subtitle: l10n.settingsMorningSummarySubtitle,
-                value: settings.morningSummaryEnabled,
-                onChanged: (v) =>
-                    update((s) => s.copyWith(morningSummaryEnabled: v)),
-              ),
-              if (settings.morningSummaryEnabled)
-                _TimeTile(
-                  title: l10n.fieldTime,
-                  value: settings.morningSummaryTime,
+            ),
+            SectionHeader.compact(l10n.settingsSectionPermissions),
+            const _Group(children: [AlertPermissionsTiles()]),
+            SectionHeader.compact(l10n.settingsSectionAlerts),
+            _Group(
+              children: [
+                _SwitchTile(
+                  icon: Icons.fullscreen,
+                  title: l10n.settingsFullScreen,
+                  subtitle: l10n.settingsFullScreenSubtitle,
+                  value: settings.fullScreenAlerts,
                   onChanged: (v) =>
-                      update((s) => s.copyWith(morningSummaryTime: v)),
+                      update((s) => s.copyWith(fullScreenAlerts: v)),
                 ),
-              _SwitchTile(
-                icon: Icons.nights_stay_outlined,
-                title: l10n.settingsNightSummary,
-                subtitle: l10n.settingsNightSummarySubtitle,
-                value: settings.nightSummaryEnabled,
-                onChanged: (v) =>
-                    update((s) => s.copyWith(nightSummaryEnabled: v)),
-              ),
-              if (settings.nightSummaryEnabled)
-                _TimeTile(
-                  title: l10n.fieldTime,
-                  value: settings.nightSummaryTime,
+                _SwitchTile(
+                  icon: Icons.volume_up_outlined,
+                  title: l10n.settingsSound,
+                  value: settings.soundEnabled,
+                  onChanged: (v) => update((s) => s.copyWith(soundEnabled: v)),
+                ),
+                _SwitchTile(
+                  icon: Icons.vibration,
+                  title: l10n.settingsVibration,
+                  value: settings.vibrationEnabled,
                   onChanged: (v) =>
-                      update((s) => s.copyWith(nightSummaryTime: v)),
+                      update((s) => s.copyWith(vibrationEnabled: v)),
                 ),
-              const AddWidgetTile(),
-            ],
-          ),
-          SectionHeader(l10n.wakeSection),
-          const _Group(children: [WakeWordSettingsTiles()]),
-          SectionHeader(l10n.settingsSectionAssistant),
-          _Group(
-            children: [
-              _SwitchTile(
-                icon: Icons.record_voice_over_outlined,
-                title: l10n.settingsVoiceConfirmation,
-                subtitle: l10n.settingsVoiceConfirmationSubtitle,
-                value: settings.voiceConfirmation,
-                onChanged: (v) =>
-                    update((s) => s.copyWith(voiceConfirmation: v)),
-              ),
-              const AssistantTiles(),
-            ],
-          ),
-          SectionHeader(l10n.settingsSectionPrivacy),
-          _Group(
-            children: [
-              _SwitchTile(
-                icon: Icons.model_training,
-                title: l10n.settingsDataCollection,
-                subtitle: l10n.settingsDataCollectionSubtitle,
-                value: settings.dataCollectionConsent,
-                onChanged: (v) =>
-                    update((s) => s.copyWith(dataCollectionConsent: v)),
-              ),
-              const _TrainingDataTile(),
-              ListTile(
-                leading: const Icon(Icons.group_outlined),
-                title: Text(l10n.settingsSharing),
-                subtitle: Text(l10n.settingsSharingSubtitle),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () => unawaited(context.push(AppRoutes.sharing)),
-              ),
-              ListTile(
-                leading: const Icon(Icons.place_outlined),
-                title: Text(l10n.settingsPlaces),
-                subtitle: Text(l10n.settingsPlacesSubtitle),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () => unawaited(context.push(AppRoutes.places)),
-              ),
-              ListTile(
-                leading: const Icon(Icons.psychology_outlined),
-                title: Text(l10n.learningOpen),
-                subtitle: Text(l10n.learningOpenSubtitle),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () => unawaited(context.push(AppRoutes.learning)),
-              ),
-            ],
-          ),
-          SectionHeader(l10n.settingsSectionAppearance),
-          _Group(
-            children: [
-              Padding(
-                padding: const EdgeInsets.all(12),
-                child: SegmentedButton<AppThemeMode>(
-                  segments: [
-                    ButtonSegment(
-                      value: AppThemeMode.system,
-                      icon: const Icon(Icons.brightness_auto),
-                      label: Text(l10n.themeSystem),
-                    ),
-                    ButtonSegment(
-                      value: AppThemeMode.light,
-                      icon: const Icon(Icons.light_mode_outlined),
-                      label: Text(l10n.themeLight),
-                    ),
-                    ButtonSegment(
-                      value: AppThemeMode.dark,
-                      icon: const Icon(Icons.dark_mode_outlined),
-                      label: Text(l10n.themeDark),
-                    ),
-                  ],
-                  selected: {settings.themeMode},
-                  onSelectionChanged: (selection) =>
-                      update((s) => s.copyWith(themeMode: selection.first)),
+                _SwitchTile(
+                  icon: Icons.campaign_outlined,
+                  title: l10n.settingsEscalation,
+                  subtitle: l10n.settingsEscalationSubtitle,
+                  value: settings.escalationEnabled,
+                  onChanged: (v) =>
+                      update((s) => s.copyWith(escalationEnabled: v)),
                 ),
-              ),
-            ],
-          ),
-          SectionHeader(l10n.settingsSectionAbout),
-          _Group(
-            children: [
-              ListTile(
-                leading: const Icon(Icons.info_outline),
-                title: Text(l10n.settingsVersion),
-                trailing: Text(
-                  switch (ref.watch(_packageInfoProvider)) {
-                    AsyncData(:final value) =>
-                      '${value.version} (${value.buildNumber})',
-                    _ => '…',
-                  },
+              ],
+            ),
+            SectionHeader.compact(l10n.settingsSectionQuietHours),
+            _Group(
+              children: [
+                _SwitchTile(
+                  icon: Icons.bedtime_outlined,
+                  title: l10n.settingsQuietHours,
+                  subtitle: l10n.settingsQuietHoursSubtitle,
+                  value: settings.quietHoursEnabled,
+                  onChanged: (v) =>
+                      update((s) => s.copyWith(quietHoursEnabled: v)),
                 ),
-              ),
-              if (ref.watch(flavorProvider).isDev)
+                if (settings.quietHoursEnabled) ...[
+                  _TimeTile(
+                    title: l10n.settingsFrom,
+                    value: settings.quietHoursStart,
+                    onChanged: (v) =>
+                        update((s) => s.copyWith(quietHoursStart: v)),
+                  ),
+                  _TimeTile(
+                    title: l10n.settingsTo,
+                    value: settings.quietHoursEnd,
+                    onChanged: (v) =>
+                        update((s) => s.copyWith(quietHoursEnd: v)),
+                  ),
+                ],
+              ],
+            ),
+            SectionHeader.compact(l10n.settingsSectionSummaries),
+            _Group(
+              children: [
+                _SwitchTile(
+                  icon: Icons.wb_sunny_outlined,
+                  title: l10n.settingsMorningSummary,
+                  subtitle: l10n.settingsMorningSummarySubtitle,
+                  value: settings.morningSummaryEnabled,
+                  onChanged: (v) =>
+                      update((s) => s.copyWith(morningSummaryEnabled: v)),
+                ),
+                if (settings.morningSummaryEnabled)
+                  _TimeTile(
+                    title: l10n.fieldTime,
+                    value: settings.morningSummaryTime,
+                    onChanged: (v) =>
+                        update((s) => s.copyWith(morningSummaryTime: v)),
+                  ),
+                _SwitchTile(
+                  icon: Icons.nights_stay_outlined,
+                  title: l10n.settingsNightSummary,
+                  subtitle: l10n.settingsNightSummarySubtitle,
+                  value: settings.nightSummaryEnabled,
+                  onChanged: (v) =>
+                      update((s) => s.copyWith(nightSummaryEnabled: v)),
+                ),
+                if (settings.nightSummaryEnabled)
+                  _TimeTile(
+                    title: l10n.fieldTime,
+                    value: settings.nightSummaryTime,
+                    onChanged: (v) =>
+                        update((s) => s.copyWith(nightSummaryTime: v)),
+                  ),
+                const AddWidgetTile(),
+              ],
+            ),
+            SectionHeader.compact(l10n.wakeSection),
+            const _Group(children: [WakeWordSettingsTiles()]),
+            SectionHeader.compact(l10n.settingsSectionAssistant),
+            _Group(
+              children: [
+                _SwitchTile(
+                  icon: Icons.record_voice_over_outlined,
+                  title: l10n.settingsVoiceConfirmation,
+                  subtitle: l10n.settingsVoiceConfirmationSubtitle,
+                  value: settings.voiceConfirmation,
+                  onChanged: (v) =>
+                      update((s) => s.copyWith(voiceConfirmation: v)),
+                ),
+                const AssistantTiles(),
+              ],
+            ),
+            SectionHeader.compact(l10n.settingsSectionPrivacy),
+            _Group(
+              children: [
+                _SwitchTile(
+                  icon: Icons.model_training,
+                  title: l10n.settingsDataCollection,
+                  subtitle: l10n.settingsDataCollectionSubtitle,
+                  value: settings.dataCollectionConsent,
+                  onChanged: (v) =>
+                      update((s) => s.copyWith(dataCollectionConsent: v)),
+                ),
+                const _TrainingDataTile(),
                 ListTile(
-                  leading: const Icon(Icons.developer_mode),
-                  title: Text(l10n.settingsEnvironment),
-                  trailing: const Text('DEV'),
+                  leading: const Icon(Icons.group_outlined),
+                  title: Text(l10n.settingsSharing),
+                  subtitle: Text(l10n.settingsSharingSubtitle),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => unawaited(context.push(AppRoutes.sharing)),
                 ),
-            ],
-          ),
-        ],
+                ListTile(
+                  leading: const Icon(Icons.place_outlined),
+                  title: Text(l10n.settingsPlaces),
+                  subtitle: Text(l10n.settingsPlacesSubtitle),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => unawaited(context.push(AppRoutes.places)),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.psychology_outlined),
+                  title: Text(l10n.learningOpen),
+                  subtitle: Text(l10n.learningOpenSubtitle),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => unawaited(context.push(AppRoutes.learning)),
+                ),
+              ],
+            ),
+            SectionHeader.compact(l10n.settingsSectionAppearance),
+            _Group(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: SegmentedButton<AppThemeMode>(
+                    segments: [
+                      ButtonSegment(
+                        value: AppThemeMode.system,
+                        icon: const Icon(Icons.brightness_auto),
+                        label: Text(l10n.themeSystem),
+                      ),
+                      ButtonSegment(
+                        value: AppThemeMode.light,
+                        icon: const Icon(Icons.light_mode_outlined),
+                        label: Text(l10n.themeLight),
+                      ),
+                      ButtonSegment(
+                        value: AppThemeMode.dark,
+                        icon: const Icon(Icons.dark_mode_outlined),
+                        label: Text(l10n.themeDark),
+                      ),
+                    ],
+                    selected: {settings.themeMode},
+                    onSelectionChanged: (selection) =>
+                        update((s) => s.copyWith(themeMode: selection.first)),
+                  ),
+                ),
+              ],
+            ),
+            SectionHeader.compact(l10n.settingsSectionAbout),
+            _Group(
+              children: [
+                ListTile(
+                  leading: const Icon(Icons.info_outline),
+                  title: Text(l10n.settingsVersion),
+                  trailing: Text(
+                    switch (ref.watch(_packageInfoProvider)) {
+                      AsyncData(:final value) =>
+                        '${value.version} (${value.buildNumber})',
+                      _ => '…',
+                    },
+                  ),
+                ),
+                if (ref.watch(flavorProvider).isDev)
+                  ListTile(
+                    leading: const Icon(Icons.developer_mode),
+                    title: Text(l10n.settingsEnvironment),
+                    trailing: const Text('DEV'),
+                  ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -324,17 +336,7 @@ class _Group extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      clipBehavior: Clip.antiAlias,
-      child: Column(
-        children: [
-          for (final (index, child) in children.indexed) ...[
-            if (index > 0) const Divider(height: 1, indent: 56),
-            child,
-          ],
-        ],
-      ),
-    );
+    return GlassGroup(children: children);
   }
 }
 

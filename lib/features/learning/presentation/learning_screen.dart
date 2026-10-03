@@ -13,6 +13,7 @@ import 'package:viernes/app/theme/app_theme.dart';
 import 'package:viernes/core/extensions/context_x.dart';
 import 'package:viernes/core/logging/app_logger.dart';
 import 'package:viernes/core/utils/day_time.dart';
+import 'package:viernes/core/widgets/liquid.dart';
 import 'package:viernes/core/widgets/section_header.dart';
 import 'package:viernes/features/alerts/presentation/alert_providers.dart';
 import 'package:viernes/features/reminders/presentation/reminder_formatters.dart';
@@ -31,7 +32,7 @@ class LearningScreen extends ConsumerWidget {
     final controller = ref.read(settingsControllerProvider.notifier);
     final model = ref.watch(personalModelProvider);
 
-    return Scaffold(
+    return LiquidScaffold(
       appBar: AppBar(title: Text(l10n.learningTitle)),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
@@ -73,17 +74,17 @@ class LearningScreen extends ConsumerWidget {
             ),
           ),
           if (settings.personalLearning && model != null) ...[
-            SectionHeader(l10n.learningWhatItLearned),
+            SectionHeader.compact(l10n.learningWhatItLearned),
             _ModelCard(model: model),
           ],
           if (settings.personalLearning) const _SnoozeHabitCard(),
-          SectionHeader(l10n.batterySection),
+          SectionHeader.compact(l10n.batterySection),
           const _BatteryCard(),
-          SectionHeader(l10n.wakeSamplesSection),
+          SectionHeader.compact(l10n.wakeSamplesSection),
           const _WakeSamplesCard(),
-          SectionHeader(l10n.neuralSection),
+          SectionHeader.compact(l10n.neuralSection),
           const _NeuralCard(),
-          SectionHeader(l10n.learningConversations),
+          SectionHeader.compact(l10n.learningConversations),
           const _ConversationsCard(),
         ],
       ),

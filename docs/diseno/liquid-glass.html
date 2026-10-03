@@ -1,0 +1,332 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Viernes · Liquid</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#0B0D11;
+  --ink-2:#12151B;
+  --text:#F2F4F1;
+  --text-2:rgba(242,244,241,.62);
+  --text-3:rgba(242,244,241,.38);
+  --volt:#D2F25C;          /* único acento */
+  --volt-ink:#1B2205;
+  --ember:#FF7A45;         /* solo luz de fondo, nunca botones */
+  --cobalt:#2F5BFF;        /* solo luz de fondo */
+  --spring:cubic-bezier(.32,1.28,.48,1);
+  --settle:cubic-bezier(.22,1,.36,1);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#05060A;color:var(--text);font-family:Geist,system-ui,sans-serif;-webkit-font-smoothing:antialiased;min-height:100dvh;padding:40px 24px 64px}
+.page-head{max-width:1560px;margin:0 auto 32px;display:flex;align-items:flex-end;justify-content:space-between;gap:24px;flex-wrap:wrap}
+.page-head h1{font-weight:500;font-size:clamp(28px,4vw,46px);letter-spacing:-.035em;line-height:1}
+.page-head p{color:var(--text-2);max-width:52ch;font-size:15px;line-height:1.55}
+.row{display:flex;gap:28px;justify-content:center;flex-wrap:wrap;max-width:1560px;margin:0 auto}
+.label{font-size:13px;color:var(--text-2);margin-top:14px;max-width:340px;line-height:1.5}
+.label b{color:var(--text);font-weight:500}
+
+/* ---------- teléfono ---------- */
+.phone{width:340px;height:736px;border-radius:52px;position:relative;overflow:hidden;background:var(--ink);
+  box-shadow:0 0 0 1px rgba(255,255,255,.08),0 0 0 10px #0E1014,0 0 0 11px rgba(255,255,255,.06),0 40px 90px rgba(0,0,0,.6);isolation:isolate}
+.status{position:absolute;top:0;left:0;right:0;height:44px;display:flex;justify-content:space-between;align-items:center;padding:0 28px;font:500 13px Geist;z-index:20}
+.island{position:absolute;top:11px;left:50%;transform:translateX(-50%);width:104px;height:30px;border-radius:20px;background:#000;z-index:21}
+
+/* luz ambiental: campos de color que el vidrio refracta */
+.field{position:absolute;inset:-20%;z-index:-1;filter:blur(46px) saturate(140%);opacity:.95}
+.blob{position:absolute;border-radius:50%;mix-blend-mode:screen;animation:drift 22s var(--settle) infinite alternate}
+.b1{width:320px;height:320px;background:var(--ember);left:-40px;top:120px;opacity:.55}
+.b2{width:380px;height:380px;background:var(--cobalt);right:-120px;top:380px;opacity:.6;animation-duration:28s}
+.b3{width:220px;height:220px;background:var(--volt);left:120px;top:620px;opacity:.22;animation-duration:19s}
+@keyframes drift{0%{transform:translate(0,0) scale(1)}50%{transform:translate(40px,-60px) scale(1.12)}100%{transform:translate(-30px,40px) scale(.94)}}
+.grain{position:absolute;inset:0;z-index:0;pointer-events:none;opacity:.07;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+
+/* ---------- liquid glass (aproximación web, no es el material oficial de Apple) ---------- */
+.glass{position:relative;isolation:isolate;
+  background:linear-gradient(135deg,rgba(255,255,255,.16),rgba(255,255,255,.04)),rgba(18,21,27,.34);
+  backdrop-filter:blur(22px) saturate(190%) contrast(1.06);-webkit-backdrop-filter:blur(22px) saturate(190%) contrast(1.06);
+  border:1px solid rgba(255,255,255,.16);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.32),inset 0 -1px 0 rgba(255,255,255,.06),0 18px 50px rgba(3,6,20,.45)}
+.glass::before{content:"";position:absolute;inset:0;border-radius:inherit;z-index:-1;pointer-events:none;
+  background:radial-gradient(120% 80% at 18% 0%,rgba(255,255,255,.38),transparent 40%),linear-gradient(90deg,rgba(255,255,255,.12),transparent 45%,rgba(255,255,255,.08))}
+.glass::after{content:"";position:absolute;inset:1px;border-radius:inherit;border:1px solid rgba(255,255,255,.07);pointer-events:none}
+@media (prefers-reduced-transparency:reduce){.glass{background:#1A1E26;backdrop-filter:none;-webkit-backdrop-filter:none}}
+@media (prefers-reduced-motion:reduce){.blob,.orb-core,.ripple,.wave i{animation:none!important}}
+
+.mono{font-family:"Geist Mono",monospace;font-variant-numeric:tabular-nums}
+.press{transition:transform .5s var(--spring)}
+.press:active{transform:scale(.94);transition-duration:.08s}
+
+/* ---------- dock flotante con lente que se desliza ---------- */
+.dock{position:absolute;bottom:22px;left:18px;right:96px;height:62px;border-radius:31px;display:flex;align-items:center;justify-content:space-around;z-index:10}
+.dock button{all:unset;cursor:pointer;width:52px;height:46px;display:grid;place-items:center;color:var(--text-2);position:relative;z-index:2;border-radius:23px}
+.dock button[aria-current]{color:var(--text)}
+.dock svg{width:22px;height:22px}
+.lens{position:absolute;top:8px;height:46px;width:58px;border-radius:23px;z-index:1;transition:left .55s var(--spring);
+  background:rgba(255,255,255,.14);box-shadow:inset 0 1px 0 rgba(255,255,255,.35),inset 0 0 12px rgba(255,255,255,.08)}
+.orb-btn{position:absolute;right:18px;bottom:22px;width:62px;height:62px;border-radius:50%;display:grid;place-items:center;z-index:11;cursor:pointer}
+.orb-btn .core{width:26px;height:26px;border-radius:50%;background:var(--volt);box-shadow:0 0 0 6px rgba(210,242,92,.16)}
+
+/* ---------- pantalla 1: ahora ---------- */
+.s1 .top{position:absolute;top:64px;left:26px;right:26px;z-index:2}
+.eyebrow{font-size:13px;color:var(--text-2)}
+.count{font-size:92px;font-weight:400;letter-spacing:-.06em;line-height:.9;margin-top:10px}
+.count small{font-size:32px;letter-spacing:-.03em;color:var(--text-2);margin-left:4px}
+.next{font-size:22px;font-weight:500;letter-spacing:-.02em;margin-top:10px;max-width:14ch;line-height:1.1}
+.river{position:absolute;left:26px;right:26px;top:330px;bottom:100px;z-index:2}
+.river .axis{position:absolute;left:52px;top:0;bottom:0;width:1px;background:linear-gradient(rgba(255,255,255,.0),rgba(255,255,255,.22) 12%,rgba(255,255,255,.22) 88%,rgba(255,255,255,0))}
+.now{position:absolute;left:0;right:0;top:44px;display:flex;align-items:center;gap:8px;font-size:11px;color:var(--volt)}
+.now::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,var(--volt),transparent)}
+.drop{position:absolute;left:68px;right:0;border-radius:22px;padding:12px 14px;display:flex;justify-content:space-between;align-items:center;gap:10px}
+.drop .t{font-size:15px;font-weight:500;letter-spacing:-.01em}
+.drop .m{font-size:12px;color:var(--text-2);margin-top:2px}
+.time{position:absolute;left:0;font-size:11px;color:var(--text-3)}
+.tag{font-size:11px;padding:5px 9px;border-radius:999px;background:rgba(255,255,255,.1);color:var(--text-2);white-space:nowrap}
+
+/* ---------- pantalla 2: hablar ---------- */
+.s2 .lensbg{position:absolute;inset:0;z-index:1;background:radial-gradient(60% 40% at 50% 78%,rgba(210,242,92,.18),transparent 70%)}
+.said{position:absolute;top:96px;left:26px;right:26px;z-index:3;font-size:31px;line-height:1.18;letter-spacing:-.03em;font-weight:400;color:var(--text-2)}
+.said .w{color:var(--text)}
+.tok{display:inline-block;padding:0 10px 2px;border-radius:14px;color:var(--text);margin:2px 0;cursor:pointer}
+.tok sub{display:block;font:500 10px "Geist Mono";color:var(--volt);letter-spacing:.02em;margin-top:-1px}
+.caret{display:inline-block;width:2px;height:28px;background:var(--volt);vertical-align:-4px;margin-left:3px;animation:blink 1s steps(2) infinite}
+@keyframes blink{50%{opacity:0}}
+.answer{position:absolute;left:26px;right:26px;top:318px;z-index:3;border-radius:26px;padding:16px 18px}
+.answer p{font-size:15px;line-height:1.45}
+.answer .acts{display:flex;gap:8px;margin-top:14px}
+.btn{all:unset;cursor:pointer;flex:1;text-align:center;padding:13px 0;border-radius:18px;font-size:14px;font-weight:500}
+.btn.primary{background:var(--volt);color:var(--volt-ink)}
+.btn.ghost{background:rgba(255,255,255,.08);color:var(--text)}
+.orb{position:absolute;left:50%;bottom:58px;transform:translateX(-50%);width:132px;height:132px;z-index:3;display:grid;place-items:center;border-radius:50%}
+.orb-core{width:62px;height:62px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#F4FFD0,var(--volt) 55%,#9CBE2A);animation:breathe 2.4s var(--settle) infinite}
+@keyframes breathe{50%{transform:scale(1.14)}}
+.ripple{position:absolute;inset:0;border-radius:50%;border:1px solid rgba(210,242,92,.35);animation:ripple 2.4s var(--settle) infinite}
+.ripple.r2{animation-delay:.8s}
+@keyframes ripple{from{transform:scale(.6);opacity:1}to{transform:scale(1.5);opacity:0}}
+.wave{position:absolute;bottom:208px;left:50%;transform:translateX(-50%);display:flex;gap:4px;align-items:center;height:30px;z-index:3}
+.wave i{width:3px;border-radius:2px;background:rgba(242,244,241,.55);animation:wv 1.1s ease-in-out infinite}
+@keyframes wv{0%,100%{height:6px}50%{height:28px}}
+
+/* ---------- pantalla 3: alerta ---------- */
+.s3 .field .b1{background:var(--ember);opacity:.75;top:60px}
+.s3 .field .b2{opacity:.35}
+.when{position:absolute;top:70px;left:26px;font-size:13px;color:var(--text-2);z-index:2}
+.big{position:absolute;top:100px;left:26px;right:20px;z-index:2;font-size:64px;line-height:.92;letter-spacing:-.055em;font-weight:500}
+.note{position:absolute;top:330px;left:26px;right:26px;z-index:2;border-radius:24px;padding:12px;display:flex;gap:12px;align-items:center}
+.thumb{width:58px;height:58px;border-radius:16px;background:linear-gradient(140deg,#3a3f48,#20242b);display:grid;place-items:center;color:var(--text-2);font-size:11px}
+.arc{position:absolute;left:0;right:0;bottom:150px;height:120px;z-index:2}
+.chip{position:absolute;width:74px;height:74px;border-radius:50%;display:grid;place-items:center;text-align:center;font-size:12px;line-height:1.1;cursor:pointer}
+.chip b{display:block;font:500 18px "Geist Mono";letter-spacing:-.02em}
+.slide{position:absolute;left:20px;right:20px;bottom:40px;height:76px;border-radius:38px;z-index:3;touch-action:none}
+.slide span{position:absolute;inset:0;display:grid;place-items:center;font-size:15px;color:var(--text-2);pointer-events:none}
+.knob{position:absolute;left:6px;top:6px;width:64px;height:64px;border-radius:50%;background:var(--volt);display:grid;place-items:center;cursor:grab;will-change:transform}
+.knob svg{width:26px;height:26px;color:var(--volt-ink)}
+
+/* ---------- pantalla 4: lista compartida ---------- */
+.s4 .field .b1{background:var(--cobalt);opacity:.5;left:120px;top:40px}
+.s4 .field .b2{background:var(--ember);opacity:.4;top:520px;right:60px}
+.s4 h2{position:absolute;top:64px;left:26px;z-index:2;font-size:44px;font-weight:500;letter-spacing:-.05em;line-height:.95}
+.people{position:absolute;top:72px;right:26px;display:flex;z-index:2}
+.av{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;font-size:13px;font-weight:500;border:2px solid var(--ink);margin-left:-10px}
+.items{position:absolute;top:186px;left:16px;right:16px;z-index:2;display:flex;flex-direction:column;gap:10px}
+.it{border-radius:22px;padding:14px 16px;display:flex;align-items:center;gap:12px}
+.ck{width:26px;height:26px;border-radius:50%;border:1.5px solid rgba(255,255,255,.4);flex:none;display:grid;place-items:center;cursor:pointer;transition:background .4s var(--spring),border-color .3s}
+.ck.on{background:var(--volt);border-color:var(--volt)}
+.ck svg{width:14px;height:14px;color:var(--volt-ink);opacity:0;transition:opacity .2s}
+.ck.on svg{opacity:1}
+.it .x{flex:1}
+.it .x div:first-child{font-size:15px;font-weight:500}
+.it .x div:last-child{font-size:12px;color:var(--text-2);margin-top:2px}
+.it.done .x div:first-child{color:var(--text-3);text-decoration:line-through}
+.offline{position:absolute;left:26px;right:26px;bottom:104px;z-index:2;font-size:12px;color:var(--text-2);display:flex;gap:8px;align-items:center}
+.offline i{width:8px;height:8px;border-radius:50%;background:var(--ember)}
+</style>
+</head>
+<body>
+
+<header class="page-head">
+  <h1>Viernes, rediseño Liquid</h1>
+  <p>Grafito profundo, luz ambiental que el vidrio refracta y un único acento voltio. Toca, desliza y arrastra: el prototipo responde como lo hará la app.</p>
+</header>
+
+<div class="row">
+
+<!-- 1. AHORA -->
+<section>
+<div class="phone s1">
+  <div class="field"><div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div></div>
+  <div class="grain"></div>
+  <div class="island"></div>
+  <div class="status"><span class="mono">9:41</span><span class="mono">87%</span></div>
+
+  <div class="top">
+    <div class="eyebrow">Sábado 3, faltan para lo próximo</div>
+    <div class="count mono">2:14<small>h</small></div>
+    <div class="next">Pagar la luz antes del corte</div>
+  </div>
+
+  <div class="river">
+    <div class="axis"></div>
+    <div class="time mono" style="top:8px">09:00</div>
+    <div class="now mono" style="top:44px">ahora 9:41</div>
+    <div class="drop glass press" style="top:72px"><div><div class="t">Pagar la luz</div><div class="m">11:55 · antes del corte</div></div><span class="tag">recurrente</span></div>
+    <div class="time mono" style="top:162px">13:00</div>
+    <div class="drop glass press" style="top:150px"><div><div class="t">Recoger el paquete</div><div class="m">Te lo envió Sofi</div></div><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" style="color:var(--text-2)"><path d="M21 15V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg></div>
+    <div class="time mono" style="top:240px">18:30</div>
+    <div class="drop glass press" style="top:228px"><div><div class="t">Llamar a mamá</div><div class="m">Al salir del trabajo</div></div><span class="tag">ubicación</span></div>
+  </div>
+
+  <nav class="dock glass" aria-label="Secciones">
+    <span class="lens" id="lens"></span>
+    <button aria-current="page" aria-label="Ahora" data-i="0"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></svg></button>
+    <button aria-label="Pendientes" data-i="1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M9 6h11M9 12h11M9 18h11"/><path d="M4 6l1 1 2-2M4 12l1 1 2-2M4 18l1 1 2-2"/></svg></button>
+    <button aria-label="Calendario" data-i="2"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="4" y="5" width="16" height="15" rx="3"/><path d="M8 3v4M16 3v4M4 10h16"/></svg></button>
+    <button aria-label="Ajustes" data-i="3"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 8h10M18 8h2M4 16h2M10 16h10"/><circle cx="16" cy="8" r="2"/><circle cx="8" cy="16" r="2"/></svg></button>
+  </nav>
+  <div class="orb-btn glass press" role="button" aria-label="Hablar con Viernes"><span class="core"></span></div>
+</div>
+<p class="label"><b>Ahora.</b> En vez de una lista, el día es un río: una cuenta regresiva gigante y gotas de vidrio ubicadas a la hora en que pasan. El dock flota y la lente se desliza con resorte.</p>
+</section>
+
+<!-- 2. HABLAR -->
+<section>
+<div class="phone s2">
+  <div class="field"><div class="blob b1" style="opacity:.25"></div><div class="blob b2" style="opacity:.45"></div><div class="blob b3" style="opacity:.4;top:520px;left:60px;width:300px;height:300px"></div></div>
+  <div class="grain"></div>
+  <div class="lensbg"></div>
+  <div class="island"></div>
+  <div class="status"><span class="mono">9:42</span><span class="mono">87%</span></div>
+
+  <p class="said">
+    <span class="w">Recuérdame</span>
+    <span class="tok glass">pagar la luz<sub>qué</sub></span>
+    <span class="tok glass">mañana<sub>cuándo</sub></span>
+    <span class="tok glass">a las 8<sub>hora</sub></span>
+    <span class="w">y llamar a mamá</span><span class="caret"></span>
+  </p>
+
+  <div class="answer glass">
+    <p>Son 2 recordatorios para mañana a las 8. Te aviso 15 minutos antes. ¿Los guardo?</p>
+    <div class="acts"><button class="btn ghost press">Cambiar</button><button class="btn primary press">Guardar</button></div>
+  </div>
+
+  <div class="wave"><i style="animation-delay:-.2s"></i><i style="animation-delay:-.5s"></i><i style="animation-delay:-.1s"></i><i style="animation-delay:-.7s"></i><i style="animation-delay:-.3s"></i><i style="animation-delay:-.6s"></i><i style="animation-delay:-.15s"></i></div>
+  <div class="orb glass"><span class="ripple"></span><span class="ripple r2"></span><span class="orb-core"></span></div>
+</div>
+<p class="label"><b>Hablar.</b> Tus palabras aparecen grandes y lo que Viernes entiende se convierte en lentes de vidrio etiquetadas. Toca una lente para corregir solo esa parte.</p>
+</section>
+
+<!-- 3. ALERTA -->
+<section>
+<div class="phone s3">
+  <div class="field"><div class="blob b1"></div><div class="blob b2"></div></div>
+  <div class="grain"></div>
+  <div class="island"></div>
+  <div class="status"><span class="mono">11:55</span><span class="mono">84%</span></div>
+
+  <div class="when mono">11:55 · insiste en 10 min</div>
+  <div class="big">Pagar<br>la luz.</div>
+  <div class="note glass"><div class="thumb mono">recibo</div><div><div style="font-size:14px;font-weight:500">Foto del recibo</div><div style="font-size:12px;color:var(--text-2);margin-top:2px">Referencia 4471-0928</div></div></div>
+
+  <div class="arc">
+    <div class="chip glass press" style="left:34px;top:46px"><span><b>10</b>min</span></div>
+    <div class="chip glass press" style="left:133px;top:4px"><span><b>1</b>hora</span></div>
+    <div class="chip glass press" style="right:34px;top:46px"><span>mañana</span></div>
+  </div>
+
+  <div class="slide glass" id="slide">
+    <span id="slideText">Desliza si ya lo hiciste</span>
+    <div class="knob" id="knob"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
+  </div>
+</div>
+<p class="label"><b>Alerta.</b> Título enorme y sin adornos. Posponer son gotas en arco al alcance del pulgar. Completar es un gesto físico: arrastra la perilla, resiste en los bordes y vuelve con resorte.</p>
+</section>
+
+<!-- 4. LISTA -->
+<section>
+<div class="phone s4">
+  <div class="field"><div class="blob b1"></div><div class="blob b2"></div></div>
+  <div class="grain"></div>
+  <div class="island"></div>
+  <div class="status"><span class="mono">18:02</span><span class="mono">71%</span></div>
+
+  <h2>Mercado</h2>
+  <div class="people"><div class="av" style="background:#D2F25C;color:#1B2205">M</div><div class="av" style="background:#2A2F38">S</div><div class="av" style="background:#2A2F38">A</div></div>
+
+  <div class="items">
+    <div class="it glass"><span class="ck" role="checkbox" aria-checked="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12l5 5 9-10"/></svg></span><div class="x"><div>Leche deslactosada</div><div>Lo agregó Sofi</div></div></div>
+    <div class="it glass"><span class="ck" role="checkbox" aria-checked="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12l5 5 9-10"/></svg></span><div class="x"><div>Pagar el internet</div><div>Te toca a ti</div></div><span class="tag" style="background:rgba(210,242,92,.16);color:var(--volt)">tuyo</span></div>
+    <div class="it glass"><span class="ck" role="checkbox" aria-checked="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12l5 5 9-10"/></svg></span><div class="x"><div>Pan y huevos</div><div>Le toca a Andrés</div></div></div>
+    <div class="it glass done"><span class="ck on" role="checkbox" aria-checked="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12l5 5 9-10"/></svg></span><div class="x"><div>Café</div><div>Hecho por ti</div></div></div>
+  </div>
+
+  <div class="offline"><i></i>Sin conexión. 2 cambios se suben al volver.</div>
+
+  <nav class="dock glass" aria-label="Secciones"><span class="lens" style="left:calc(25% + 2px)"></span>
+    <button aria-label="Ahora"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></svg></button>
+    <button aria-current="page" aria-label="Pendientes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M9 6h11M9 12h11M9 18h11"/><path d="M4 6l1 1 2-2M4 12l1 1 2-2M4 18l1 1 2-2"/></svg></button>
+    <button aria-label="Calendario"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="4" y="5" width="16" height="15" rx="3"/><path d="M8 3v4M16 3v4M4 10h16"/></svg></button>
+    <button aria-label="Ajustes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 8h10M18 8h2M4 16h2M10 16h10"/><circle cx="16" cy="8" r="2"/><circle cx="8" cy="16" r="2"/></svg></button>
+  </nav>
+  <div class="orb-btn glass press" role="button" aria-label="Hablar con Viernes"><span class="core"></span></div>
+</div>
+<p class="label"><b>Listas.</b> Las personas de la lista arriba, lo que te toca resaltado con el acento y un aviso honesto cuando no hay internet.</p>
+</section>
+
+</div>
+
+<script>
+/* lente del dock: se mueve con resorte al tocar */
+const dock = document.querySelector('.s1 .dock');
+const lens = document.getElementById('lens');
+function placeLens(btn){
+  const r = btn.getBoundingClientRect(), d = dock.getBoundingClientRect();
+  lens.style.left = (r.left - d.left + r.width/2 - 29) + 'px';
+}
+const btns = dock.querySelectorAll('button');
+placeLens(btns[0]);
+btns.forEach(b => b.addEventListener('pointerdown', () => {
+  btns.forEach(x => x.removeAttribute('aria-current'));
+  b.setAttribute('aria-current','page'); placeLens(b);
+}));
+
+/* casillas de la lista */
+document.querySelectorAll('.ck').forEach(c => c.addEventListener('pointerdown', () => {
+  c.classList.toggle('on');
+  c.setAttribute('aria-checked', c.classList.contains('on'));
+  c.closest('.it').classList.toggle('done', c.classList.contains('on'));
+}));
+
+/* deslizar para completar: seguimiento 1:1, borde con resistencia y vuelta con resorte */
+const slide = document.getElementById('slide'), knob = document.getElementById('knob'), txt = document.getElementById('slideText');
+let start = 0, x = 0, dragging = false;
+const max = () => slide.clientWidth - knob.clientWidth - 12;
+function rubber(over, dim, c = .55){ return (over * dim * c) / (dim + c * Math.abs(over)); }
+knob.addEventListener('pointerdown', e => {
+  dragging = true; knob.setPointerCapture(e.pointerId);
+  start = e.clientX - x; knob.style.transition = 'none';
+});
+knob.addEventListener('pointermove', e => {
+  if(!dragging) return;
+  let raw = e.clientX - start, m = max();
+  x = raw < 0 ? rubber(raw, m) : raw > m ? m + rubber(raw - m, m) : raw;
+  knob.style.transform = `translateX(${x}px)`;
+  txt.style.opacity = 1 - Math.min(1, x / m);
+});
+knob.addEventListener('pointerup', () => {
+  dragging = false;
+  const done = x > max() * .82;
+  x = done ? max() : 0;
+  knob.style.transition = 'transform .6s cubic-bezier(.32,1.28,.48,1)';
+  knob.style.transform = `translateX(${x}px)`;
+  txt.style.opacity = done ? 1 : 1;
+  txt.textContent = done ? 'Hecho. Bien.' : 'Desliza si ya lo hiciste';
+  if(done) setTimeout(() => { x = 0; knob.style.transform = 'translateX(0)'; txt.textContent = 'Desliza si ya lo hiciste'; }, 1600);
+});
+</script>
+</body>
+</html>

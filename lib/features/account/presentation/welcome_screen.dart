@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:viernes/app/router/routes.dart';
 import 'package:viernes/core/extensions/context_x.dart';
+import 'package:viernes/core/widgets/liquid.dart';
 import 'package:viernes/features/account/presentation/account_actions.dart';
 import 'package:viernes/features/account/presentation/account_providers.dart';
 
@@ -37,7 +38,7 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
   Widget build(BuildContext context) {
     final l10n = context.l10n;
     final colors = context.colors;
-    return Scaffold(
+    return LiquidScaffold(
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) => SingleChildScrollView(
@@ -50,32 +51,28 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const SizedBox(height: 24),
-                      CircleAvatar(
-                        radius: 44,
-                        backgroundColor: colors.primaryContainer,
-                        child: Icon(
-                          Icons.mic_rounded,
-                          size: 44,
-                          color: colors.onPrimaryContainer,
-                        ),
-                      ),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 8),
+                      const VoiceOrb(size: 112, listening: true),
+                      const SizedBox(height: 36),
                       Text(
-                        l10n.welcomeTitle,
-                        style: context.textTheme.headlineMedium,
-                        textAlign: TextAlign.center,
+                        l10n.appName,
+                        style: context.textTheme.displayMedium,
                       ),
                       const SizedBox(height: 12),
+                      Text(
+                        l10n.welcomeTitle,
+                        style: context.textTheme.headlineSmall,
+                      ),
+                      const SizedBox(height: 8),
                       Text(
                         l10n.welcomeSubtitle,
                         style: context.textTheme.bodyLarge?.copyWith(
                           color: colors.onSurfaceVariant,
                         ),
-                        textAlign: TextAlign.center,
                       ),
-                      const SizedBox(height: 32),
+                      const SizedBox(height: 28),
                       _Benefit(
                         icon: Icons.cloud_done_outlined,
                         text: l10n.welcomeBenefitBackup,
@@ -145,7 +142,7 @@ class _Benefit extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
         children: [
-          Icon(icon, color: context.colors.primary),
+          Icon(icon, color: context.colors.onPrimaryContainer),
           const SizedBox(width: 16),
           Expanded(child: Text(text, style: context.textTheme.bodyLarge)),
         ],

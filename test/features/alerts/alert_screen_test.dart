@@ -31,6 +31,10 @@ void main() {
   setUpAll(() => initializeDateFormatting('es'));
 
   Future<void> pumpAlert(WidgetTester tester) async {
+    // El fondo de luz se anima sin fin; en pruebas va quieto.
+    tester.platformDispatcher.accessibilityFeaturesTestValue =
+        const FakeAccessibilityFeatures(disableAnimations: true);
+    addTearDown(tester.platformDispatcher.clearAccessibilityFeaturesTestValue);
     SharedPreferences.setMockInitialValues({});
     prefs = await SharedPreferences.getInstance();
     repository = FakeReminderRepository();
@@ -87,7 +91,6 @@ void main() {
   testWidgets('muestra la tarea y la lee en voz alta', (tester) async {
     await pumpAlert(tester);
 
-    expect(find.text('VIERNES'), findsOneWidget);
     expect(find.text('Entregar el informe'), findsOneWidget);
     expect(find.textContaining('Hoy'), findsOneWidget);
     expect(
@@ -99,8 +102,10 @@ void main() {
   testWidgets('"Ya lo hice" completa y cierra la alerta', (tester) async {
     await pumpAlert(tester);
 
-    await tester.tap(find.text('Ya lo hice'));
+    // Completar es un gesto: deslizar la perilla hasta el final.
+    await tester.drag(find.byIcon(Icons.arrow_forward), const Offset(600, 0));
     await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
     expect(find.text('¡Bien hecho! Tarea completada'), findsOneWidget);
     expect(repository.reminders['r1']!.status, ReminderStatus.completed);
 
@@ -112,7 +117,7 @@ void main() {
   testWidgets('"Posponer" usa el tiempo de siempre', (tester) async {
     await pumpAlert(tester);
 
-    await tester.tap(find.text('Posponer 10 min'));
+    await tester.tap(find.byTooltip('Posponer 10 min'));
     await tester.pump(const Duration(milliseconds: 400));
 
     final reminder = repository.reminders['r1']!;
@@ -148,7 +153,7 @@ void main() {
     );
     await pumpAlert(tester);
 
-    await tester.tap(find.text('Responder por voz'));
+    await tester.tap(find.byTooltip('Responder por voz'));
     await tester.pump();
     await tester.pump();
 
@@ -166,7 +171,7 @@ void main() {
     );
     await pumpAlert(tester);
 
-    await tester.tap(find.text('Responder por voz'));
+    await tester.tap(find.byTooltip('Responder por voz'));
     await tester.pump();
     await tester.pump();
 

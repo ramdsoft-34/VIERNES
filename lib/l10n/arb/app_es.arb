@@ -3,10 +3,10 @@
 
   "appName": "Viernes",
 
-  "navHome": "Inicio",
-  "navReminders": "Recordatorios",
+  "navHome": "Ahora",
+  "navReminders": "Pendientes",
   "navCalendar": "Calendario",
-  "navHistory": "Historial",
+  "navHistory": "Progreso",
   "navSettings": "Ajustes",
 
   "greetingMorning": "Buenos días",
@@ -514,5 +514,27 @@
   "listsNobody": "A nadie",
   "listsForYou": "Te toca a ti",
   "listsFor": "Le toca a {name}",
-  "@listsFor": {"placeholders": {"name": {"type": "String"}}}
+  "@listsFor": {"placeholders": {"name": {"type": "String"}}},
+
+  "homeYourDay": "Tu día",
+  "homeNew": "Nuevo",
+  "homeFree": "Libre.",
+  "homeNow": "Ahora",
+  "homeDay": "día",
+  "homeDays": "días",
+  "homeUntilNext": "Falta para lo próximo",
+
+  "voiceThinking": "Pensando…",
+  "voiceConfirming": "¿Lo guardo?",
+  "voiceProblem": "No salió",
+  "voiceSayIt": "Dime qué necesitas…",
+  "voiceTokenWhat": "qué",
+  "voiceTokenWhen": "cuándo",
+  "voiceTokenNotice": "aviso",
+  "voiceTokenRepeat": "repite",
+
+  "alertSwipeDone": "Desliza si ya lo hiciste",
+  "alertTomorrowShort": "mañana",
+
+  "remindersHeader": "Recordatorios"
 }

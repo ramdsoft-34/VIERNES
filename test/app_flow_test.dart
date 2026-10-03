@@ -20,6 +20,10 @@ void main() {
   setUpAll(() => initializeDateFormatting('es'));
 
   Future<void> pumpApp(WidgetTester tester) async {
+    // El fondo de luz se anima sin fin; en pruebas va quieto.
+    tester.platformDispatcher.accessibilityFeaturesTestValue =
+        const FakeAccessibilityFeatures(disableAnimations: true);
+    addTearDown(tester.platformDispatcher.clearAccessibilityFeaturesTestValue);
     SharedPreferences.setMockInitialValues({});
     final prefs = await SharedPreferences.getInstance();
     repository = FakeReminderRepository();
@@ -60,8 +64,9 @@ void main() {
     await tester.tap(find.text('Guardar'));
     await tester.pumpAndSettle();
 
-    // De vuelta en Inicio, con el recordatorio para hoy a las 11:00.
-    expect(find.text('Llamar a mamá'), findsOneWidget);
+    // De vuelta en Inicio, con el recordatorio para hoy a las 11:00 (en la
+    // cuenta regresiva y en el río).
+    expect(find.text('Llamar a mamá'), findsWidgets);
     expect(find.text('Hoy tienes 1 pendiente'), findsOneWidget);
     final saved = repository.reminders.values.single;
     expect(saved.dueAt, DateTime(2026, 10, 1, 11));
@@ -101,15 +106,15 @@ void main() {
   testWidgets('navega por las pestañas principales', (tester) async {
     await pumpApp(tester);
 
-    await tester.tap(find.text('Recordatorios').last);
+    await tester.tap(find.byTooltip('Pendientes').last);
     await tester.pumpAndSettle();
     expect(find.text('Sin pendientes'), findsOneWidget);
 
-    await tester.tap(find.text('Calendario').last);
+    await tester.tap(find.byTooltip('Calendario').last);
     await tester.pumpAndSettle();
     expect(find.text('No hay recordatorios este día'), findsOneWidget);
 
-    await tester.tap(find.text('Historial').last);
+    await tester.tap(find.byTooltip('Progreso').last);
     await tester.pumpAndSettle();
     expect(find.text('Tu historial está vacío'), findsOneWidget);
   });
