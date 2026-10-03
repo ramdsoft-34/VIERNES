@@ -374,8 +374,12 @@ def main():
     parser.add_argument("--repo", default=str(Path(__file__).resolve().parents[2]))
     parser.add_argument("--per-text", type=int, default=6)
     parser.add_argument("--copies", type=int, default=4)
-    parser.add_argument("--general-negatives", type=int, default=400_000)
+    parser.add_argument("--general-negatives", type=int, default=800_000)
     parser.add_argument("--epochs", type=int, default=20)
+    parser.add_argument("--pos-repeat", type=int, default=8)
+    parser.add_argument("--mine-rounds", type=int, default=3)
+    parser.add_argument("--mine-pool", type=int, default=1_500_000)
+    parser.add_argument("--mine-max", type=int, default=60_000)
     args = parser.parse_args()
 
     rng = random.Random(1)
@@ -411,20 +415,43 @@ def main():
 
     neg_general, val_features = general_negatives(work, args.general_negatives)
 
-    # Entrenamiento: los negativos difíciles se repiten para que pesen.
-    x = np.concatenate([pos_train.astype(np.float16), neg_hard.astype(np.float16),
-                        neg_hard.astype(np.float16), neg_general])
+    acav = np.load(work / "oww" / "acav_features.npy", mmap_mode="r")
+    pos = np.repeat(pos_train.astype(np.float16), args.pos_repeat, axis=0)
+    hard = np.concatenate([neg_hard.astype(np.float16)] * 2)
+    mined = np.zeros((0, 16, 96), np.float16)
     n_general = len(neg_general)
-    del neg_general
-    y = np.concatenate([np.ones(len(pos_train)), np.zeros(2 * len(neg_hard)),
-                        np.zeros(n_general)]).astype(np.float32)
-    order = np.random.permutation(len(x))
-    x, y = x[order], y[order]
-    weight_pos = len(y) / (2 * max(1, y.sum()))
     model = build_classifier()
-    model.fit(x, y, batch_size=1024, epochs=args.epochs, verbose=2,
-              validation_split=0.05,
-              class_weight={0: 1.0, 1: float(min(weight_pos, 50))})
+    for round_ in range(args.mine_rounds + 1):
+        # Las activaciones falsas encontradas pesan triple.
+        x = np.concatenate([pos, hard, mined, mined, mined, neg_general])
+        y = np.zeros(len(x), np.float32)
+        y[: len(pos)] = 1
+        epochs = args.epochs if round_ == 0 else max(4, args.epochs // 3)
+        print(f"Ronda {round_}: {len(pos)} positivos, {len(x) - len(pos)} negativos "
+              f"({len(mined)} encontrados por minería)", flush=True)
+        model.fit(x, y, batch_size=1024, epochs=epochs, verbose=2, shuffle=True)
+        del x, y
+        val_now = scores_on_stream(model, val_features)
+        print(f"  activaciones falsas/hora: {false_activations_per_hour(val_now, 0.5):.2f} "
+              f"(umbral 0,5), {false_activations_per_hour(val_now, 0.8):.2f} (0,8)",
+              flush=True)
+        if round_ == args.mine_rounds:
+            break
+        # Minería: busca en audio que el modelo nunca vio lo que lo activa.
+        rows = np.sort(np.random.choice(acav.shape[0], args.mine_pool, replace=False))
+        found, found_scores = [], []
+        for chunk in np.array_split(rows, max(1, len(rows) // 100_000)):
+            batch = np.asarray(acav[chunk], np.float32)
+            s = model.predict(batch, batch_size=8192, verbose=0)[:, 0]
+            keep = s >= 0.1
+            found.append(batch[keep].astype(np.float16))
+            found_scores.append(s[keep])
+        new = np.concatenate(found)
+        top = np.argsort(-np.concatenate(found_scores))[: args.mine_max]
+        print(f"  minería: {len(new)} fragmentos lo activan; se agregan {len(top)}",
+              flush=True)
+        mined = np.concatenate([mined, new[top]])
+    del neg_general
 
     # Métricas
     model.save(work / "classifier.keras")
