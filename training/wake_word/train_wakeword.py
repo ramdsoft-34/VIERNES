@@ -443,7 +443,14 @@ def main():
 
     neg_general, val_features = general_negatives(work, args.general_negatives)
 
-    acav = np.load(work / "oww" / "acav_features.npy", mmap_mode="r")
+    # Habla real continua (~11 h): el 60 % sirve para buscar errores (minería)
+    # y el 40 % restante, que el modelo nunca ve, solo para medir.
+    val_all = np.asarray(val_features, np.float32)
+    split = int(len(val_all) * 0.6)
+    from numpy.lib.stride_tricks import sliding_window_view
+
+    mine_windows = sliding_window_view(val_all[:split], (16, val_all.shape[1]))[:, 0]
+    val_features = val_all[split:]
     pos = np.repeat(pos_train.astype(np.float16), args.pos_repeat, axis=0)
     hard = np.concatenate([neg_hard.astype(np.float16)] * 2)
     mined = np.zeros((0, 16, 96), np.float16)
@@ -465,11 +472,10 @@ def main():
               flush=True)
         if round_ == args.mine_rounds:
             break
-        # Minería: busca en audio que el modelo nunca vio lo que lo activa.
-        rows = np.sort(np.random.choice(acav.shape[0], args.mine_pool, replace=False))
+        # Minería: busca en habla real lo que lo activa por error.
         found, found_scores = [], []
-        for chunk in np.array_split(rows, max(1, len(rows) // 100_000)):
-            batch = np.asarray(acav[chunk], np.float32)
+        for start in range(0, len(mine_windows), 100_000):
+            batch = np.asarray(mine_windows[start:start + 100_000], np.float32)
             s = model.predict(batch, batch_size=8192, verbose=0)[:, 0]
             keep = s >= 0.1
             found.append(batch[keep].astype(np.float16))
