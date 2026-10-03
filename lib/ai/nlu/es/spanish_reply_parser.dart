@@ -2,6 +2,7 @@
 // ignore_for_file: unnecessary_raw_strings
 
 import 'package:flutter/foundation.dart';
+import 'package:viernes/ai/nlu/es/spanish_cancel_detector.dart';
 import 'package:viernes/ai/nlu/es/spanish_rule_interpreter.dart';
 import 'package:viernes/ai/nlu/es/spanish_text.dart';
 import 'package:viernes/ai/nlu/interpretation.dart';
@@ -62,7 +63,9 @@ class SpanishReplyParser {
   Reply parse(String text, DateTime now) {
     final folded = SpanishText.fold(text).trim();
     if (folded.isEmpty) return const Reply(ReplyKind.unknown);
-    if (_cancel.hasMatch(folded)) return const Reply(ReplyKind.cancel);
+    if (_cancel.hasMatch(folded) || SpanishCancelDetector.isCancel(text)) {
+      return const Reply(ReplyKind.cancel);
+    }
 
     // Lo que viene después de "no," / "mejor" / "sí, pero"…
     final prefix = _correctionPrefix.firstMatch(folded);

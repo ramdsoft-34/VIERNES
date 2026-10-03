@@ -189,6 +189,12 @@ class _AlertScreenState extends ConsumerState<AlertScreen> {
               ? ref.read(settingsControllerProvider).snoozeDuration
               : until.difference(now),
         );
+      case AlertReplyKind.dismiss:
+        // "Ya no lo necesito": se elimina (queda en el historial).
+        await _run(
+          () => ref.read(deleteReminderProvider)(reminder.id),
+          (_) => context.l10n.alertDismissed,
+        );
       case AlertReplyKind.unknown:
         setState(() => _resultMessage = context.l10n.alertDidNotUnderstand);
     }

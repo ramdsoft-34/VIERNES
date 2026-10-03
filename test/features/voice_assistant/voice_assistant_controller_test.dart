@@ -200,6 +200,54 @@ void main() {
     expect(stateOf(c).message, SpanishSpeech.cancelled);
   });
 
+  test('si se activó por error, «nada» o «me equivoqué» lo cierra', () async {
+    for (final phrase in [
+      'nada',
+      'me equivoqué',
+      'Viernes, ya no lo necesito',
+    ]) {
+      final recognizer = FakeSpeechRecognizer(
+        script: [SpeechHeard(phrase)],
+      );
+      final c = await buildContainer(recognizer);
+
+      await run(c);
+
+      expect(repository.reminders, isEmpty, reason: phrase);
+      expect(stateOf(c).message, SpanishSpeech.dismissed, reason: phrase);
+    }
+  });
+
+  test('«ya no quiero» al preguntar la hora cancela', () async {
+    final recognizer = FakeSpeechRecognizer(
+      script: const [
+        SpeechHeard('mañana llamar a Juan'),
+        SpeechHeard('no, ya no quiero, gracias'),
+      ],
+    );
+    final c = await buildContainer(recognizer);
+
+    await run(c);
+
+    expect(repository.reminders, isEmpty);
+    expect(stateOf(c).message, SpanishSpeech.cancelled);
+  });
+
+  test('«ya no lo necesito» en la confirmación cancela', () async {
+    final recognizer = FakeSpeechRecognizer(
+      script: const [
+        SpeechHeard('mañana a las 8 correr'),
+        SpeechHeard('ya no lo necesito'),
+      ],
+    );
+    final c = await buildContainer(recognizer);
+
+    await run(c);
+
+    expect(repository.reminders, isEmpty);
+    expect(stateOf(c).message, SpanishSpeech.cancelled);
+  });
+
   test('si avisa en el pasado pregunta para cuándo', () async {
     final recognizer = FakeSpeechRecognizer(
       script: const [

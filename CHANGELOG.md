@@ -3,6 +3,21 @@
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/);
 versionado [semántico](https://semver.org/lang/es/).
 
+## [0.7.1] — Cancelar por voz
+
+### Agregado
+- **Cancelar en cualquier momento de la conversación**: «cancela», «olvídalo»,
+  «nada», «ya no quiero», «ya no lo necesito», «no hace falta», «mejor no»,
+  «después te digo»… Funciona al principio, cuando Viernes pregunta la hora o
+  qué recordar, y en la confirmación.
+- **Si se activó por error**: «me equivoqué», «fue sin querer», «no te estaba
+  hablando», «falsa alarma» → «Está bien. Aquí estoy si me necesitas.»
+- **En la alerta**: «ya no lo necesito», «cancélalo», «bórralo» o «ya no me lo
+  recuerdes» eliminan el recordatorio (queda en el historial).
+
+### Corregido
+- En la alerta, «ya no…» se tomaba como «ya lo hice» por empezar con «ya».
+
 ## [0.7.0] — Cuentas con Google y respaldo en la nube
 
 ### Agregado

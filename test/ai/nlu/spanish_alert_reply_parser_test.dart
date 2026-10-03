@@ -11,6 +11,26 @@ void main() {
     }
   });
 
+  test('ya no lo necesito: deja de recordarlo', () {
+    for (final text in [
+      'ya no lo necesito',
+      'No, ya no lo necesito',
+      'cancélalo',
+      'bórralo',
+      'ya no hace falta',
+      'ya no me lo recuerdes',
+    ]) {
+      expect(
+        parser.parse(text, now).kind,
+        AlertReplyKind.dismiss,
+        reason: text,
+      );
+    }
+    // «Ya lo hice» sigue siendo hecho, no eliminar.
+    expect(parser.parse('ya lo hice', now).kind, AlertReplyKind.done);
+    expect(parser.parse('ahora no', now).kind, AlertReplyKind.snooze);
+  });
+
   test('todavía no: pospone con el tiempo de los ajustes', () {
     for (final text in ['todavía no', 'no', 'más tarde', 'después']) {
       final reply = parser.parse(text, now);

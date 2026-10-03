@@ -11,6 +11,9 @@ enum AlertReplyKind {
 
   /// "Todavía no", "en 20 minutos".
   snooze,
+
+  /// "Ya no lo necesito", "cancélalo", "bórralo": dejar de recordarlo.
+  dismiss,
   unknown,
 }
 
@@ -33,6 +36,15 @@ class SpanishAlertReplyParser {
 
   final SpanishRuleInterpreter _interpreter;
 
+  static final _dismiss = RegExp(
+    r'^(?:(?:no+|ya|bueno|viernes|mejor)\b[\s,.]*)*(?:'
+    r'ya no (?:lo |la )?(?:necesito|quiero)|no (?:lo |la )?necesito|'
+    r'ya no (?:hace falta|es necesario|importa|aplica|va)|no hace falta|'
+    r'cancela(?:lo|la)?|olvida(?:lo|la)?|borra(?:lo|la)?|elimina(?:lo|la)?|'
+    r'quita(?:lo|la)?|ya no (?:me )?(?:lo |la )?recuerdes|'
+    r'no (?:me )?(?:lo |la )?recuerdes mas|ya no me sirve|no me sirve'
+    r')\b',
+  );
   static final _notYet = RegExp(
     r'^(?:no+\b|todavia no|aun no|despues|mas tarde|luego|ahorita no|'
     r'ahora no|en un momento|recuerdamelo|recordarme|avisame)',
@@ -45,6 +57,9 @@ class SpanishAlertReplyParser {
   AlertReply parse(String text, DateTime now) {
     final folded = SpanishText.fold(text).trim();
     if (folded.isEmpty) return const AlertReply(AlertReplyKind.unknown);
+    if (_dismiss.hasMatch(folded)) {
+      return const AlertReply(AlertReplyKind.dismiss);
+    }
 
     // "Todavía no, en 20 minutos" / "a las 5": pospone hasta ese momento.
     final parsed = _interpreter.parse(text, now).reminder;

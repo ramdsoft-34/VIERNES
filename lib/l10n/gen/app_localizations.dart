@@ -1219,8 +1219,14 @@ abstract class AppLocalizations {
   /// No description provided for @alertListeningHint.
   ///
   /// In es, this message translates to:
-  /// **'Di «ya lo hice» o «todavía no»'**
+  /// **'Di «ya lo hice», «todavía no» o «ya no lo necesito»'**
   String get alertListeningHint;
+
+  /// No description provided for @alertDismissed.
+  ///
+  /// In es, this message translates to:
+  /// **'Listo, ya no te lo recordaré.'**
+  String get alertDismissed;
 
   /// No description provided for @alertDidNotUnderstand.
   ///

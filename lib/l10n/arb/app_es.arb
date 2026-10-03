@@ -227,7 +227,8 @@
   "@alertSnoozeIn": {"placeholders": {"duration": {"type": "String"}}},
   "alertSnoozeTomorrow": "Mañana a esta hora",
   "alertReplyByVoice": "Responder por voz",
-  "alertListeningHint": "Di «ya lo hice» o «todavía no»",
+  "alertListeningHint": "Di «ya lo hice», «todavía no» o «ya no lo necesito»",
+  "alertDismissed": "Listo, ya no te lo recordaré.",
   "alertDidNotUnderstand": "No te entendí. Toca un botón o vuelve a intentarlo.",
   "alertNoMic": "El micrófono no está disponible.",
 

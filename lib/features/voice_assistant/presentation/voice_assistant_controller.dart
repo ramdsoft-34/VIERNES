@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:viernes/ai/ai_providers.dart';
 import 'package:viernes/ai/dataset/training_sample.dart';
 import 'package:viernes/ai/nlu/es/category_classifier.dart';
+import 'package:viernes/ai/nlu/es/spanish_cancel_detector.dart';
 import 'package:viernes/ai/nlu/es/spanish_reply_parser.dart';
 import 'package:viernes/ai/nlu/es/spanish_rule_interpreter.dart';
 import 'package:viernes/ai/nlu/es/spanish_speech.dart';
@@ -206,6 +207,12 @@ class VoiceAssistantController extends Notifier<VoiceState> {
       return;
     }
     _utterances.add(first);
+    // "Nada", "me equivoqué", "ya no lo necesito": se activó por error o
+    // cambió de idea.
+    if (SpanishCancelDetector.isCancel(first)) {
+      await _finish(session, SpanishSpeech.dismissed);
+      return;
+    }
 
     _set(state.copyWith(stage: VoiceStage.thinking, isListening: false));
     final interpretation = await ref
@@ -311,6 +318,10 @@ class VoiceAssistantController extends Notifier<VoiceState> {
         return false;
       }
       _utterances.add(answer);
+      if (SpanishCancelDetector.isCancel(answer)) {
+        await _finish(session, SpanishSpeech.cancelled);
+        return false;
+      }
       _corrected = true;
       final parsed =
           (await ref
@@ -408,6 +419,10 @@ class VoiceAssistantController extends Notifier<VoiceState> {
         final change = await _ask(session, SpanishSpeech.askWhatToChange);
         if (change == null) return false;
         _utterances.add(change);
+        if (SpanishCancelDetector.isCancel(change)) {
+          await _finish(session, SpanishSpeech.cancelled);
+          return false;
+        }
         _corrected = true;
         final second = ref.read(replyParserProvider).parse(change, _now);
         if (second.kind == ReplyKind.correction) {

@@ -20,6 +20,9 @@ abstract final class SpanishSpeech {
       'No entendí bien. Puedes decir, por ejemplo: mañana a las 8 entregar '
       'el informe.';
   static const cancelled = 'Listo, no guardé nada.';
+
+  /// Al cancelar apenas se activa (p. ej. se activó por error).
+  static const dismissed = 'Está bien. Aquí estoy si me necesitas.';
   static const tapToConfirm = 'Dime «sí» o toca Guardar.';
   static const unavailable =
       'El reconocimiento de voz no está disponible en este teléfono.';

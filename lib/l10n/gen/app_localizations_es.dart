@@ -681,7 +681,11 @@ class AppLocalizationsEs extends AppLocalizations {
   String get alertReplyByVoice => 'Responder por voz';
 
   @override
-  String get alertListeningHint => 'Di «ya lo hice» o «todavía no»';
+  String get alertListeningHint =>
+      'Di «ya lo hice», «todavía no» o «ya no lo necesito»';
+
+  @override
+  String get alertDismissed => 'Listo, ya no te lo recordaré.';
 
   @override
   String get alertDidNotUnderstand =>
