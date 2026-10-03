@@ -742,6 +742,12 @@ class AppLocalizationsEs extends AppLocalizations {
   String get wakeErrorMic => 'Necesito permiso para usar el micrófono.';
 
   @override
+  String get wakeChime => 'Sonido al activarse';
+
+  @override
+  String get wakeChimeSubtitle => 'Un tono corto confirma que Viernes te oyó';
+
+  @override
   String get wakeEngine => 'Detector';
 
   @override
@@ -854,6 +860,24 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get learningExportSubtitle =>
       'Para entrenar la próxima versión de la IA. Tú eliges a dónde enviarlas.';
+
+  @override
+  String wakeSamplesTitle(int real, int errors) {
+    return '$real activaciones reales · $errors por error';
+  }
+
+  @override
+  String get wakeSamplesSubtitle =>
+      'Audio de 2 s de cada «Viernes» (solo con tu consentimiento) para entrenar un detector que te reconozca mejor.';
+
+  @override
+  String get wakeSamplesExport => 'Exportar grabaciones';
+
+  @override
+  String get wakeSamplesDelete => 'Borrar grabaciones';
+
+  @override
+  String get wakeSamplesSection => 'Detector de «Viernes»';
 
   @override
   String get neuralSection => 'Red neuronal propia';

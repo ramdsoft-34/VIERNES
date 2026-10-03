@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:viernes/ai/wake_word/wake_sample_store.dart';
 import 'package:viernes/app/providers.dart';
 import 'package:viernes/app/router/routes.dart';
 import 'package:viernes/app/theme/app_theme.dart';
@@ -51,12 +52,16 @@ class VoiceAssistantSheet extends ConsumerStatefulWidget {
 class _VoiceAssistantSheetState extends ConsumerState<VoiceAssistantSheet> {
   /// Se guarda al iniciar: `ref` no se puede usar en dispose().
   late final WakeWordController _wake;
+  late final VoiceAssistantController _voice;
+  late final WakeSampleStore _samples;
 
   @override
   void initState() {
     super.initState();
     VoiceAssistantSheet.isOpen = true;
     _wake = ref.read(wakeWordControllerProvider.notifier);
+    _voice = ref.read(voiceAssistantProvider.notifier);
+    _samples = ref.read(wakeSampleStoreProvider);
     // La escucha de "Viernes" suelta el micrófono durante la conversación.
     unawaited(_wake.pause());
     // Arranca apenas se abre la hoja.
@@ -71,6 +76,8 @@ class _VoiceAssistantSheetState extends ConsumerState<VoiceAssistantSheet> {
     unawaited(_wake.resume());
     if (widget.fromWake) {
       unawaited(widget.bridge.setShowOverLockScreen(enabled: false));
+      // Etiqueta el audio de la activación (si se guardó) como real o error.
+      unawaited(_samples.labelLatest(real: _voice.wakeWasReal));
     }
     super.dispose();
   }

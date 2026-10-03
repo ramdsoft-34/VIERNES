@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:viernes/ai/ai_providers.dart';
 import 'package:viernes/ai/speech/speech_recognizer.dart';
 import 'package:viernes/ai/wake_word/wake_model_manager.dart';
+import 'package:viernes/ai/wake_word/wake_sample_store.dart';
 import 'package:viernes/ai/wake_word/wake_word_service.dart';
 import 'package:viernes/app/router/app_router.dart';
 import 'package:viernes/core/logging/app_logger.dart';
@@ -234,7 +235,17 @@ class WakeWordController extends Notifier<WakeWordState> {
     return _service.start(
       modelPath: path,
       threshold: own ? settings.ownWakeThreshold : settings.wakeThreshold,
+      chime: settings.wakeChime,
+      saveSamples: settings.dataCollectionConsent,
     );
+  }
+
+  /// Aplica al servicio en marcha un cambio de ajustes (sonido o
+  /// consentimiento).
+  Future<void> applySettings() async {
+    if (state.phase != WakeWordPhase.listening) return;
+    final path = await _models.installedPath();
+    if (path != null) await _start(path);
   }
 
   void _fail(String message) {
@@ -243,9 +254,30 @@ class WakeWordController extends Notifier<WakeWordState> {
   }
 }
 
+/// Grabaciones de cada activación, para reentrenar el detector.
+final wakeSampleStoreProvider = Provider<WakeSampleStore>(
+  (ref) => WakeSampleStore(),
+);
+
+/// Cuántas grabaciones de activación hay (se refresca al invalidarlo).
+final FutureProvider<WakeSampleCounts> wakeSampleCountsProvider =
+    FutureProvider.autoDispose<WakeSampleCounts>(
+      (ref) => ref.watch(wakeSampleStoreProvider).counts(),
+    );
+
 final wakeCoordinatorProvider = Provider<WakeCoordinator>((ref) {
   final coordinator = WakeCoordinator(ref);
-  ref.onDispose(coordinator.dispose);
+  ref
+    ..listen<AppSettings>(settingsControllerProvider, (previous, next) {
+      if (previous == null) return;
+      if (previous.wakeChime != next.wakeChime ||
+          previous.dataCollectionConsent != next.dataCollectionConsent) {
+        unawaited(
+          ref.read(wakeWordControllerProvider.notifier).applySettings(),
+        );
+      }
+    })
+    ..onDispose(coordinator.dispose);
   return coordinator;
 });
 

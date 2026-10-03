@@ -148,6 +148,16 @@ abstract final class SpanishSpeech {
   static String saved(DateTime remindAt, DateTime now) =>
       'Listo. Te lo recuerdo ${when(remindAt, now)}.';
 
+  /// Al guardar varias tareas dichas en una sola frase.
+  static String savedMany(int count, DateTime remindAt, DateTime now) =>
+      'Listo. Guardé $count recordatorios para ${when(remindAt, now)}.';
+
+  /// Título del aviso previo a un evento sin tarea propia.
+  static String upcoming(String eventTitle) => 'Se acerca: $eventTitle';
+
+  /// Antecede la confirmación cuando la frase traía varias tareas.
+  static String severalTasks(int count) => 'Son $count recordatorios: ';
+
   /// Respuesta a "¿qué tengo hoy?".
   static String agenda({
     required List<Reminder> reminders,

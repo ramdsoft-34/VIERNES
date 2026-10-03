@@ -43,6 +43,7 @@ class SettingsRepository {
           _prefs.getDouble('${_prefix}wakeSensitivity') ?? d.wakeSensitivity,
       personalLearning: _bool('personalLearning') ?? d.personalLearning,
       neuralTitles: _bool('neuralTitles') ?? d.neuralTitles,
+      wakeChime: _bool('wakeChime') ?? d.wakeChime,
       wakeEngine: enumByName(
         WakeEngine.values,
         _prefs.getString('${_prefix}wakeEngine') ?? '',
@@ -73,6 +74,7 @@ class SettingsRepository {
       _prefs.setDouble('${_prefix}wakeSensitivity', s.wakeSensitivity),
       _setBool('personalLearning', s.personalLearning),
       _setBool('neuralTitles', s.neuralTitles),
+      _setBool('wakeChime', s.wakeChime),
       _prefs.setString('${_prefix}wakeEngine', s.wakeEngine.name),
     ]);
   }

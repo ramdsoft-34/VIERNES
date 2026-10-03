@@ -76,6 +76,11 @@ class MainActivity : FlutterActivity() {
                         WakeWordService.EXTRA_THRESHOLD,
                         (call.argument<Double>("threshold") ?: 0.8).toFloat(),
                     )
+                    .putExtra(WakeWordService.EXTRA_CHIME, call.argument<Boolean>("chime") ?: true)
+                    .putExtra(
+                        WakeWordService.EXTRA_SAVE_SAMPLES,
+                        call.argument<Boolean>("saveSamples") ?: false,
+                    )
                 ContextCompat.startForegroundService(this, service)
                 result.success(null)
             }

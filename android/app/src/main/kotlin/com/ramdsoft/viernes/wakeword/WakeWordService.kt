@@ -46,6 +46,12 @@ class WakeWordService : Service() {
 
         const val EXTRA_MODEL_PATH = "modelPath"
         const val EXTRA_THRESHOLD = "threshold"
+        const val EXTRA_CHIME = "chime"
+        const val EXTRA_SAVE_SAMPLES = "saveSamples"
+
+        /** Carpeta (en filesDir) con el audio de cada activación. */
+        const val SAMPLES_DIR = "wake_samples"
+        private const val SAMPLE_SECONDS = 2
 
         private const val CHANNEL_SERVICE = "wake_word"
         private const val CHANNEL_WAKE = "wake_word_alert"
@@ -78,6 +84,12 @@ class WakeWordService : Service() {
     private var enginePath: String? = null
     private var modelPath: String? = null
     private var threshold = 0.8f
+    private var chime = true
+    private var saveSamples = false
+
+    /** Últimos [SAMPLE_SECONDS] s de audio, para guardar cada activación. */
+    private val history = ShortArray(WakeWordEngine.SAMPLE_RATE * SAMPLE_SECONDS)
+    private var historyPos = 0
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -86,6 +98,8 @@ class WakeWordService : Service() {
             ACTION_START -> {
                 modelPath = intent.getStringExtra(EXTRA_MODEL_PATH) ?: modelPath
                 threshold = intent.getFloatExtra(EXTRA_THRESHOLD, threshold)
+                chime = intent.getBooleanExtra(EXTRA_CHIME, chime)
+                saveSamples = intent.getBooleanExtra(EXTRA_SAVE_SAMPLES, saveSamples)
                 if (!startInForeground()) return START_NOT_STICKY
                 isRunning = true
                 resumeListening()
@@ -168,10 +182,12 @@ class WakeWordService : Service() {
             while (listening) {
                 val read = record.read(buffer, 0, buffer.size)
                 if (read <= 0) continue
+                remember(buffer, read)
                 val confidence = engine.process(buffer, read) ?: continue
                 Log.i(TAG, "\"Viernes\" con confianza $confidence (umbral $threshold)")
                 if (confidence >= threshold) {
                     listening = false
+                    if (saveSamples) saveSample(confidence)
                     engine.reset()
                     mainHandler.post { onWakeWord() }
                 }
@@ -225,7 +241,42 @@ class WakeWordService : Service() {
 
     // --- Activación ------------------------------------------------------------
 
+    private fun remember(buffer: ShortArray, length: Int) {
+        for (i in 0 until length) {
+            history[historyPos] = buffer[i]
+            historyPos = (historyPos + 1) % history.size
+        }
+    }
+
+    /**
+     * Guarda los últimos segundos como WAV ("pending_…"). Flutter lo etiqueta
+     * después según cómo terminó la conversación: si fue una activación real o
+     * un error ("me equivoqué"). Solo con el consentimiento de "Ayudar a
+     * entrenar a Viernes".
+     */
+    private fun saveSample(confidence: Float) {
+        try {
+            val dir = java.io.File(filesDir, SAMPLES_DIR).apply { mkdirs() }
+            val ordered = ShortArray(history.size) { history[(historyPos + it) % history.size] }
+            val name = "pending_${System.currentTimeMillis()}_${(confidence * 100).toInt()}.wav"
+            WavWriter.write(java.io.File(dir, name), ordered, WakeWordEngine.SAMPLE_RATE)
+        } catch (error: Exception) {
+            Log.w(TAG, "No se pudo guardar la muestra", error)
+        }
+    }
+
+    private fun playChime() {
+        try {
+            val tone = android.media.ToneGenerator(android.media.AudioManager.STREAM_NOTIFICATION, 70)
+            tone.startTone(android.media.ToneGenerator.TONE_PROP_ACK, 180)
+            mainHandler.postDelayed({ tone.release() }, 400)
+        } catch (error: Exception) {
+            Log.w(TAG, "Sin sonido de activación", error)
+        }
+    }
+
     private fun onWakeWord() {
+        if (chime) playChime()
         isPaused = true
         updateNotification()
         mainHandler.postDelayed(autoResume, AUTO_RESUME_MS)

@@ -5,9 +5,11 @@ import 'package:viernes/ai/ai_providers.dart';
 import 'package:viernes/ai/dataset/training_sample.dart';
 import 'package:viernes/ai/nlu/es/category_classifier.dart';
 import 'package:viernes/ai/nlu/es/spanish_cancel_detector.dart';
+import 'package:viernes/ai/nlu/es/spanish_relative_event.dart';
 import 'package:viernes/ai/nlu/es/spanish_reply_parser.dart';
 import 'package:viernes/ai/nlu/es/spanish_rule_interpreter.dart';
 import 'package:viernes/ai/nlu/es/spanish_speech.dart';
+import 'package:viernes/ai/nlu/es/spanish_task_splitter.dart';
 import 'package:viernes/ai/nlu/interpretation.dart';
 import 'package:viernes/ai/speech/speech_recognizer.dart';
 import 'package:viernes/app/providers.dart';
@@ -72,6 +74,12 @@ class VoiceAssistantController extends Notifier<VoiceState> {
   Interpretation? _initial;
   ParsedReminder _draft = ParsedReminder.empty;
   bool _corrected = false;
+  bool _firstWasCancel = false;
+
+  /// Si la conversación confirma que de verdad dijeron «Viernes»: hubo una
+  /// frase y no fue «me equivoqué» / «nada». Sirve para etiquetar la
+  /// grabación de la activación.
+  bool get wakeWasReal => _utterances.isNotEmpty && !_firstWasCancel;
 
   late SpeechRecognizer _recognizer;
   late Speaker _speaker;
@@ -104,6 +112,7 @@ class VoiceAssistantController extends Notifier<VoiceState> {
     _initial = null;
     _draft = ParsedReminder.empty;
     _corrected = false;
+    _firstWasCancel = false;
     _queuedDecision = null;
     state = const VoiceState(stage: VoiceStage.listening);
     try {
@@ -210,6 +219,7 @@ class VoiceAssistantController extends Notifier<VoiceState> {
     // "Nada", "me equivoqué", "ya no lo necesito": se activó por error o
     // cambió de idea.
     if (SpanishCancelDetector.isCancel(first)) {
+      _firstWasCancel = true;
       await _finish(session, SpanishSpeech.dismissed);
       return;
     }
@@ -220,6 +230,21 @@ class VoiceAssistantController extends Notifier<VoiceState> {
         .interpret(first, _now);
     if (!_alive(session)) return;
     _initial = interpretation;
+
+    // «Dos días antes del cumpleaños de Sofi»: la fecha sale de otro
+    // recordatorio de la agenda.
+    final relative = await _relativeToEvent(first);
+    if (!_alive(session)) return;
+    if (relative != null) {
+      _draft = relative;
+      if (!await _fillMissing(session)) return;
+      if (ref.read(settingsControllerProvider).voiceConfirmation &&
+          !await _confirm(session)) {
+        return;
+      }
+      await _save(session);
+      return;
+    }
 
     switch (interpretation.intent) {
       case VoiceIntent.queryAgenda:
@@ -238,6 +263,34 @@ class VoiceAssistantController extends Notifier<VoiceState> {
       return;
     }
     await _save(session);
+  }
+
+  /// Si la frase pide un aviso relativo a otro recordatorio y ese
+  /// recordatorio existe, el borrador con la fecha ya calculada.
+  Future<ParsedReminder?> _relativeToEvent(String text) async {
+    final request = SpanishRelativeEvent.parse(text);
+    if (request == null) return null;
+    final active = await ref.read(reminderRepositoryProvider).watchByStatus({
+      ReminderStatus.pending,
+      ReminderStatus.snoozed,
+    }).first;
+    final now = _now;
+    final event = SpanishRelativeEvent.findEvent(
+      request.eventText,
+      active,
+      now,
+    );
+    if (event == null) return null;
+    final due = event.dueAt.subtract(request.offset);
+    if (!due.isAfter(now)) return null;
+    return ParsedReminder(
+      title: request.task.isNotEmpty
+          ? request.task
+          : SpanishSpeech.upcoming(event.title),
+      exactDue: due,
+      leadTime: Duration.zero,
+      category: event.category,
+    );
   }
 
   /// Dice [prompt] y escucha. Si no oye nada, repite con [retryPrompt].
@@ -348,13 +401,16 @@ class VoiceAssistantController extends Notifier<VoiceState> {
     var speakQuestion = true;
     for (var turn = 0; turn < _maxTurns * 2; turn++) {
       final preview = _preview();
-      final question = SpanishSpeech.confirmation(
-        title: preview.title,
-        due: preview.due!,
-        leadTime: preview.leadTime,
-        recurrence: preview.recurrence,
-        now: _now,
-      );
+      final taskCount = SpanishTaskSplitter.split(preview.title).length;
+      final question =
+          (taskCount > 1 ? SpanishSpeech.severalTasks(taskCount) : '') +
+          SpanishSpeech.confirmation(
+            title: preview.title,
+            due: preview.due!,
+            leadTime: preview.leadTime,
+            recurrence: preview.recurrence,
+            now: _now,
+          );
       _set(
         state.copyWith(
           stage: VoiceStage.confirming,
@@ -501,6 +557,13 @@ class VoiceAssistantController extends Notifier<VoiceState> {
       utterances: _utterances,
       confidence: _initial?.confidence,
     );
+    // «Pagar la luz y llamar a mi mamá»: un recordatorio por tarea, con la
+    // misma fecha y hora.
+    final tasks = SpanishTaskSplitter.split(draft.title);
+    if (tasks.length > 1) {
+      await _saveMany(session, draft, tasks, now);
+      return;
+    }
     final result = await ref.read(createReminderProvider)(draft);
     if (!_alive(session)) return;
     switch (result) {
@@ -518,6 +581,38 @@ class VoiceAssistantController extends Notifier<VoiceState> {
       case Err(:final failure):
         await _finish(session, failure.message, failed: true);
     }
+  }
+
+  Future<void> _saveMany(
+    int session,
+    ReminderDraft draft,
+    List<String> tasks,
+    DateTime now,
+  ) async {
+    final predict = ref.read(categoryPredictorProvider);
+    Reminder? first;
+    for (final task in tasks) {
+      final result = await ref.read(createReminderProvider)(
+        draft.copyWith(title: task, category: predict(task)),
+      );
+      if (!_alive(session)) return;
+      if (result case Err(:final failure)) {
+        await _finish(session, failure.message, failed: true);
+        return;
+      }
+      if (result case Ok(:final value)) first ??= value;
+    }
+    if (first == null) return;
+    await _recordSample(first);
+    _set(
+      state.copyWith(
+        stage: VoiceStage.done,
+        message: SpanishSpeech.savedMany(tasks.length, first.remindAt, now),
+        saved: first,
+        isListening: false,
+      ),
+    );
+    await _speaker.speak(state.message);
   }
 
   Future<void> _answerAgenda(int session, AgendaQuery query) async {

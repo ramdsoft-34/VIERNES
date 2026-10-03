@@ -38,6 +38,7 @@ class AppSettings {
     this.wakeSensitivity = 0.5,
     this.wakeEngine = WakeEngine.own,
     this.neuralTitles = false,
+    this.wakeChime = true,
     this.personalLearning = true,
   });
 
@@ -99,6 +100,9 @@ class AppSettings {
   /// recordatorios cuando está muy segura (si no, solo llena huecos).
   final bool neuralTitles;
 
+  /// Sonido corto al oír «Viernes», antes de «Te escucho».
+  final bool wakeChime;
+
   /// Que Viernes aprenda de los recordatorios del usuario (categorías,
   /// horarios, anticipación). Todo ocurre en el teléfono.
   final bool personalLearning;
@@ -145,6 +149,7 @@ class AppSettings {
     double? wakeSensitivity,
     WakeEngine? wakeEngine,
     bool? neuralTitles,
+    bool? wakeChime,
     bool? personalLearning,
   }) => AppSettings(
     defaultLeadTime: defaultLeadTime ?? this.defaultLeadTime,
@@ -167,6 +172,7 @@ class AppSettings {
     wakeSensitivity: wakeSensitivity ?? this.wakeSensitivity,
     wakeEngine: wakeEngine ?? this.wakeEngine,
     neuralTitles: neuralTitles ?? this.neuralTitles,
+    wakeChime: wakeChime ?? this.wakeChime,
     personalLearning: personalLearning ?? this.personalLearning,
   );
 }

@@ -248,6 +248,54 @@ void main() {
     expect(stateOf(c).message, SpanishSpeech.cancelled);
   });
 
+  test('varias tareas en una frase crean un recordatorio por tarea', () async {
+    final recognizer = FakeSpeechRecognizer(
+      script: const [
+        SpeechHeard(
+          'recuérdame mañana a las 8 pagar la luz y llamar a mi mamá',
+        ),
+        SpeechHeard('sí'),
+      ],
+    );
+    final c = await buildContainer(recognizer);
+
+    await run(c);
+
+    final titles = repository.reminders.values.map((r) => r.title).toSet();
+    expect(titles, {'Pagar la luz', 'Llamar a mi mamá'});
+    expect(
+      repository.reminders.values.map((r) => r.dueAt).toSet(),
+      {DateTime(2026, 10, 2, 8)},
+    );
+    expect(speaker.spoken[1], startsWith('Son 2 recordatorios'));
+    expect(speaker.spoken.last, startsWith('Listo. Guardé 2 recordatorios'));
+  });
+
+  test('aviso relativo a otro recordatorio de la agenda', () async {
+    final recognizer = FakeSpeechRecognizer(
+      script: const [
+        SpeechHeard('avísame dos días antes del cumpleaños de Sofi'),
+        SpeechHeard('sí'),
+      ],
+    );
+    final c = await buildContainer(recognizer);
+    await repository.save(
+      buildReminder(
+        id: 'cumple',
+        title: 'Cumpleaños de Sofi',
+        dueAt: DateTime(2026, 10, 10, 18),
+      ),
+    );
+
+    await run(c);
+
+    final created = repository.reminders.values.firstWhere(
+      (r) => r.id != 'cumple',
+    );
+    expect(created.title, 'Se acerca: Cumpleaños de Sofi');
+    expect(created.dueAt, DateTime(2026, 10, 8, 18));
+  });
+
   test('si avisa en el pasado pregunta para cuándo', () async {
     final recognizer = FakeSpeechRecognizer(
       script: const [

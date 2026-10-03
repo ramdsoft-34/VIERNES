@@ -29,4 +29,21 @@ class ReminderDraft {
   final ReminderSource source;
   final String? rawUtterance;
   final double? nluConfidence;
+
+  ReminderDraft copyWith({
+    String? title,
+    DateTime? dueAt,
+    ReminderCategory? category,
+  }) => ReminderDraft(
+    title: title ?? this.title,
+    dueAt: dueAt ?? this.dueAt,
+    notes: notes,
+    leadTime: leadTime,
+    recurrence: recurrence,
+    priority: priority,
+    category: category ?? this.category,
+    source: source,
+    rawUtterance: rawUtterance,
+    nluConfidence: nluConfidence,
+  );
 }

@@ -238,6 +238,40 @@ def build_set(clips: list[np.ndarray], copies: int, positive: bool, rng, aug):
     return np.stack(out) if out else np.zeros((0, CLIP), np.int16)
 
 
+def load_phone_samples(path: Path):
+    """Grabaciones exportadas por la app (`viernes-activaciones.zip` o una
+    carpeta): `real_*.wav` son «Viernes» de verdad y `error_*.wav`
+    activaciones falsas. Ya vienen a 16 kHz, 2 s y con la palabra al final."""
+    import io
+    import zipfile
+
+    real, errors = [], []
+
+    def add(name: str, data: bytes):
+        with wave.open(io.BytesIO(data), "rb") as wav:
+            pcm = np.frombuffer(wav.readframes(wav.getnframes()), np.int16)
+        clip = pcm.astype(np.float32) / 32768
+        base = Path(name).name
+        if base.startswith("real_"):
+            real.append(clip)
+        elif base.startswith("error_"):
+            errors.append(clip)
+
+    if not path.exists():
+        return real, errors
+    files = [path] if path.is_file() else sorted(path.rglob("*"))
+    for file in files:
+        if file.suffix == ".zip":
+            with zipfile.ZipFile(file) as z:
+                for name in z.namelist():
+                    if name.endswith(".wav"):
+                        add(name, z.read(name))
+        elif file.suffix == ".wav":
+            add(file.name, file.read_bytes())
+    print(f"Grabaciones del teléfono: {len(real)} reales, {len(errors)} por error")
+    return real, errors
+
+
 # ---------------------------------------------------------------------------
 # 5–6. Características
 # ---------------------------------------------------------------------------
@@ -406,6 +440,8 @@ def main():
     parser.add_argument("--general-negatives", type=int, default=800_000)
     parser.add_argument("--epochs", type=int, default=20)
     parser.add_argument("--pos-repeat", type=int, default=8)
+    parser.add_argument("--phone-samples", default="",
+                        help="zip o carpeta con las grabaciones exportadas por la app")
     parser.add_argument("--mine-rounds", type=int, default=1)
     parser.add_argument("--mine-pool", type=int, default=1_500_000)
     parser.add_argument("--mine-max", type=int, default=60_000)
@@ -439,6 +475,16 @@ def main():
         pos_test = features(build_set(test_pos, 2, True, rng, aug), models)
         neg_hard = features(build_set(all_neg, 2, False, rng, aug), models)
         np.savez_compressed(cache, pos_train=pos_train, pos_test=pos_test, neg_hard=neg_hard)
+    if args.phone_samples:
+        real, errors = load_phone_samples(Path(args.phone_samples))
+        aug = augmenter()
+        if real:
+            # Pesan más: son la voz y el ambiente reales del usuario.
+            pos_train = np.concatenate([pos_train, features(
+                build_set(real, args.copies * 3, True, rng, aug), models)])
+        if errors:
+            neg_hard = np.concatenate([neg_hard, features(
+                build_set(errors, 3, False, rng, aug), models)])
     print(f"Positivos: {len(pos_train)} (entrenar) / {len(pos_test)} (voz nueva); "
           f"negativos difíciles: {len(neg_hard)}")
 

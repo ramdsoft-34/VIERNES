@@ -7,6 +7,7 @@ import 'package:viernes/ai/dataset/training_exporter.dart';
 import 'package:viernes/ai/learning/personal_model.dart';
 import 'package:viernes/ai/nlu/interpretation.dart';
 import 'package:viernes/ai/nlu/ml/neural_tagger.dart';
+import 'package:viernes/ai/wake_word/wake_sample_store.dart';
 import 'package:viernes/app/providers.dart';
 import 'package:viernes/app/theme/app_theme.dart';
 import 'package:viernes/core/extensions/context_x.dart';
@@ -15,6 +16,7 @@ import 'package:viernes/core/utils/day_time.dart';
 import 'package:viernes/core/widgets/section_header.dart';
 import 'package:viernes/features/reminders/presentation/reminder_formatters.dart';
 import 'package:viernes/features/settings/presentation/settings_controller.dart';
+import 'package:viernes/features/voice_assistant/presentation/wake_word_controller.dart';
 
 /// "Cómo aprende Viernes": qué aprendió, qué tan bien entiende y control
 /// sobre los datos.
@@ -73,6 +75,8 @@ class LearningScreen extends ConsumerWidget {
             SectionHeader(l10n.learningWhatItLearned),
             _ModelCard(model: model),
           ],
+          SectionHeader(l10n.wakeSamplesSection),
+          const _WakeSamplesCard(),
           SectionHeader(l10n.neuralSection),
           const _NeuralCard(),
           SectionHeader(l10n.learningConversations),
@@ -308,6 +312,47 @@ class _NeuralCardState extends ConsumerState<_NeuralCard> {
               ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// Grabaciones de cada «Viernes» para reentrenar el detector.
+class _WakeSamplesCard extends ConsumerWidget {
+  const _WakeSamplesCard();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = context.l10n;
+    final counts =
+        ref.watch(wakeSampleCountsProvider).value ?? const WakeSampleCounts();
+    final store = ref.read(wakeSampleStoreProvider);
+    return Card(
+      child: Column(
+        children: [
+          ListTile(
+            leading: const Icon(Icons.graphic_eq),
+            title: Text(l10n.wakeSamplesTitle(counts.real, counts.errors)),
+            subtitle: Text(l10n.wakeSamplesSubtitle),
+          ),
+          if (counts.total > 0)
+            OverflowBar(
+              alignment: MainAxisAlignment.end,
+              children: [
+                TextButton(
+                  onPressed: () async {
+                    await store.clear();
+                    ref.invalidate(wakeSampleCountsProvider);
+                  },
+                  child: Text(l10n.wakeSamplesDelete),
+                ),
+                TextButton(
+                  onPressed: () => unawaited(store.exportAndShare()),
+                  child: Text(l10n.wakeSamplesExport),
+                ),
+              ],
+            ),
+        ],
       ),
     );
   }

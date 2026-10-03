@@ -1324,6 +1324,18 @@ abstract class AppLocalizations {
   /// **'Necesito permiso para usar el micrófono.'**
   String get wakeErrorMic;
 
+  /// No description provided for @wakeChime.
+  ///
+  /// In es, this message translates to:
+  /// **'Sonido al activarse'**
+  String get wakeChime;
+
+  /// No description provided for @wakeChimeSubtitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Un tono corto confirma que Viernes te oyó'**
+  String get wakeChimeSubtitle;
+
   /// No description provided for @wakeEngine.
   ///
   /// In es, this message translates to:
@@ -1491,6 +1503,36 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'Para entrenar la próxima versión de la IA. Tú eliges a dónde enviarlas.'**
   String get learningExportSubtitle;
+
+  /// No description provided for @wakeSamplesTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'{real} activaciones reales · {errors} por error'**
+  String wakeSamplesTitle(int real, int errors);
+
+  /// No description provided for @wakeSamplesSubtitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Audio de 2 s de cada «Viernes» (solo con tu consentimiento) para entrenar un detector que te reconozca mejor.'**
+  String get wakeSamplesSubtitle;
+
+  /// No description provided for @wakeSamplesExport.
+  ///
+  /// In es, this message translates to:
+  /// **'Exportar grabaciones'**
+  String get wakeSamplesExport;
+
+  /// No description provided for @wakeSamplesDelete.
+  ///
+  /// In es, this message translates to:
+  /// **'Borrar grabaciones'**
+  String get wakeSamplesDelete;
+
+  /// No description provided for @wakeSamplesSection.
+  ///
+  /// In es, this message translates to:
+  /// **'Detector de «Viernes»'**
+  String get wakeSamplesSection;
 
   /// No description provided for @neuralSection.
   ///

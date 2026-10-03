@@ -18,11 +18,18 @@ class FakeWakeWordService implements WakeWordService {
   @override
   Stream<void> get wakes => _wakes.stream;
 
+  bool? lastChime;
+  bool? lastSaveSamples;
+
   @override
   Future<void> start({
     required String modelPath,
     required double threshold,
+    bool chime = true,
+    bool saveSamples = false,
   }) async {
+    lastChime = chime;
+    lastSaveSamples = saveSamples;
     calls.add('start');
     lastThreshold = threshold;
     lastModelPath = modelPath;

@@ -5,7 +5,14 @@ import 'package:viernes/core/logging/app_logger.dart';
 
 /// Escucha en segundo plano de la palabra "Viernes".
 abstract interface class WakeWordService {
-  Future<void> start({required String modelPath, required double threshold});
+  /// [chime]: sonido corto al oír «Viernes». [saveSamples]: guardar el audio
+  /// de cada activación para reentrenar el detector (con consentimiento).
+  Future<void> start({
+    required String modelPath,
+    required double threshold,
+    bool chime = true,
+    bool saveSamples = false,
+  });
 
   Future<void> stop();
 
@@ -47,8 +54,17 @@ class AndroidWakeWordService implements WakeWordService {
   Stream<void> get wakes => _wakes.stream;
 
   @override
-  Future<void> start({required String modelPath, required double threshold}) =>
-      _call('start', {'modelPath': modelPath, 'threshold': threshold});
+  Future<void> start({
+    required String modelPath,
+    required double threshold,
+    bool chime = true,
+    bool saveSamples = false,
+  }) => _call('start', {
+    'modelPath': modelPath,
+    'threshold': threshold,
+    'chime': chime,
+    'saveSamples': saveSamples,
+  });
 
   @override
   Future<void> stop() => _call('stop');
