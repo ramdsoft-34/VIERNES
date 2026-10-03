@@ -299,6 +299,34 @@ def general_negatives(work: Path, max_rows: int):
 # ---------------------------------------------------------------------------
 
 
+def _batches_class():
+    from tensorflow import keras
+
+    class Batches(keras.utils.PyDataset):
+        """Lotes barajados que se pasan a 32 bits al vuelo (ahorra memoria)."""
+
+        def __init__(self, x, y, batch_size):
+            super().__init__()
+            self.x, self.y, self.batch_size = x, y, batch_size
+            self.order = np.random.permutation(len(x))
+
+        def __len__(self):
+            return int(np.ceil(len(self.x) / self.batch_size))
+
+        def __getitem__(self, i):
+            idx = np.sort(self.order[i * self.batch_size:(i + 1) * self.batch_size])
+            return self.x[idx].astype(np.float32), self.y[idx]
+
+        def on_epoch_end(self):
+            self.order = np.random.permutation(len(self.x))
+
+    return Batches
+
+
+def _Batches(x, y, batch_size):  # noqa: N802
+    return _batches_class()(x, y, batch_size)
+
+
 def build_classifier():
     import tensorflow as tf
     from tensorflow import keras
@@ -429,7 +457,7 @@ def main():
         epochs = args.epochs if round_ == 0 else max(4, args.epochs // 3)
         print(f"Ronda {round_}: {len(pos)} positivos, {len(x) - len(pos)} negativos "
               f"({len(mined)} encontrados por minería)", flush=True)
-        model.fit(x, y, batch_size=1024, epochs=epochs, verbose=2, shuffle=True)
+        model.fit(_Batches(x, y, 1024), epochs=epochs, verbose=2)
         del x, y
         val_now = scores_on_stream(model, val_features)
         print(f"  activaciones falsas/hora: {false_activations_per_hour(val_now, 0.5):.2f} "
