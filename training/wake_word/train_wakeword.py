@@ -288,7 +288,8 @@ def general_negatives(work: Path, max_rows: int):
     print(f"Negativos generales: {acav.shape}")
     rows = np.sort(np.random.choice(acav.shape[0], min(max_rows, acav.shape[0]),
                                     replace=False))
-    sample = np.asarray(acav[rows], np.float32)
+    # Media precisión: 400 mil ventanas ocupan ~1,2 GB en vez de 2,5 GB.
+    sample = np.asarray(acav[rows], np.float16)
     val = np.load(valid, mmap_mode="r")
     return sample, val
 
@@ -353,7 +354,7 @@ def main():
     parser.add_argument("--repo", default=str(Path(__file__).resolve().parents[2]))
     parser.add_argument("--per-text", type=int, default=6)
     parser.add_argument("--copies", type=int, default=4)
-    parser.add_argument("--general-negatives", type=int, default=600_000)
+    parser.add_argument("--general-negatives", type=int, default=400_000)
     parser.add_argument("--epochs", type=int, default=20)
     args = parser.parse_args()
 
@@ -391,7 +392,9 @@ def main():
     neg_general, val_features = general_negatives(work, args.general_negatives)
 
     # Entrenamiento: los negativos difíciles se repiten para que pesen.
-    x = np.concatenate([pos_train, neg_hard, neg_hard, neg_general])
+    x = np.concatenate([pos_train.astype(np.float16), neg_hard.astype(np.float16),
+                        neg_hard.astype(np.float16), neg_general])
+    del neg_general
     y = np.concatenate([np.ones(len(pos_train)), np.zeros(2 * len(neg_hard)),
                         np.zeros(len(neg_general))]).astype(np.float32)
     order = np.random.permutation(len(x))
@@ -403,8 +406,11 @@ def main():
               class_weight={0: 1.0, 1: float(min(weight_pos, 50))})
 
     # Métricas
-    val_scores = model.predict(np.asarray(val_features, np.float32), batch_size=4096,
-                               verbose=0)[:, 0]
+    val_scores = np.concatenate([
+        model.predict(np.asarray(val_features[i:i + 50_000], np.float32),
+                      batch_size=4096, verbose=0)[:, 0]
+        for i in range(0, len(val_features), 50_000)
+    ])
     test_scores = model.predict(pos_test, batch_size=1024, verbose=0)[:, 0] \
         if len(pos_test) else np.zeros(0)
     hard_scores = model.predict(neg_hard, batch_size=1024, verbose=0)[:, 0]
