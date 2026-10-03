@@ -75,6 +75,7 @@ class WakeWordService : Service() {
     private var listening = false
     private var audioThread: Thread? = null
     private var engine: WakeWordEngine? = null
+    private var enginePath: String? = null
     private var modelPath: String? = null
     private var threshold = 0.8f
 
@@ -183,12 +184,24 @@ class WakeWordService : Service() {
         }
     }
 
+    /**
+     * "asset:wakeword" → modelo propio incluido en el APK (openWakeWord);
+     * cualquier otra ruta → modelo de Vosk descargado.
+     */
     @Synchronized
     private fun obtainEngine(): WakeWordEngine? {
-        engine?.let { return it }
         val path = modelPath ?: return null
+        if (engine != null && enginePath == path) return engine
+        engine?.close()
+        engine = null
         return try {
-            VoskWakeWordEngine(path).also { engine = it }
+            val created = if (path.startsWith(OpenWakeWordEngine.ASSET_PREFIX)) {
+                OpenWakeWordEngine(this, path.removePrefix(OpenWakeWordEngine.ASSET_PREFIX))
+            } else {
+                VoskWakeWordEngine(path)
+            }
+            enginePath = path
+            created.also { engine = it }
         } catch (error: Exception) {
             Log.e(TAG, "No se pudo cargar el modelo en $path", error)
             null

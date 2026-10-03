@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:viernes/core/extensions/context_x.dart';
+import 'package:viernes/features/settings/domain/app_settings.dart';
 import 'package:viernes/features/settings/presentation/settings_controller.dart';
 import 'package:viernes/features/voice_assistant/presentation/wake_word_controller.dart';
 
@@ -26,7 +27,9 @@ class WakeWordSettingsTiles extends ConsumerWidget {
       WakeWordPhase.listening => l10n.wakeListening,
       WakeWordPhase.error => state.error ?? l10n.errorGeneric,
       WakeWordPhase.off =>
-        state.modelInstalled ? l10n.wakeSubtitle : l10n.wakeDownloadNote,
+        state.modelInstalled || settings.wakeEngine == WakeEngine.own
+            ? l10n.wakeSubtitle
+            : l10n.wakeDownloadNote,
     };
 
     return Column(
@@ -77,7 +80,46 @@ class WakeWordSettingsTiles extends ConsumerWidget {
                   ),
           ),
         ],
-        if (state.modelInstalled && !enabled && !state.isBusy) ...[
+        const Divider(height: 1, indent: 56),
+        ListTile(
+          leading: const Icon(Icons.memory),
+          title: Text(l10n.wakeEngine),
+          subtitle: Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SegmentedButton<WakeEngine>(
+                  segments: [
+                    ButtonSegment(
+                      value: WakeEngine.own,
+                      label: Text(l10n.wakeEngineOwn),
+                    ),
+                    ButtonSegment(
+                      value: WakeEngine.vosk,
+                      label: Text(l10n.wakeEngineVosk),
+                    ),
+                  ],
+                  selected: {settings.wakeEngine},
+                  onSelectionChanged: state.isBusy
+                      ? null
+                      : (selection) =>
+                            unawaited(controller.setEngine(selection.first)),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  settings.wakeEngine == WakeEngine.own
+                      ? l10n.wakeEngineOwnNote
+                      : l10n.wakeEngineVoskNote,
+                ),
+              ],
+            ),
+          ),
+        ),
+        if (state.modelInstalled &&
+            !state.ownModel &&
+            !enabled &&
+            !state.isBusy) ...[
           const Divider(height: 1, indent: 56),
           ListTile(
             leading: const Icon(Icons.delete_outline),

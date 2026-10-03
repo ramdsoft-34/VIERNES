@@ -5,6 +5,15 @@ export 'package:viernes/core/utils/day_time.dart';
 
 enum AppThemeMode { system, light, dark }
 
+/// Detector de la palabra «Viernes».
+enum WakeEngine {
+  /// Modelo propio incluido en la app (ligero, sin descarga).
+  own,
+
+  /// Vosk: modelo de voz general de ~38 MB (respaldo).
+  vosk,
+}
+
 /// Preferencias del usuario.
 @immutable
 class AppSettings {
@@ -27,6 +36,8 @@ class AppSettings {
     this.themeMode = AppThemeMode.system,
     this.wakeWordEnabled = false,
     this.wakeSensitivity = 0.5,
+    this.wakeEngine = WakeEngine.own,
+    this.neuralTitles = false,
     this.personalLearning = true,
   });
 
@@ -82,6 +93,12 @@ class AppSettings {
   /// 0 = menos falsas activaciones; 1 = responde más fácil.
   final double wakeSensitivity;
 
+  final WakeEngine wakeEngine;
+
+  /// Experimental: la red neuronal propia decide el título de los
+  /// recordatorios cuando está muy segura (si no, solo llena huecos).
+  final bool neuralTitles;
+
   /// Que Viernes aprenda de los recordatorios del usuario (categorías,
   /// horarios, anticipación). Todo ocurre en el teléfono.
   final bool personalLearning;
@@ -89,6 +106,10 @@ class AppSettings {
   /// Confianza mínima que exige el detector según la sensibilidad
   /// (entre 0,95 y 0,65).
   double get wakeThreshold => 0.95 - 0.3 * wakeSensitivity.clamp(0, 1);
+
+  /// Umbral del detector propio: su salida es una probabilidad calibrada en
+  /// el entrenamiento (0,5 en sensibilidad media).
+  double get ownWakeThreshold => 0.75 - 0.5 * wakeSensitivity.clamp(0, 1);
 
   /// Si [moment] cae dentro del horario de silencio (admite cruzar medianoche).
   bool isQuietAt(DateTime moment) {
@@ -121,6 +142,8 @@ class AppSettings {
     AppThemeMode? themeMode,
     bool? wakeWordEnabled,
     double? wakeSensitivity,
+    WakeEngine? wakeEngine,
+    bool? neuralTitles,
     bool? personalLearning,
   }) => AppSettings(
     defaultLeadTime: defaultLeadTime ?? this.defaultLeadTime,
@@ -141,6 +164,8 @@ class AppSettings {
     themeMode: themeMode ?? this.themeMode,
     wakeWordEnabled: wakeWordEnabled ?? this.wakeWordEnabled,
     wakeSensitivity: wakeSensitivity ?? this.wakeSensitivity,
+    wakeEngine: wakeEngine ?? this.wakeEngine,
+    neuralTitles: neuralTitles ?? this.neuralTitles,
     personalLearning: personalLearning ?? this.personalLearning,
   );
 }

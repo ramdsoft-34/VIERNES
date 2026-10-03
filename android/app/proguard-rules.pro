@@ -5,3 +5,7 @@
 -keep class org.vosk.** { *; }
 -dontwarn java.awt.**
 -dontwarn com.sun.jna.**
+
+# Detector propio de "Viernes" (LiteRT / TensorFlow Lite).
+-keep class org.tensorflow.lite.** { *; }
+-dontwarn org.tensorflow.lite.**

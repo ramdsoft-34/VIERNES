@@ -9,6 +9,7 @@ import android.os.Bundle
 import android.provider.Settings
 import android.view.WindowManager
 import androidx.core.content.ContextCompat
+import com.ramdsoft.viernes.wakeword.OpenWakeWordEngine
 import com.ramdsoft.viernes.wakeword.WakeWordService
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
@@ -82,6 +83,7 @@ class MainActivity : FlutterActivity() {
             "pause" -> sendToService(WakeWordService.ACTION_PAUSE, result)
             "resume" -> sendToService(WakeWordService.ACTION_RESUME, result)
             "isRunning" -> result.success(WakeWordService.isRunning)
+            "hasOwnModel" -> result.success(OpenWakeWordEngine.isAvailable(this))
             "consumeLaunchWake" -> {
                 result.success(pendingWake)
                 pendingWake = false

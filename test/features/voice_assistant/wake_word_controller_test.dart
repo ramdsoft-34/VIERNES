@@ -19,12 +19,13 @@ void main() {
   Future<ProviderContainer> build({
     bool installed = false,
     bool failDownload = false,
+    bool ownModel = false,
     SpeechAvailability mic = SpeechAvailability.available,
     Map<String, Object> prefs = const {},
   }) async {
     SharedPreferences.setMockInitialValues(prefs);
     final sharedPrefs = await SharedPreferences.getInstance();
-    service = FakeWakeWordService();
+    service = FakeWakeWordService()..ownModel = ownModel;
     models = FakeWakeModelManager(
       installed: installed,
       failDownload: failDownload,
@@ -33,7 +34,7 @@ void main() {
       overrides: [
         sharedPreferencesProvider.overrideWithValue(sharedPrefs),
         wakeWordServiceProvider.overrideWithValue(service),
-        wakeModelManagerProvider.overrideWithValue(models),
+        voskModelManagerProvider.overrideWithValue(models),
         speechRecognizerProvider.overrideWithValue(
           FakeSpeechRecognizer(availability: mic),
         ),
@@ -131,6 +132,40 @@ void main() {
     await controllerOf(c).ensureRunning();
 
     expect(service.calls, ['start']);
+  });
+
+  test('con el detector propio no descarga nada', () async {
+    final c = await build(ownModel: true);
+
+    await controllerOf(c).enable();
+
+    expect(models.progress, isEmpty);
+    expect(service.lastModelPath, 'asset:wakeword');
+    expect(service.lastThreshold, const AppSettings().ownWakeThreshold);
+    expect(c.read(wakeWordControllerProvider).ownModel, isTrue);
+  });
+
+  test('elegir Vosk descarga su modelo y reinicia con él', () async {
+    final c = await build(ownModel: true);
+    await controllerOf(c).enable();
+
+    await controllerOf(c).setEngine(WakeEngine.vosk);
+
+    expect(models.progress, [0.25, 0.5, 1.0]);
+    expect(service.lastModelPath, isNot('asset:wakeword'));
+    expect(
+      c.read(settingsControllerProvider).wakeEngine,
+      WakeEngine.vosk,
+    );
+  });
+
+  test('si la app no trae el detector propio usa Vosk', () async {
+    final c = await build();
+
+    await controllerOf(c).enable();
+
+    expect(models.progress, [0.25, 0.5, 1.0]);
+    expect(c.read(wakeWordControllerProvider).ownModel, isFalse);
   });
 
   test('los ajustes guardan activación y sensibilidad', () async {

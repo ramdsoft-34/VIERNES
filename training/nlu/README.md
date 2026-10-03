@@ -34,21 +34,37 @@ línea (solo si el usuario activó «Ayudar a entrenar a Viernes»):
   correcta»).
 - `corrected`: si hizo falta preguntar o corregir algo.
 
-## v2 (siguiente): modelo neuronal en el teléfono
+## v2 (app 0.8): red neuronal propia en el teléfono
 
-Cuando haya unos cientos de conversaciones reales:
+`lib/ai/nlu/ml/`: corre en **Dart puro** (sin bibliotecas nativas), ~450 KB.
 
-1. **Etiquetar**: convertir cada `utterances[0]` + `final` en etiquetas por
-   palabra (BIO: `TAREA`, `FECHA`, `HORA`, `REPETICIÓN`, `PRIORIDAD`) y la
-   intención (`crear`, `consultar`).
-2. **Aumentar**: generar variaciones con plantillas («mañana a las {hora}
-   {tarea}», «recuérdame {tarea} el {día}») para cubrir lo poco frecuente.
-3. **Entrenar** un etiquetador pequeño (BiLSTM-CRF o un transformer
-   distilado en español) en Colab.
-4. **Exportar** a TensorFlow Lite (<5 MB) y cargarlo en
-   `lib/ai/nlu/ml/` como otro `ReminderInterpreter`.
-5. **Combinar** en `HybridInterpreter`: usar el modelo si su confianza supera
-   la de las reglas; medir con `AccuracyReport` antes y después.
+```text
+palabra → embedding(48) + terminación(16) → conv1d(96, k=3) → conv1d(96, k=3)
+  ├─ por palabra: etiquetas BIO (TAREA, FECHA, HORA, REP, PRIO, ANTIC)
+  └─ máximo global: intención (crear, consultar, cancelar, otro)
+```
 
-Regla de oro: el modelo nuevo solo reemplaza a las reglas cuando su
-porcentaje de «entendidas a la primera» es mayor con los mismos datos.
+- **Entrenamiento**: `train_nlu.py` (paso 4 del cuaderno de Colab). Usa
+  frases sintéticas etiquetadas por construcción (`nlu_data.py`: cientos de
+  verbos × objetos × fechas × horas, con palabras inventadas para que aprenda
+  por el contexto) y, si existen, las frases reales exportadas por la app
+  (`*.jsonl` en la carpeta de Drive), que pesan 5 veces más.
+- **Medición honesta**: separa verbos, objetos y plantillas que nunca ve al
+  entrenar («tareas no vistas»).
+- **Paridad**: `nlu_parity.json` (en `test/fixtures/`) verifica que Dart dé
+  las mismas probabilidades que Keras.
+- **Uso en la app** (`HybridInterpreter`): las reglas siguen mandando. La red
+  crea el recordatorio cuando las reglas no entendieron (intención ≥ 0,85) y
+  llena el título cuando faltó. Con «Títulos con la red neuronal»
+  (experimental) decide el título si está muy segura (≥ 0,9).
+
+### Para actualizar el modelo
+
+1. Exporta frases desde la app (Ajustes → Cómo aprende Viernes) y súbelas a la
+   carpeta de Drive `IA-Viernes`.
+2. Ejecuta el cuaderno. Revisa `nlu_metrics.json`.
+3. Copia `nlu_model.json` a `assets/ai/` y `nlu_parity.json` a
+   `test/fixtures/`; corre `flutter test`.
+
+Regla de oro: el modelo nuevo solo reemplaza al anterior si mejora con los
+mismos datos.

@@ -247,6 +247,11 @@
   "wakeOverlaySubtitle": "Sin este permiso, si estás usando otra app verás un aviso para tocar.",
   "wakeRemoveModel": "Borrar el modelo de voz descargado",
   "wakeErrorMic": "Necesito permiso para usar el micrófono.",
+  "wakeEngine": "Detector",
+  "wakeEngineOwn": "Propio",
+  "wakeEngineVosk": "Vosk",
+  "wakeEngineOwnNote": "Detector propio de Viernes: ligero y sin descargas.",
+  "wakeEngineVoskNote": "Modelo general de voz (38 MB). Úsalo si el propio no te reconoce bien.",
   "wakeErrorDownload": "No se pudo descargar el modelo de voz. Revisa tu conexión e inténtalo de nuevo.",
 
   "learningTitle": "Cómo aprende Viernes",

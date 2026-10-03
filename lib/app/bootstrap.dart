@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:viernes/ai/ai_providers.dart';
 import 'package:viernes/app/app.dart';
 import 'package:viernes/app/flavor.dart';
 import 'package:viernes/app/providers.dart';
@@ -83,6 +84,8 @@ Future<void> bootstrap(AppFlavor flavor) async {
   container.read(alertCoordinatorProvider).start();
   container.read(wakeCoordinatorProvider).start();
   container.read(syncControllerProvider.notifier).start();
+  // Carga la red neuronal propia en segundo plano.
+  unawaited(container.read(neuralTaggerProvider.future));
 
   AppLogger.info('Iniciando Viernes (${flavor.name})');
   runApp(

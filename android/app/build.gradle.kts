@@ -44,6 +44,11 @@ android {
         versionName = flutter.versionName
     }
 
+    // Los modelos .tflite se leen mapeados en memoria: no comprimir.
+    androidResources {
+        noCompress += "tflite"
+    }
+
     // Necesario en AGP 9 para definir `app_name` por versión.
     buildFeatures {
         resValues = true
@@ -109,4 +114,6 @@ dependencies {
         exclude(group = "net.java.dev.jna")
     }
     implementation("net.java.dev.jna:jna:5.19.1@aar")
+    // Detector propio de "Viernes" (modelos openWakeWord en assets/wakeword).
+    implementation("com.google.ai.edge.litert:litert:1.4.2")
 }

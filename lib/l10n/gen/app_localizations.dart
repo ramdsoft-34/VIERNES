@@ -1324,6 +1324,36 @@ abstract class AppLocalizations {
   /// **'Necesito permiso para usar el micrófono.'**
   String get wakeErrorMic;
 
+  /// No description provided for @wakeEngine.
+  ///
+  /// In es, this message translates to:
+  /// **'Detector'**
+  String get wakeEngine;
+
+  /// No description provided for @wakeEngineOwn.
+  ///
+  /// In es, this message translates to:
+  /// **'Propio'**
+  String get wakeEngineOwn;
+
+  /// No description provided for @wakeEngineVosk.
+  ///
+  /// In es, this message translates to:
+  /// **'Vosk'**
+  String get wakeEngineVosk;
+
+  /// No description provided for @wakeEngineOwnNote.
+  ///
+  /// In es, this message translates to:
+  /// **'Detector propio de Viernes: ligero y sin descargas.'**
+  String get wakeEngineOwnNote;
+
+  /// No description provided for @wakeEngineVoskNote.
+  ///
+  /// In es, this message translates to:
+  /// **'Modelo general de voz (38 MB). Úsalo si el propio no te reconoce bien.'**
+  String get wakeEngineVoskNote;
+
   /// No description provided for @wakeErrorDownload.
   ///
   /// In es, this message translates to:

@@ -8,7 +8,9 @@ class FakeWakeWordService implements WakeWordService {
   final List<String> calls = [];
   bool running = false;
   bool launchWake = false;
+  bool ownModel = false;
   double? lastThreshold;
+  String? lastModelPath;
   final _wakes = StreamController<void>.broadcast();
 
   void simulateWake() => _wakes.add(null);
@@ -23,6 +25,7 @@ class FakeWakeWordService implements WakeWordService {
   }) async {
     calls.add('start');
     lastThreshold = threshold;
+    lastModelPath = modelPath;
     running = true;
   }
 
@@ -40,6 +43,9 @@ class FakeWakeWordService implements WakeWordService {
 
   @override
   Future<bool> isRunning() async => running;
+
+  @override
+  Future<bool> hasOwnModel() async => ownModel;
 
   @override
   Future<bool> consumeLaunchWake() async {

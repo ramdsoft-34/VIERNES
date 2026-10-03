@@ -16,6 +16,9 @@ abstract interface class WakeWordService {
 
   Future<bool> isRunning();
 
+  /// El APK trae el detector propio de «Viernes» (`assets/wakeword`).
+  Future<bool> hasOwnModel();
+
   /// `true` si la app se abrió porque se dijo "Viernes" (y lo marca como
   /// atendido).
   Future<bool> consumeLaunchWake();
@@ -58,6 +61,9 @@ class AndroidWakeWordService implements WakeWordService {
 
   @override
   Future<bool> isRunning() async => await _call<bool>('isRunning') ?? false;
+
+  @override
+  Future<bool> hasOwnModel() async => await _call<bool>('hasOwnModel') ?? false;
 
   @override
   Future<bool> consumeLaunchWake() async =>

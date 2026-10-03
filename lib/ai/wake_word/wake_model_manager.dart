@@ -97,3 +97,31 @@ class VoskModelManager implements WakeModelManager {
     if (base.existsSync()) await base.delete(recursive: true);
   }
 }
+
+/// Detector propio de «Viernes» que viene dentro del APK (~1,5 MB, sin
+/// descarga). Si esta versión no lo trae, usa el modelo de respaldo.
+class BundledWakeModelManager implements WakeModelManager {
+  BundledWakeModelManager({
+    required this._available,
+    required this._fallback,
+  });
+
+  /// Ruta que el servicio nativo entiende como «modelo en assets».
+  static const assetPath = 'asset:wakeword';
+
+  final Future<bool> Function() _available;
+  final WakeModelManager _fallback;
+
+  @override
+  Future<String?> installedPath() async =>
+      await _available() ? assetPath : _fallback.installedPath();
+
+  @override
+  Future<String> install({ValueChanged<double>? onProgress}) async =>
+      await _available()
+      ? assetPath
+      : _fallback.install(onProgress: onProgress);
+
+  @override
+  Future<void> remove() => _fallback.remove();
+}

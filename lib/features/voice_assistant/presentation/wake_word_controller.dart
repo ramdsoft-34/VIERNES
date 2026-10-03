@@ -8,6 +8,7 @@ import 'package:viernes/ai/wake_word/wake_model_manager.dart';
 import 'package:viernes/ai/wake_word/wake_word_service.dart';
 import 'package:viernes/app/router/app_router.dart';
 import 'package:viernes/core/logging/app_logger.dart';
+import 'package:viernes/features/settings/domain/app_settings.dart';
 import 'package:viernes/features/settings/presentation/settings_controller.dart';
 import 'package:viernes/features/voice_assistant/presentation/voice_assistant_sheet.dart';
 import 'package:viernes/l10n/gen/app_localizations.dart';
@@ -16,9 +17,25 @@ final wakeWordServiceProvider = Provider<WakeWordService>(
   (ref) => AndroidWakeWordService(),
 );
 
-final wakeModelManagerProvider = Provider<WakeModelManager>(
+/// Modelo de Vosk (respaldo). En pruebas se sobrescribe con uno falso.
+final voskModelManagerProvider = Provider<WakeModelManager>(
   (ref) => VoskModelManager(),
 );
+
+/// Modelo del detector elegido en Ajustes: el propio (incluido en la app) o
+/// Vosk. Si la app no trae el propio, se usa Vosk.
+final wakeModelManagerProvider = Provider<WakeModelManager>((ref) {
+  final vosk = ref.watch(voskModelManagerProvider);
+  final engine = ref.watch(
+    settingsControllerProvider.select((s) => s.wakeEngine),
+  );
+  if (engine == WakeEngine.vosk) return vosk;
+  final service = ref.watch(wakeWordServiceProvider);
+  return BundledWakeModelManager(
+    available: service.hasOwnModel,
+    fallback: vosk,
+  );
+});
 
 enum WakeWordPhase { off, preparing, downloading, listening, error }
 
@@ -28,6 +45,7 @@ class WakeWordState {
     this.phase = WakeWordPhase.off,
     this.progress = 0,
     this.modelInstalled = false,
+    this.ownModel = false,
     this.canOpenOverOtherApps = false,
     this.error,
   });
@@ -37,6 +55,9 @@ class WakeWordState {
   /// Progreso de la descarga del modelo (0–1).
   final double progress;
   final bool modelInstalled;
+
+  /// Usa el detector propio incluido en la app (no hay nada que borrar).
+  final bool ownModel;
   final bool canOpenOverOtherApps;
   final String? error;
 
@@ -47,6 +68,7 @@ class WakeWordState {
     WakeWordPhase? phase,
     double? progress,
     bool? modelInstalled,
+    bool? ownModel,
     bool? canOpenOverOtherApps,
     String? error,
     bool clearError = false,
@@ -54,6 +76,7 @@ class WakeWordState {
     phase: phase ?? this.phase,
     progress: progress ?? this.progress,
     modelInstalled: modelInstalled ?? this.modelInstalled,
+    ownModel: ownModel ?? this.ownModel,
     canOpenOverOtherApps: canOpenOverOtherApps ?? this.canOpenOverOtherApps,
     error: clearError ? null : error ?? this.error,
   );
@@ -68,7 +91,9 @@ wakeWordControllerProvider =
 /// Activa, pausa y configura la escucha de "Viernes".
 class WakeWordController extends Notifier<WakeWordState> {
   late WakeWordService _service;
-  late WakeModelManager _models;
+
+  /// Se lee cada vez: cambia si el usuario elige otro detector.
+  WakeModelManager get _models => ref.read(wakeModelManagerProvider);
   final AppLocalizations _l10n = lookupAppLocalizations(const Locale('es'));
 
   bool get _enabled => ref.read(settingsControllerProvider).wakeWordEnabled;
@@ -76,18 +101,17 @@ class WakeWordController extends Notifier<WakeWordState> {
   @override
   WakeWordState build() {
     _service = ref.read(wakeWordServiceProvider);
-    _models = ref.read(wakeModelManagerProvider);
     unawaited(refresh());
     return const WakeWordState();
   }
 
   /// Lee el estado real del servicio y del modelo.
   Future<void> refresh() async {
-    final bool installed;
+    final String? path;
     final bool running;
     final bool overlay;
     try {
-      installed = await _models.installedPath() != null;
+      path = await _models.installedPath();
       running = await _service.isRunning();
       overlay = await _service.canOpenOverOtherApps();
     } on Object catch (error) {
@@ -96,7 +120,8 @@ class WakeWordController extends Notifier<WakeWordState> {
     }
     if (!ref.mounted || state.isBusy) return;
     state = state.copyWith(
-      modelInstalled: installed,
+      modelInstalled: path != null,
+      ownModel: path == BundledWakeModelManager.assetPath,
       canOpenOverOtherApps: overlay,
       phase: running ? WakeWordPhase.listening : WakeWordPhase.off,
     );
@@ -140,6 +165,7 @@ class WakeWordController extends Notifier<WakeWordState> {
     state = state.copyWith(
       phase: WakeWordPhase.listening,
       modelInstalled: true,
+      ownModel: path == BundledWakeModelManager.assetPath,
     );
   }
 
@@ -188,10 +214,28 @@ class WakeWordController extends Notifier<WakeWordState> {
   Future<void> requestOpenOverOtherApps() =>
       _service.requestOpenOverOtherApps();
 
-  Future<void> _start(String path) => _service.start(
-    modelPath: path,
-    threshold: ref.read(settingsControllerProvider).wakeThreshold,
-  );
+  /// Cambia de detector. Si estaba escuchando, sigue con el nuevo (Vosk se
+  /// descarga si hace falta).
+  Future<void> setEngine(WakeEngine engine) async {
+    if (state.isBusy) return;
+    ref
+        .read(settingsControllerProvider.notifier)
+        .update((s) => s.copyWith(wakeEngine: engine));
+    if (_enabled) {
+      await enable();
+    } else {
+      await refresh();
+    }
+  }
+
+  Future<void> _start(String path) {
+    final settings = ref.read(settingsControllerProvider);
+    final own = path == BundledWakeModelManager.assetPath;
+    return _service.start(
+      modelPath: path,
+      threshold: own ? settings.ownWakeThreshold : settings.wakeThreshold,
+    );
+  }
 
   void _fail(String message) {
     if (!ref.mounted) return;

@@ -1,3 +1,4 @@
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:viernes/ai/dataset/training_data_repository.dart';
 import 'package:viernes/ai/learning/accuracy_report.dart';
@@ -7,11 +8,13 @@ import 'package:viernes/ai/nlu/es/spanish_reply_parser.dart';
 import 'package:viernes/ai/nlu/es/spanish_rule_interpreter.dart';
 import 'package:viernes/ai/nlu/hybrid_interpreter.dart';
 import 'package:viernes/ai/nlu/interpretation.dart';
+import 'package:viernes/ai/nlu/ml/neural_tagger.dart';
 import 'package:viernes/ai/nlu/reminder_interpreter.dart';
 import 'package:viernes/ai/speech/android_speech_recognizer.dart';
 import 'package:viernes/ai/speech/speech_recognizer.dart';
 import 'package:viernes/ai/speech/tts_speaker.dart';
 import 'package:viernes/app/providers.dart';
+import 'package:viernes/core/logging/app_logger.dart';
 import 'package:viernes/features/reminders/domain/entities/reminder.dart';
 import 'package:viernes/features/reminders/domain/entities/reminder_enums.dart';
 import 'package:viernes/features/reminders/presentation/providers/reminder_providers.dart';
@@ -26,11 +29,27 @@ final speechRecognizerProvider = Provider<SpeechRecognizer>(
 
 final speakerProvider = Provider<Speaker>((ref) => TtsSpeaker());
 
-/// Reglas en español + lo aprendido del usuario.
+/// Red neuronal propia (entrenada en Colab, ver `training/nlu`). Nula si
+/// esta versión no la trae o no se pudo cargar.
+final neuralTaggerProvider = FutureProvider<NeuralTagger?>((ref) async {
+  try {
+    final source = await rootBundle.loadString(neuralModelAsset);
+    return NeuralTagger.fromJsonString(source);
+  } on Object catch (error) {
+    AppLogger.info('Sin intérprete neuronal: $error');
+    return null;
+  }
+});
+
+const neuralModelAsset = 'assets/ai/nlu_model.json';
+
+/// Reglas en español + red neuronal propia + lo aprendido del usuario.
 final reminderInterpreterProvider = Provider<ReminderInterpreter>(
   (ref) => HybridInterpreter(
     rules: const SpanishRuleInterpreter(),
     personal: () => ref.read(personalModelProvider),
+    neural: () => ref.read(neuralTaggerProvider).value,
+    preferNeuralTitles: () => ref.read(settingsControllerProvider).neuralTitles,
   ),
 );
 

@@ -742,6 +742,23 @@ class AppLocalizationsEs extends AppLocalizations {
   String get wakeErrorMic => 'Necesito permiso para usar el micrófono.';
 
   @override
+  String get wakeEngine => 'Detector';
+
+  @override
+  String get wakeEngineOwn => 'Propio';
+
+  @override
+  String get wakeEngineVosk => 'Vosk';
+
+  @override
+  String get wakeEngineOwnNote =>
+      'Detector propio de Viernes: ligero y sin descargas.';
+
+  @override
+  String get wakeEngineVoskNote =>
+      'Modelo general de voz (38 MB). Úsalo si el propio no te reconoce bien.';
+
+  @override
   String get wakeErrorDownload =>
       'No se pudo descargar el modelo de voz. Revisa tu conexión e inténtalo de nuevo.';
 

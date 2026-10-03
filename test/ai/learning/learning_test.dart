@@ -174,7 +174,7 @@ void main() {
         now,
       );
       expect(result.reminder.category, ReminderCategory.personal);
-      expect(result.interpreterVersion, startsWith('hybrid-1.0+rules'));
+      expect(result.interpreterVersion, startsWith('hybrid-1.1+rules'));
     });
 
     test('"en la tarde" usa la hora habitual del usuario', () async {

@@ -42,6 +42,12 @@ class SettingsRepository {
       wakeSensitivity:
           _prefs.getDouble('${_prefix}wakeSensitivity') ?? d.wakeSensitivity,
       personalLearning: _bool('personalLearning') ?? d.personalLearning,
+      neuralTitles: _bool('neuralTitles') ?? d.neuralTitles,
+      wakeEngine: enumByName(
+        WakeEngine.values,
+        _prefs.getString('${_prefix}wakeEngine') ?? '',
+        d.wakeEngine,
+      ),
     );
   }
 
@@ -66,12 +72,14 @@ class SettingsRepository {
       _setBool('wakeWordEnabled', s.wakeWordEnabled),
       _prefs.setDouble('${_prefix}wakeSensitivity', s.wakeSensitivity),
       _setBool('personalLearning', s.personalLearning),
+      _setBool('neuralTitles', s.neuralTitles),
+      _prefs.setString('${_prefix}wakeEngine', s.wakeEngine.name),
     ]);
   }
 
   /// Ajustes que dependen del teléfono (permisos, modelo descargado) y no
   /// viajan con la cuenta.
-  static const _deviceOnly = {'wakeWordEnabled'};
+  static const _deviceOnly = {'wakeWordEnabled', 'wakeEngine'};
 
   /// Preferencias para guardar en la cuenta.
   Map<String, Object?> exportForSync() => {
