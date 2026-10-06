@@ -48,6 +48,7 @@ class AppSettings {
     this.wakeEngine = WakeEngine.own,
     this.neuralTitles = false,
     this.wakeChime = true,
+    this.recordedVoice = true,
     this.personalLearning = true,
     this.includeCalendar = false,
     this.speakBriefing = true,
@@ -122,6 +123,9 @@ class AppSettings {
   /// Sonido corto al oír «Viernes», antes de «Te escucho».
   final bool wakeChime;
 
+  /// Usar la voz grabada (assets/voice) en las frases que existan.
+  final bool recordedVoice;
+
   /// Que Viernes aprenda de los recordatorios del usuario (categorías,
   /// horarios, anticipación). Todo ocurre en el teléfono.
   final bool personalLearning;
@@ -191,6 +195,7 @@ class AppSettings {
     WakeEngine? wakeEngine,
     bool? neuralTitles,
     bool? wakeChime,
+    bool? recordedVoice,
     bool? personalLearning,
     bool? includeCalendar,
     bool? speakBriefing,
@@ -221,6 +226,7 @@ class AppSettings {
     wakeEngine: wakeEngine ?? this.wakeEngine,
     neuralTitles: neuralTitles ?? this.neuralTitles,
     wakeChime: wakeChime ?? this.wakeChime,
+    recordedVoice: recordedVoice ?? this.recordedVoice,
     personalLearning: personalLearning ?? this.personalLearning,
     includeCalendar: includeCalendar ?? this.includeCalendar,
     speakBriefing: speakBriefing ?? this.speakBriefing,

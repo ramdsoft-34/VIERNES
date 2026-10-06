@@ -44,6 +44,7 @@ class SettingsRepository {
       personalLearning: _bool('personalLearning') ?? d.personalLearning,
       neuralTitles: _bool('neuralTitles') ?? d.neuralTitles,
       wakeChime: _bool('wakeChime') ?? d.wakeChime,
+      recordedVoice: _bool('recordedVoice') ?? d.recordedVoice,
       wakeEngine: enumByName(
         WakeEngine.values,
         _prefs.getString('${_prefix}wakeEngine') ?? '',
@@ -87,6 +88,7 @@ class SettingsRepository {
       _setBool('personalLearning', s.personalLearning),
       _setBool('neuralTitles', s.neuralTitles),
       _setBool('wakeChime', s.wakeChime),
+      _setBool('recordedVoice', s.recordedVoice),
       _prefs.setString('${_prefix}wakeEngine', s.wakeEngine.name),
       _setBool('includeCalendar', s.includeCalendar),
       _setBool('speakBriefing', s.speakBriefing),

@@ -29,6 +29,9 @@ abstract final class AppRoutes {
   static const sharedListPath = '/lista/:id';
   static String sharedList(String id) => '/lista/$id';
 
+  /// Escuchar las frases grabadas con la voz propia.
+  static const recordedVoice = '/voz-grabada';
+
   /// Registrar la voz para la activación con «Viernes».
   static const voiceEnrollment = '/voz';
 

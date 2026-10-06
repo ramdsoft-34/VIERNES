@@ -2,7 +2,7 @@ name: viernes
 description: "Viernes — asistente personal de recordatorios por voz que hace seguimiento hasta que confirmas cada tarea."
 publish_to: 'none'
 
-version: 0.12.0+13
+version: 0.12.1+14
 
 environment:
   sdk: ^3.12.2
@@ -57,6 +57,8 @@ flutter:
   assets:
     # Intérprete neuronal propio (entrenado con training/nlu).
     - assets/ai/nlu_model.json
+    # Voz propia: frases grabadas (training/voice). No se suben a GitHub.
+    - assets/voice/
 
   # Geist y Geist Mono (Vercel, licencia OFL: assets/fonts/OFL.txt).
   fonts:

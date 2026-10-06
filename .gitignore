@@ -52,3 +52,13 @@ app.*.map.json
 
 # Salidas de Gradle
 /android/build/
+
+# Voz grabada de una persona: queda solo en este equipo.
+/assets/voice/*.m4a
+/assets/voice/manifest.json
+
+# Muestra de la voz grabada (persona real): solo local.
+/training/voice/muestra-voz-viernes.m4a
+
+# Caché del despliegue de Firebase.
+/.firebase/

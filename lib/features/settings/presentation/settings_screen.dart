@@ -185,6 +185,13 @@ class SettingsScreen extends ConsumerWidget {
                       update((s) => s.copyWith(voiceConfirmation: v)),
                 ),
                 const AssistantTiles(),
+                ListTile(
+                  leading: const Icon(Icons.graphic_eq_rounded),
+                  title: Text(l10n.recordedVoiceTitle),
+                  subtitle: Text(l10n.recordedVoiceTile),
+                  trailing: const Icon(Icons.chevron_right_rounded),
+                  onTap: () => unawaited(context.push(AppRoutes.recordedVoice)),
+                ),
               ],
             ),
             SectionHeader.compact(l10n.settingsSectionPrivacy),

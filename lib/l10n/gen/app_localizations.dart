@@ -1972,6 +1972,66 @@ abstract class AppLocalizations {
   /// **'cancelado'**
   String get sentCancelled;
 
+  /// No description provided for @recordedVoiceTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Voz grabada'**
+  String get recordedVoiceTitle;
+
+  /// No description provided for @recordedVoiceTile.
+  ///
+  /// In es, this message translates to:
+  /// **'Escucha las frases grabadas y elige si Viernes las usa'**
+  String get recordedVoiceTile;
+
+  /// No description provided for @recordedVoiceUse.
+  ///
+  /// In es, this message translates to:
+  /// **'Usar la voz grabada'**
+  String get recordedVoiceUse;
+
+  /// No description provided for @recordedVoiceUseNote.
+  ///
+  /// In es, this message translates to:
+  /// **'Cuando Viernes diga una frase grabada, suena la grabación. Lo demás lo dice la voz del teléfono.'**
+  String get recordedVoiceUseNote;
+
+  /// No description provided for @recordedVoiceEmpty.
+  ///
+  /// In es, this message translates to:
+  /// **'Esta versión no trae frases grabadas.'**
+  String get recordedVoiceEmpty;
+
+  /// No description provided for @recordedVoiceCount.
+  ///
+  /// In es, this message translates to:
+  /// **'{count} frases · {minutes} min de voz'**
+  String recordedVoiceCount(int count, String minutes);
+
+  /// No description provided for @recordedVoicePlayAll.
+  ///
+  /// In es, this message translates to:
+  /// **'Escuchar todas'**
+  String get recordedVoicePlayAll;
+
+  /// No description provided for @recordedVoiceStop.
+  ///
+  /// In es, this message translates to:
+  /// **'Detener'**
+  String get recordedVoiceStop;
+
+  /// No description provided for @recordedVoiceCompare.
+  ///
+  /// In es, this message translates to:
+  /// **'Comparar con la voz del teléfono'**
+  String get recordedVoiceCompare;
+
+  /// No description provided for @recordedVoiceSearch.
+  ///
+  /// In es, this message translates to:
+  /// **'Buscar una frase'**
+  String get recordedVoiceSearch;
+
   /// No description provided for @homeVoiceSetup.
   ///
   /// In es, this message translates to:

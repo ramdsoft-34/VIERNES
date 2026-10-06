@@ -1138,6 +1138,40 @@ class AppLocalizationsEs extends AppLocalizations {
   String get sentCancelled => 'cancelado';
 
   @override
+  String get recordedVoiceTitle => 'Voz grabada';
+
+  @override
+  String get recordedVoiceTile =>
+      'Escucha las frases grabadas y elige si Viernes las usa';
+
+  @override
+  String get recordedVoiceUse => 'Usar la voz grabada';
+
+  @override
+  String get recordedVoiceUseNote =>
+      'Cuando Viernes diga una frase grabada, suena la grabación. Lo demás lo dice la voz del teléfono.';
+
+  @override
+  String get recordedVoiceEmpty => 'Esta versión no trae frases grabadas.';
+
+  @override
+  String recordedVoiceCount(int count, String minutes) {
+    return '$count frases · $minutes min de voz';
+  }
+
+  @override
+  String get recordedVoicePlayAll => 'Escuchar todas';
+
+  @override
+  String get recordedVoiceStop => 'Detener';
+
+  @override
+  String get recordedVoiceCompare => 'Comparar con la voz del teléfono';
+
+  @override
+  String get recordedVoiceSearch => 'Buscar una frase';
+
+  @override
   String get homeVoiceSetup => 'Registra tu voz';
 
   @override

@@ -19,6 +19,7 @@ import 'package:viernes/features/settings/presentation/settings_screen.dart';
 import 'package:viernes/features/sharing/presentation/friend_invite_screen.dart';
 import 'package:viernes/features/sharing/presentation/shared_list_screen.dart';
 import 'package:viernes/features/sharing/presentation/sharing_screen.dart';
+import 'package:viernes/features/voice_assistant/presentation/recorded_voice_screen.dart';
 import 'package:viernes/features/voice_assistant/presentation/voice_enrollment_screen.dart';
 
 final rootNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'root');
@@ -63,6 +64,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => SharingScreen(
           initialTab: state.uri.queryParameters['tab'] == 'contactos' ? 2 : 0,
         ),
+      ),
+      GoRoute(
+        path: AppRoutes.recordedVoice,
+        parentNavigatorKey: rootNavigatorKey,
+        builder: (context, state) => const RecordedVoiceScreen(),
       ),
       GoRoute(
         path: AppRoutes.voiceEnrollment,

@@ -3,6 +3,16 @@
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/);
 versionado [semántico](https://semver.org/lang/es/).
 
+## [0.12.1] — Prueba de la voz grabada
+
+### Agregado
+- **Voz grabada** (Ajustes → Asistente → Voz grabada): las frases 1–180 del
+  guion, recortadas, niveladas y con la mejor de dos tomas. Se pueden
+  escuchar una por una o todas, comparar con la voz del teléfono y elegir si
+  Viernes las usa. Cuando Viernes dice una frase grabada, suena la
+  grabación; lo demás sigue con la voz del sistema.
+- Informe y scripts del procesamiento en `training/voice/`.
+
 ## [0.12.0] — Tu voz, amigos por enlace y sincronización arreglada
 
 ### Agregado

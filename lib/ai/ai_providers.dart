@@ -12,6 +12,7 @@ import 'package:viernes/ai/nlu/interpretation.dart';
 import 'package:viernes/ai/nlu/ml/neural_tagger.dart';
 import 'package:viernes/ai/nlu/reminder_interpreter.dart';
 import 'package:viernes/ai/speech/android_speech_recognizer.dart';
+import 'package:viernes/ai/speech/recorded_voice.dart';
 import 'package:viernes/ai/speech/speech_recognizer.dart';
 import 'package:viernes/ai/speech/tts_speaker.dart';
 import 'package:viernes/app/providers.dart';
@@ -28,7 +29,19 @@ final speechRecognizerProvider = Provider<SpeechRecognizer>(
   (ref) => AndroidSpeechRecognizer(),
 );
 
-final speakerProvider = Provider<Speaker>((ref) => TtsSpeaker());
+/// Frases grabadas con la voz propia (vacía si la compilación no las trae).
+final recordedVoiceProvider = FutureProvider<RecordedVoice>(
+  (ref) => RecordedVoice.load(),
+);
+
+/// Voz de Viernes: la grabada cuando existe la frase; si no, la del sistema.
+final speakerProvider = Provider<Speaker>(
+  (ref) => RecordedVoiceSpeaker(
+    fallback: TtsSpeaker(),
+    voice: ref.read(recordedVoiceProvider.future),
+    enabled: () => ref.read(settingsControllerProvider).recordedVoice,
+  ),
+);
 
 /// Red neuronal propia (entrenada en Colab, ver `training/nlu`). Nula si
 /// esta versión no la trae o no se pudo cargar.
